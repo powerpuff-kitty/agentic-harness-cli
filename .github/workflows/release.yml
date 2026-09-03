@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: ah-linux-x86_64
+          - os: macos-15-intel
+            asset: ah-macos-x86_64
+          - os: macos-latest
+            asset: ah-macos-arm64
+          - os: windows-latest
+            asset: ah-windows-x86_64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: powerpuff-kitty/agentic-harness
+          ref: c987ef17bdd6dca4515f866bc5c03eaf9e0ae88e
+          path: upstream/agentic-harness
+      - uses: actions/checkout@v4
+        with:
+          repository: powerpuff-kitty/agentic-harness-agents
+          ref: 7cdbf26303fbbd3f287419951f2f3e8aff37ed8f
+          path: upstream/agentic-harness-agents
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --all-targets
+      - run: cargo build --release
+      - shell: bash
+        run: |
+          mkdir -p dist
+          if [ -f target/release/ah.exe ]; then cp target/release/ah.exe "dist/${{ matrix.asset }}"; else cp target/release/ah "dist/${{ matrix.asset }}"; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: gh release create '${{ github.ref_name }}' dist/* --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}

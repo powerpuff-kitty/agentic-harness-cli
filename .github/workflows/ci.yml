@@ -1,0 +1,31 @@
+name: CLI CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: powerpuff-kitty/agentic-harness
+          ref: c987ef17bdd6dca4515f866bc5c03eaf9e0ae88e
+          path: upstream/agentic-harness
+      - uses: actions/checkout@v4
+        with:
+          repository: powerpuff-kitty/agentic-harness-agents
+          ref: 7cdbf26303fbbd3f287419951f2f3e8aff37ed8f
+          path: upstream/agentic-harness-agents
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check --all-targets
+      - run: cargo test --all-targets
+      - run: cargo run --quiet -- validate .
+      - run: cargo run --quiet -- harness-audit upstream/agentic-harness/templates/base
+      - run: cargo run --quiet -- audit . > /tmp/audit.json || test $? -eq 1
