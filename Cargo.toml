@@ -1,0 +1,19 @@
+[package]
+name = "agentic-harness-cli"
+version = "0.1.0"
+edition = "2024"
+description = "Native Agentic Harness CLI"
+build = "build.rs"
+
+[[bin]]
+name = "ah"
+path = "src/main.rs"
+
+[dependencies]
+include_dir = "0.7"
+serde_json = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
