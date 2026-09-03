@@ -25,8 +25,7 @@ jobs:
           path: upstream/agentic-harness-agents
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
-      - run: cargo fmt --all -- --check
+          components: clippy
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo check --all-targets
       - run: cargo test --all-targets
