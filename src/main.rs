@@ -8,12 +8,17 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-static TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/templates");
-static PACKS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/packs");
-static SKILLS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness-agents/skills");
+static BASE: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/base");
+static WEB_APP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/web-app");
+static BACKEND_API: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/backend-api");
+static SAAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/saas");
+static MONOREPO: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/monorepo");
+static LIBRARY_SDK: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/library-sdk");
+static PACKS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/modules/packs");
+static POLICIES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/modules/policies");
+static PROFILES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/modules/profiles");
 static PRESETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/presets");
-static POLICIES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/policies");
-static PROFILES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/profiles");
+static SKILLS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness-agents/skills");
 
 const SKIP: &[&str] = &[".git", "node_modules", "vendor", "dist", "build", ".next", ".nuxt", "target", ".venv", "venv", "coverage", "upstream"];
 const CODE_EXT: &[&str] = &["py", "js", "mjs", "cjs", "ts", "tsx", "jsx", "vue", "rs", "go", "java", "kt", "swift", "rb", "php", "cs", "c", "cc", "cpp", "h", "hpp"];
@@ -37,6 +42,18 @@ fn embedded_dir<'a>(dir: &'a Dir<'a>, path: &str) -> Option<&'a Dir<'a>> {
     dir.get_dir(path)
 }
 
+fn boilerplate_dir(name: &str) -> &'static Dir<'static> {
+    match name {
+        "base" => &BASE,
+        "web-app" => &WEB_APP,
+        "backend-api" => &BACKEND_API,
+        "saas" => &SAAS,
+        "monorepo" => &MONOREPO,
+        "library-sdk" => &LIBRARY_SDK,
+        _ => die(format!("unknown boilerplate: {name}")),
+    }
+}
+
 fn copy_embedded(dir: &Dir<'_>, dst: &Path, preserve: bool) -> io::Result<Vec<String>> {
     fn walk(dir: &Dir<'_>, root: &Path, dst: &Path, preserve: bool, out: &mut Vec<String>) -> io::Result<()> {
         for entry in dir.entries() {
@@ -44,7 +61,7 @@ fn copy_embedded(dir: &Dir<'_>, dst: &Path, preserve: bool) -> io::Result<Vec<St
                 DirEntry::Dir(child) => walk(child, root, dst, preserve, out)?,
                 DirEntry::File(file) => {
                     let rel = file.path().strip_prefix(root).unwrap_or(file.path());
-                    if rel.file_name().and_then(|x| x.to_str()) == Some("template.json") {
+                    if matches!(rel.file_name().and_then(|x| x.to_str()), Some("boilerplate.json" | "template.json")) {
                         continue;
                     }
                     let target = dst.join(rel);
@@ -61,6 +78,7 @@ fn copy_embedded(dir: &Dir<'_>, dst: &Path, preserve: bool) -> io::Result<Vec<St
         }
         Ok(())
     }
+
     let mut out = Vec::new();
     walk(dir, dir.path(), dst, preserve, &mut out)?;
     Ok(out)
@@ -71,9 +89,22 @@ fn dedupe(items: &mut Vec<String>) {
     items.retain(|x| seen.insert(x.clone()));
 }
 
+fn strings(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
+        .unwrap_or_default()
+}
+
+fn boilerplate_meta(name: &str) -> Value {
+    let dir = boilerplate_dir(name);
+    let text = embedded_text(dir, "boilerplate.json").unwrap_or_else(|| die(format!("{name} missing boilerplate.json")));
+    serde_json::from_str(&text).unwrap_or_else(|e| die(format!("invalid {name}/boilerplate.json: {e}")))
+}
+
 #[derive(Default)]
 struct ComposeOpts {
-    template: String,
+    boilerplate: String,
     preset: Option<String>,
     profile: Option<String>,
     packs: Vec<String>,
@@ -83,38 +114,7 @@ struct ComposeOpts {
     maturity: Option<String>,
 }
 
-fn strings(value: Option<&Value>) -> Vec<String> {
-    value
-        .and_then(Value::as_array)
-        .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
-        .unwrap_or_default()
-}
-
-fn template_meta(name: &str) -> Value {
-    let path = format!("{name}/template.json");
-    let text = embedded_text(&TEMPLATES, &path).unwrap_or_else(|| die(format!("unknown template: {name}")));
-    serde_json::from_str(&text).unwrap_or_else(|e| die(format!("invalid {path}: {e}")))
-}
-
-fn template_chain(mut name: String) -> Vec<String> {
-    let mut chain = Vec::new();
-    let mut seen = BTreeSet::new();
-    loop {
-        if !seen.insert(name.clone()) {
-            die("template inheritance cycle");
-        }
-        let meta = template_meta(&name);
-        chain.push(name.clone());
-        match meta.get("extends").and_then(Value::as_str) {
-            Some(parent) => name = parent.to_string(),
-            None => break,
-        }
-    }
-    chain.reverse();
-    chain
-}
-
-fn resolve(mut o: ComposeOpts) -> (Vec<String>, ComposeOpts) {
+fn resolve(mut o: ComposeOpts) -> ComposeOpts {
     if let Some(profile) = &o.profile {
         let path = format!("{profile}/profile.json");
         let text = embedded_text(&PROFILES, &path).unwrap_or_else(|| die(format!("unknown profile: {profile}")));
@@ -131,25 +131,32 @@ fn resolve(mut o: ComposeOpts) -> (Vec<String>, ComposeOpts) {
         let path = format!("{preset}.json");
         let text = embedded_text(&PRESETS, &path).unwrap_or_else(|| die(format!("unknown preset: {preset}")));
         let data: Value = serde_json::from_str(&text).unwrap_or_else(|e| die(format!("invalid preset {preset}: {e}")));
-        if let Some(template) = data.get("template").and_then(Value::as_str) {
-            o.template = template.to_string();
+        let selected = data
+            .get("boilerplate")
+            .or_else(|| data.get("template"))
+            .and_then(Value::as_str);
+        if let Some(name) = selected {
+            o.boilerplate = name.to_string();
         }
         o.packs.extend(strings(data.get("packs")));
         o.skills.extend(strings(data.get("skills")));
+        o.policies.extend(strings(data.get("policies")));
+        if o.profile.is_none() {
+            o.profile = data.get("profile").and_then(Value::as_str).map(str::to_string);
+        }
     }
 
-    let chain = template_chain(o.template.clone());
-    let leaf = template_meta(chain.last().unwrap());
+    let meta = boilerplate_meta(&o.boilerplate);
     if o.packs.is_empty() {
-        o.packs = strings(leaf.get("default_packs"));
+        o.packs = strings(meta.get("default_packs"));
     }
     if o.skills.is_empty() {
-        o.skills = strings(leaf.get("default_skills"));
+        o.skills = strings(meta.get("default_skills"));
     }
     dedupe(&mut o.packs);
     dedupe(&mut o.skills);
     dedupe(&mut o.policies);
-    (chain, o)
+    o
 }
 
 fn patch_manifest(path: &Path, name: Option<&str>, maturity: Option<&str>, packs: &[String]) -> io::Result<()> {
@@ -219,6 +226,7 @@ fn install_modules(target: &Path, packs: &[String], skills: &[String], policies:
             copy_embedded(dir, &dst, false)?;
         }
     }
+
     for name in policies {
         let path = format!("{name}.md");
         let file = POLICIES.get_file(&path).unwrap_or_else(|| die(format!("unknown policy: {name}")));
@@ -232,19 +240,13 @@ fn install_modules(target: &Path, packs: &[String], skills: &[String], policies:
 }
 
 fn compose(target: &Path, o: ComposeOpts, preserve: bool) -> io::Result<Value> {
-    let (chain, o) = resolve(o);
-    let mut created = Vec::new();
-    let base = embedded_dir(&TEMPLATES, "base").unwrap();
-    created.extend(copy_embedded(base, target, true)?);
-    for name in chain.iter().filter(|n| n.as_str() != "base") {
-        if let Some(overlay) = embedded_dir(&TEMPLATES, &format!("{name}/overlay")) {
-            created.extend(copy_embedded(overlay, target, preserve)?);
-        }
-    }
+    let o = resolve(o);
+    let selected = boilerplate_dir(&o.boilerplate);
+    let created = copy_embedded(selected, target, preserve)?;
     install_modules(target, &o.packs, &o.skills, &o.policies)?;
     patch_manifest(&target.join("agentic.yaml"), o.name.as_deref(), o.maturity.as_deref(), &o.packs)?;
     Ok(json!({
-        "templates": chain,
+        "boilerplate": o.boilerplate,
         "preset": o.preset,
         "profile": o.profile,
         "created": created,
@@ -409,8 +411,8 @@ fn dir_has_file(dir: &Dir<'_>, name: &str) -> bool {
 fn validate_repo(root: &Path) -> Value {
     let mut errors = Vec::new();
     for file in ["AGENTS.md", "agentic.yaml", "PRODUCT.md", "ARCHITECTURE.md", "DESIGN.md", "REFERENCE.md", "SECURITY.md"] {
-        if !root.join(file).exists() && TEMPLATES.get_file(format!("base/{file}")).is_none() {
-            errors.push(format!("base template missing {file}"));
+        if !root.join(file).exists() && BASE.get_file(file).is_none() {
+            errors.push(format!("base boilerplate missing {file}"));
         }
     }
     for child in PACKS.dirs() {
@@ -422,10 +424,21 @@ fn validate_repo(root: &Path) -> Value {
     for child in PROFILES.dirs() {
         if !dir_has_file(child, "profile.json") { errors.push(format!("{} missing profile.json", child.path().display())); }
     }
+    for name in ["base", "web-app", "backend-api", "saas", "monorepo", "library-sdk"] {
+        let meta = boilerplate_meta(name);
+        if meta.get("name").and_then(Value::as_str) != Some(name) {
+            errors.push(format!("boilerplate metadata mismatch: {name}"));
+        }
+        for file in ["AGENTS.md", "agentic.yaml", "PRODUCT.md", "ARCHITECTURE.md", "DESIGN.md", "REFERENCE.md", "SECURITY.md"] {
+            if boilerplate_dir(name).get_file(file).is_none() {
+                errors.push(format!("{name} is not materialized: missing {file}"));
+            }
+        }
+    }
     let manifest = if root.join("agentic.yaml").exists() {
         fs::read_to_string(root.join("agentic.yaml")).unwrap_or_default()
     } else {
-        embedded_text(&TEMPLATES, "base/agentic.yaml").unwrap_or_default()
+        embedded_text(&BASE, "agentic.yaml").unwrap_or_default()
     };
     for token in ["version:", "project:", "maturity:", "packs:", "agent:", "forbidden:"] {
         if !manifest.contains(token) { errors.push(format!("agentic manifest missing {token}")); }
@@ -444,7 +457,7 @@ fn harness_audit(root: &Path) -> Value {
 }
 
 fn usage(prog: &str) {
-    println!("Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  init TARGET [--template NAME] [--preset NAME] [--profile NAME] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]");
+    println!("Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  init TARGET [--boilerplate NAME] [--preset NAME] [--profile NAME] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]\n\ncompatibility:\n  --template NAME is retained as an alias for --boilerplate NAME");
 }
 
 fn required_value(args: &[String], index: usize, flag: &str) -> String {
@@ -454,12 +467,16 @@ fn required_value(args: &[String], index: usize, flag: &str) -> String {
 fn parse_compose(args: &[String]) -> (PathBuf, ComposeOpts, bool) {
     if args.is_empty() { die("missing target"); }
     let target = PathBuf::from(&args[0]);
-    let mut o = ComposeOpts { template: "base".into(), ..Default::default() };
+    let mut o = ComposeOpts { boilerplate: "base".into(), ..Default::default() };
     let mut allow = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
-            "--template" => { i += 1; o.template = required_value(args, i, "--template"); }
+            "--boilerplate" | "--template" => {
+                let flag = args[i].clone();
+                i += 1;
+                o.boilerplate = required_value(args, i, &flag);
+            }
             "--preset" => { i += 1; o.preset = Some(required_value(args, i, "--preset")); }
             "--profile" => { i += 1; o.profile = Some(required_value(args, i, "--profile")); }
             "--pack" => { i += 1; o.packs.push(required_value(args, i, "--pack")); }
@@ -586,13 +603,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn embedded_base_exists() {
-        assert!(TEMPLATES.get_file("base/AGENTS.md").is_some());
-    }
-
-    #[test]
-    fn chain_works() {
-        assert_eq!(template_chain("web-app".into()).first().unwrap(), "base");
+    fn embedded_boilerplates_are_materialized() {
+        for name in ["base", "web-app", "backend-api", "saas", "monorepo", "library-sdk"] {
+            let dir = boilerplate_dir(name);
+            assert!(dir.get_file("boilerplate.json").is_some());
+            assert!(dir.get_file("AGENTS.md").is_some());
+            assert!(dir.get_file("agentic.yaml").is_some());
+        }
     }
 
     #[test]
@@ -603,6 +620,31 @@ mod tests {
     #[test]
     fn agent_skill_exists() {
         assert!(SKILLS.get_file("agentic-app/SKILL.md").is_some());
+    }
+
+    #[test]
+    fn boilerplate_flag_and_template_alias_match() {
+        let (_, preferred, _) = parse_compose(&["x".into(), "--boilerplate".into(), "web-app".into()]);
+        let (_, legacy, _) = parse_compose(&["x".into(), "--template".into(), "web-app".into()]);
+        assert_eq!(preferred.boilerplate, legacy.boilerplate);
+    }
+
+    #[test]
+    fn preset_uses_boilerplate_field() {
+        let o = ComposeOpts { boilerplate: "base".into(), preset: Some("vue-saas".into()), ..Default::default() };
+        assert_eq!(resolve(o).boilerplate, "saas");
+    }
+
+    #[test]
+    fn generated_project_does_not_leak_boilerplate_metadata() {
+        let path = env::temp_dir().join(format!("ah-compose-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&path);
+        fs::create_dir_all(&path).unwrap();
+        let opts = ComposeOpts { boilerplate: "web-app".into(), ..Default::default() };
+        compose(&path, opts, false).unwrap();
+        assert!(!path.join("boilerplate.json").exists());
+        assert!(path.join("AGENTS.md").exists());
+        let _ = fs::remove_dir_all(path);
     }
 
     #[test]
