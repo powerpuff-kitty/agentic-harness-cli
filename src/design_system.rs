@@ -24,8 +24,11 @@ fn corpus(root: &Path) -> String {
     for path in files(root) {
         let rel = path.strip_prefix(root).unwrap_or(&path).to_string_lossy();
         out.push_str(&rel.to_ascii_lowercase()); out.push('\n');
-        if fs::metadata(&path).map(|m| m.len() <= 1_000_000).unwrap_or(false) {
-            if let Ok(text) = fs::read_to_string(&path) { out.push_str(&text.to_ascii_lowercase()); out.push('\n'); }
+        if fs::metadata(&path).map(|m| m.len() <= 1_000_000).unwrap_or(false)
+            && let Ok(text) = fs::read_to_string(&path)
+        {
+            out.push_str(&text.to_ascii_lowercase());
+            out.push('\n');
         }
     }
     out
