@@ -26,12 +26,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: powerpuff-kitty/agentic-harness
-          ref: f507ad0adfe988d1e464cc67c67a505b9d174fe6
+          ref: c8e879787803edb5dc431511725392fe4bda9dbe
           path: upstream/agentic-harness
       - uses: actions/checkout@v4
         with:
           repository: powerpuff-kitty/agentic-harness-agents
-          ref: 01838622d970841307dacfb9a3e90f9a4d71631a
+          ref: 7072d8131cf062212ce05e69dc62563ce4758e94
           path: upstream/agentic-harness-agents
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --all-targets
