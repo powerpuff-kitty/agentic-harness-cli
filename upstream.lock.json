@@ -2,10 +2,14 @@
   "format": 1,
   "canonical": {
     "repository": "powerpuff-kitty/agentic-harness",
-    "commit": "831ea9e773ce1e466e07dda0dd3ddc9792c6a892"
+    "commit": "c8e879787803edb5dc431511725392fe4bda9dbe"
   },
   "agents": {
     "repository": "powerpuff-kitty/agentic-harness-agents",
     "commit": "56ff0a2d85a04c1ab50cbdd46b0b451398c35640"
+  },
+  "model_registry": {
+    "repository": "powerpuff-kitty/agentic-harness",
+    "commit": "831ea9e773ce1e466e07dda0dd3ddc9792c6a892"
   }
 }
