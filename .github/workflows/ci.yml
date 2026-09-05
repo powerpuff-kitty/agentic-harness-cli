@@ -38,7 +38,9 @@ jobs:
       - run: cargo run --quiet -- harness-audit upstream/agentic-harness/base
       - run: cargo run --quiet -- audit . > /tmp/audit.json || test $? -eq 1
       - run: cargo run --quiet --bin ah-agentic -- audit . > /tmp/agentic-audit.json
-      - run: cargo run --quiet --bin ah-agentic -- models . > /tmp/models.json
+      - run: AH_REGISTRY=upstream/agentic-harness-registry/registry/models cargo run --quiet --bin ah-agentic -- models . > /tmp/models.json
       - run: test "$(python3 -c 'import json; print(len(json.load(open("/tmp/models.json"))["models"]))')" -ge 2
       - run: ./ah agentic context . > /tmp/context.json
       - run: ./ah agentic improve . > /tmp/improve.json
+      - run: ./ah agentic models . > /tmp/wrapper-models.json
+      - run: test "$(python3 -c 'import json; print(len(json.load(open("/tmp/wrapper-models.json"))["models"]))')" -ge 2
