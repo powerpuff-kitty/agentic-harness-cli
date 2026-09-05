@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "Native Agentic Harness CLI"
 build = "build.rs"
+default-run = "ah"
 
 [[bin]]
 name = "ah"
