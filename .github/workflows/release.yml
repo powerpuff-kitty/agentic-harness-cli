@@ -31,8 +31,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: powerpuff-kitty/agentic-harness-agents
-          ref: 7072d8131cf062212ce05e69dc62563ce4758e94
+          ref: 56ff0a2d85a04c1ab50cbdd46b0b451398c35640
           path: upstream/agentic-harness-agents
+      - uses: actions/checkout@v4
+        with:
+          repository: powerpuff-kitty/agentic-harness
+          ref: 831ea9e773ce1e466e07dda0dd3ddc9792c6a892
+          path: upstream/agentic-harness-registry
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --all-targets
       - run: cargo build --release
@@ -40,10 +45,11 @@ jobs:
         run: |
           mkdir -p dist
           if [ -f target/release/ah.exe ]; then cp target/release/ah.exe "dist/${{ matrix.asset }}"; else cp target/release/ah "dist/${{ matrix.asset }}"; fi
+          if [ -f target/release/ah-agentic.exe ]; then cp target/release/ah-agentic.exe "dist/${{ matrix.asset }}-agentic.exe"; else cp target/release/ah-agentic "dist/${{ matrix.asset }}-agentic"; fi
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset }}
-          path: dist/${{ matrix.asset }}
+          path: dist/*
   publish:
     needs: build
     runs-on: ubuntu-latest

@@ -6,8 +6,9 @@ LOCK="$ROOT/upstream.lock.json"
 
 CANONICAL_COMMIT=$(sed -n '/"canonical"/,/}/s/.*"commit": "\([^"]*\)".*/\1/p' "$LOCK")
 AGENTS_COMMIT=$(sed -n '/"agents"/,/}/s/.*"commit": "\([^"]*\)".*/\1/p' "$LOCK")
+REGISTRY_COMMIT=$(sed -n '/"model_registry"/,/}/s/.*"commit": "\([^"]*\)".*/\1/p' "$LOCK")
 
-rm -rf "$ROOT/upstream/agentic-harness" "$ROOT/upstream/agentic-harness-agents"
+rm -rf "$ROOT/upstream/agentic-harness" "$ROOT/upstream/agentic-harness-agents" "$ROOT/upstream/agentic-harness-registry"
 mkdir -p "$ROOT/upstream"
 
 git clone --quiet https://github.com/powerpuff-kitty/agentic-harness.git "$ROOT/upstream/agentic-harness"
@@ -16,4 +17,7 @@ git -C "$ROOT/upstream/agentic-harness" checkout --quiet "$CANONICAL_COMMIT"
 git clone --quiet https://github.com/powerpuff-kitty/agentic-harness-agents.git "$ROOT/upstream/agentic-harness-agents"
 git -C "$ROOT/upstream/agentic-harness-agents" checkout --quiet "$AGENTS_COMMIT"
 
-echo "Synced canonical=$CANONICAL_COMMIT agents=$AGENTS_COMMIT"
+git clone --quiet https://github.com/powerpuff-kitty/agentic-harness.git "$ROOT/upstream/agentic-harness-registry"
+git -C "$ROOT/upstream/agentic-harness-registry" checkout --quiet "$REGISTRY_COMMIT"
+
+echo "Synced canonical=$CANONICAL_COMMIT agents=$AGENTS_COMMIT model_registry=$REGISTRY_COMMIT"
