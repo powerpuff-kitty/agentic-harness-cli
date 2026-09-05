@@ -23,7 +23,7 @@ jobs:
           repository: powerpuff-kitty/agentic-harness-agents
           ref: 56ff0a2d85a04c1ab50cbdd46b0b451398c35640
           path: upstream/agentic-harness-agents
-      - run: ./scripts/prepare-upstream.sh
+      - run: sh ./scripts/prepare-upstream.sh
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
