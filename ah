@@ -1,11 +1,24 @@
 #!/usr/bin/env sh
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+if [ "${1:-}" = "agentic" ]; then
+  shift
+  if [ -x "$ROOT/target/release/ah-agentic" ]; then exec "$ROOT/target/release/ah-agentic" "$@"; fi
+  if [ -x "$ROOT/target/debug/ah-agentic" ]; then exec "$ROOT/target/debug/ah-agentic" "$@"; fi
+  if command -v cargo >/dev/null 2>&1; then
+    if [ ! -d "$ROOT/upstream/agentic-harness" ]; then "$ROOT/scripts/sync-upstream.sh"; fi
+    exec cargo run --quiet --manifest-path "$ROOT/Cargo.toml" --bin ah-agentic -- "$@"
+  fi
+  echo "Agentic Harness agentic analyzer is not built. Install a release binary or build with Cargo." >&2
+  exit 127
+fi
+
 if [ -x "$ROOT/target/release/ah" ]; then exec "$ROOT/target/release/ah" "$@"; fi
 if [ -x "$ROOT/target/debug/ah" ]; then exec "$ROOT/target/debug/ah" "$@"; fi
 if command -v cargo >/dev/null 2>&1; then
   if [ ! -d "$ROOT/upstream/agentic-harness" ]; then "$ROOT/scripts/sync-upstream.sh"; fi
-  exec cargo run --quiet --manifest-path "$ROOT/Cargo.toml" -- "$@"
+  exec cargo run --quiet --manifest-path "$ROOT/Cargo.toml" --bin ah -- "$@"
 fi
 echo "Agentic Harness CLI is not built. Install a release binary or build with Cargo." >&2
 exit 127
