@@ -33,6 +33,8 @@ jobs:
           repository: powerpuff-kitty/agentic-harness-agents
           ref: 56ff0a2d85a04c1ab50cbdd46b0b451398c35640
           path: upstream/agentic-harness-agents
+      - shell: bash
+        run: ./scripts/prepare-upstream.sh
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --all-targets
       - run: cargo build --release
