@@ -9,6 +9,10 @@ build = "build.rs"
 name = "ah"
 path = "src/main.rs"
 
+[[bin]]
+name = "ah-agentic"
+path = "src/bin/ah-agentic.rs"
+
 [dependencies]
 include_dir = "0.7"
 serde_json = "1"
