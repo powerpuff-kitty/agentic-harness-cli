@@ -16,5 +16,5 @@ git -C "$ROOT/upstream/agentic-harness" checkout --quiet "$CANONICAL_COMMIT"
 git clone --quiet https://github.com/powerpuff-kitty/agentic-harness-agents.git "$ROOT/upstream/agentic-harness-agents"
 git -C "$ROOT/upstream/agentic-harness-agents" checkout --quiet "$AGENTS_COMMIT"
 
-"$ROOT/scripts/prepare-upstream.sh"
+sh "$ROOT/scripts/prepare-upstream.sh"
 echo "Synced canonical=$CANONICAL_COMMIT agents=$AGENTS_COMMIT"
