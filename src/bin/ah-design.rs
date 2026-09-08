@@ -2,6 +2,8 @@
 mod design_analysis;
 #[path = "../design_diff.rs"]
 mod design_diff;
+#[path = "../design_prompt.rs"]
+mod design_prompt;
 
 use serde_json::Value;
 use std::env;
@@ -15,19 +17,23 @@ fn die(message: impl AsRef<str>) -> ! {
 
 fn usage(program: &str) {
     println!(
-        "Agentic Harness Design (experimental)\n\nusage:\n  {program} analyze [TARGET] [--level static] [--output FILE]\n  {program} diff BEFORE.json AFTER.json [--output FILE]\n\ncommands:\n  analyze    deterministically inspect static design values and emit design-analysis format v1\n  diff       compare two design-analysis v1 artifacts and report measurable drift"
+        "Agentic Harness Design (experimental)\n\nusage:\n  {program} analyze [TARGET] [--level static] [--output FILE]\n  {program} diff BEFORE.json AFTER.json [--output FILE]\n  {program} prompt --genome DESIGN-GENOME.json --task DESIGN-TASK.json [--output FILE]\n\ncommands:\n  analyze    deterministically inspect static design values and emit design-analysis format v1\n  diff       compare two design-analysis v1 artifacts and report measurable drift\n  prompt     deterministically compile an approved Design Genome + structured task into a model-neutral implementation brief"
     );
 }
 
-fn write_output(value: &Value, output: Option<PathBuf>) {
+fn write_json_output(value: &Value, output: Option<PathBuf>) {
     let serialized = serde_json::to_string_pretty(value).expect("design output serialization must succeed") + "\n";
+    write_text_output(&serialized, output);
+}
+
+fn write_text_output(text: &str, output: Option<PathBuf>) {
     if let Some(path) = output {
         if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
             fs::create_dir_all(parent).unwrap_or_else(|error| die(error.to_string()));
         }
-        fs::write(&path, serialized.as_bytes()).unwrap_or_else(|error| die(error.to_string()));
+        fs::write(&path, text.as_bytes()).unwrap_or_else(|error| die(error.to_string()));
     }
-    print!("{serialized}");
+    print!("{text}");
 }
 
 fn read_json(path: &Path) -> Value {
@@ -76,7 +82,7 @@ fn main() {
                 die("target does not exist");
             }
 
-            write_output(&design_analysis::analyze_static(&target), output);
+            write_json_output(&design_analysis::analyze_static(&target), output);
         }
         "diff" => {
             let mut inputs = Vec::new();
@@ -102,7 +108,41 @@ fn main() {
                 Ok(report) => report,
                 Err(error) => die(error),
             };
-            write_output(&report, output);
+            write_json_output(&report, output);
+        }
+        "prompt" => {
+            let mut genome: Option<PathBuf> = None;
+            let mut task: Option<PathBuf> = None;
+            let mut output: Option<PathBuf> = None;
+            let mut i = 2;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--genome" => {
+                        i += 1;
+                        genome = Some(PathBuf::from(args.get(i).cloned().unwrap_or_else(|| die("--genome requires a value"))));
+                    }
+                    "--task" => {
+                        i += 1;
+                        task = Some(PathBuf::from(args.get(i).cloned().unwrap_or_else(|| die("--task requires a value"))));
+                    }
+                    "--output" => {
+                        i += 1;
+                        output = Some(PathBuf::from(args.get(i).cloned().unwrap_or_else(|| die("--output requires a value"))));
+                    }
+                    option => die(format!("unknown prompt option: {option}")),
+                }
+                i += 1;
+            }
+
+            let genome_path = genome.unwrap_or_else(|| die("prompt requires --genome DESIGN-GENOME.json"));
+            let task_path = task.unwrap_or_else(|| die("prompt requires --task DESIGN-TASK.json"));
+            let genome = read_json(&genome_path);
+            let task = read_json(&task_path);
+            let prompt = match design_prompt::compile_prompt(&genome, &task) {
+                Ok(prompt) => prompt,
+                Err(error) => die(error),
+            };
+            write_text_output(&prompt, output);
         }
         _ => {
             usage(program);
