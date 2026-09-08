@@ -1,6 +1,9 @@
 #[path = "../design_analysis.rs"]
 mod design_analysis;
+#[path = "../design_diff.rs"]
+mod design_diff;
 
+use serde_json::Value;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -12,8 +15,24 @@ fn die(message: impl AsRef<str>) -> ! {
 
 fn usage(program: &str) {
     println!(
-        "Agentic Harness Design (experimental)\n\nusage: {program} analyze [TARGET] [--level static] [--output FILE]\n\ncommands:\n  analyze    deterministically inspect static design values and emit design-analysis format v1"
+        "Agentic Harness Design (experimental)\n\nusage:\n  {program} analyze [TARGET] [--level static] [--output FILE]\n  {program} diff BEFORE.json AFTER.json [--output FILE]\n\ncommands:\n  analyze    deterministically inspect static design values and emit design-analysis format v1\n  diff       compare two design-analysis v1 artifacts and report measurable drift"
     );
+}
+
+fn write_output(value: &Value, output: Option<PathBuf>) {
+    let serialized = serde_json::to_string_pretty(value).expect("design output serialization must succeed") + "\n";
+    if let Some(path) = output {
+        if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+            fs::create_dir_all(parent).unwrap_or_else(|error| die(error.to_string()));
+        }
+        fs::write(&path, serialized.as_bytes()).unwrap_or_else(|error| die(error.to_string()));
+    }
+    print!("{serialized}");
+}
+
+fn read_json(path: &Path) -> Value {
+    let text = fs::read_to_string(path).unwrap_or_else(|error| die(format!("could not read {}: {error}", path.display())));
+    serde_json::from_str(&text).unwrap_or_else(|error| die(format!("{} is not valid JSON: {error}", path.display())))
 }
 
 fn main() {
@@ -57,15 +76,30 @@ fn main() {
                 die("target does not exist");
             }
 
-            let report = design_analysis::analyze_static(&target);
-            let serialized = serde_json::to_string_pretty(&report).expect("design report serialization must succeed") + "\n";
-            if let Some(path) = output {
-                if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
-                    fs::create_dir_all(parent).unwrap_or_else(|error| die(error.to_string()));
+            write_output(&design_analysis::analyze_static(&target), output);
+        }
+        "diff" => {
+            let mut inputs = Vec::new();
+            let mut output: Option<PathBuf> = None;
+            let mut i = 2;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--output" => {
+                        i += 1;
+                        output = Some(PathBuf::from(args.get(i).cloned().unwrap_or_else(|| die("--output requires a value"))));
+                    }
+                    option if option.starts_with('-') => die(format!("unknown option: {option}")),
+                    path => inputs.push(PathBuf::from(path)),
                 }
-                fs::write(&path, serialized.as_bytes()).unwrap_or_else(|error| die(error.to_string()));
+                i += 1;
             }
-            print!("{serialized}");
+            if inputs.len() != 2 {
+                die("diff requires BEFORE.json and AFTER.json");
+            }
+            let before = read_json(&inputs[0]);
+            let after = read_json(&inputs[1]);
+            let report = design_diff::diff_analysis(&before, &after).unwrap_or_else(die);
+            write_output(&report, output);
         }
         _ => {
             usage(program);
