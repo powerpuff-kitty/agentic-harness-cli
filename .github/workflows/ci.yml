@@ -50,3 +50,7 @@ jobs:
       - run: ./ah design diff /tmp/design-analysis.json /tmp/design-analysis.json --output /tmp/design-diff.json > /tmp/design-diff-stdout.json
       - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-diff.json"))["kind"])')" = design-analysis-diff
       - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-diff.json"))["metadata"]["deterministic"])')" = True
+      - run: ./ah design prompt --genome tests/fixtures/design-genome.approved.json --task tests/fixtures/design-task.settings.json --output /tmp/design-prompt.md > /tmp/design-prompt-stdout.md
+      - run: grep -F 'settings.compact' /tmp/design-prompt.md
+      - run: '! grep -Fq "marketing.rule" /tmp/design-prompt.md'
+      - run: grep -F 'generic-model-neutral-v1' /tmp/design-prompt.md
