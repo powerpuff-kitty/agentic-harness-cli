@@ -77,8 +77,8 @@ fn files(root: &Path) -> Vec<PathBuf> {
     out
 }
 
-fn hex_colors(line: &str) -> Vec<String> {
-    let chars = line.as_bytes();
+fn hex_colors(text: &str) -> Vec<String> {
+    let chars = text.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
     while i < chars.len() {
@@ -95,7 +95,7 @@ fn hex_colors(line: &str) -> Vec<String> {
         let len = i - digits;
         let boundary = i == chars.len() || !chars[i].is_ascii_hexdigit();
         if boundary && matches!(len, 3 | 6 | 8) {
-            out.push(line[start..i].to_ascii_lowercase());
+            out.push(text[start..i].to_ascii_lowercase());
         }
         if i == start + 1 {
             i += 1;
@@ -104,8 +104,8 @@ fn hex_colors(line: &str) -> Vec<String> {
     out
 }
 
-fn px_values(line: &str) -> Vec<String> {
-    let bytes = line.as_bytes();
+fn px_values(text: &str) -> Vec<String> {
+    let bytes = text.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
     while i + 2 <= bytes.len() {
@@ -120,7 +120,7 @@ fn px_values(line: &str) -> Vec<String> {
                 }
             }
             if start < i {
-                let raw = line[start..i].trim();
+                let raw = text[start..i].trim();
                 if raw.parse::<f64>().is_ok() {
                     out.push(format!("{raw}px"));
                 }
@@ -131,6 +131,38 @@ fn px_values(line: &str) -> Vec<String> {
         }
     }
     out
+}
+
+fn css_declarations(line: &str) -> Vec<(String, String)> {
+    line.split(';')
+        .filter_map(|segment| {
+            let candidate = segment.rsplit_once('{').map(|(_, tail)| tail).unwrap_or(segment).trim();
+            let (property, value) = candidate.split_once(':')?;
+            let property = property.trim().to_ascii_lowercase();
+            if property.is_empty() || value.trim().is_empty() {
+                return None;
+            }
+            Some((property, value.trim().trim_end_matches('}').trim().to_string()))
+        })
+        .collect()
+}
+
+fn is_color_property(property: &str) -> bool {
+    property == "color"
+        || property == "background"
+        || property == "background-color"
+        || property.ends_with("-color")
+        || matches!(property, "fill" | "stroke" | "box-shadow" | "text-shadow")
+}
+
+fn is_spacing_property(property: &str) -> bool {
+    property == "gap"
+        || property == "row-gap"
+        || property == "column-gap"
+        || property == "margin"
+        || property.starts_with("margin-")
+        || property == "padding"
+        || property.starts_with("padding-")
 }
 
 fn css_variable_names(line: &str) -> (Vec<String>, Vec<String>) {
@@ -154,9 +186,9 @@ fn css_variable_names(line: &str) -> (Vec<String>, Vec<String>) {
                 let name = line[start..i].to_string();
                 let prefix = &line[..start];
                 let suffix = &line[i..];
-                if suffix.trim_start().starts_with(':') && !prefix.ends_with("var(") {
+                if suffix.trim_start().starts_with(':') && !prefix.trim_end().ends_with("var(") {
                     definitions.push(name);
-                } else if prefix.ends_with("var(") || line[..start].trim_end().ends_with("var(") {
+                } else if prefix.trim_end().ends_with("var(") {
                     references.push(name);
                 }
             }
@@ -165,10 +197,6 @@ fn css_variable_names(line: &str) -> (Vec<String>, Vec<String>) {
         }
     }
     (definitions, references)
-}
-
-fn property_line(lower: &str, properties: &[&str]) -> bool {
-    properties.iter().any(|property| lower.contains(property))
 }
 
 fn measurement(id: &str, metric: &str, value: Value) -> Value {
@@ -204,29 +232,29 @@ pub fn analyze_static(root: &Path) -> Value {
         analyzed_files.push(rel.clone());
 
         for line in text.lines() {
-            let lower = line.to_ascii_lowercase();
-
-            if property_line(&lower, &["color", "background", "border", "fill", "stroke", "shadow"]) {
-                for value in hex_colors(line) {
-                    colors.add(value, &rel);
+            for (property, value_text) in css_declarations(line) {
+                if is_color_property(&property) {
+                    for value in hex_colors(&value_text) {
+                        colors.add(value, &rel);
+                    }
                 }
-            }
 
-            if property_line(&lower, &["font-size"]) {
-                for value in px_values(line) {
-                    font_sizes.add(value, &rel);
+                if property == "font-size" {
+                    for value in px_values(&value_text) {
+                        font_sizes.add(value, &rel);
+                    }
                 }
-            }
 
-            if property_line(&lower, &["margin", "padding", "gap", "space-"]) {
-                for value in px_values(line) {
-                    spacing.add(value, &rel);
+                if is_spacing_property(&property) {
+                    for value in px_values(&value_text) {
+                        spacing.add(value, &rel);
+                    }
                 }
-            }
 
-            if property_line(&lower, &["border-radius", "radius"]) {
-                for value in px_values(line) {
-                    radii.add(value, &rel);
+                if property == "border-radius" || property.starts_with("border-") && property.ends_with("-radius") {
+                    for value in px_values(&value_text) {
+                        radii.add(value, &rel);
+                    }
                 }
             }
 
@@ -248,7 +276,7 @@ pub fn analyze_static(root: &Path) -> Value {
             "domain": "color",
             "classification": "observation",
             "severity": "info",
-            "statement": format!("Detected {} hexadecimal color occurrences across {} unique values.", colors.total, colors.values.len()),
+            "statement": format!("Detected {} hexadecimal color occurrences across {} unique values in color-bearing declarations.", colors.total, colors.values.len()),
             "source_type": "static",
             "confidence": 1.0,
             "measurement_refs": ["color.hex-frequency"]
@@ -353,6 +381,8 @@ mod tests {
         assert_eq!(first["format_version"], 1);
         assert_eq!(first["domains"]["color"]["summary"]["unique_values"], 1);
         assert_eq!(first["domains"]["spacing"]["summary"]["occurrences"], 1);
+        assert_eq!(first["domains"]["geometry"]["summary"]["occurrences"], 1);
+        assert_eq!(first["domains"]["typography"]["summary"]["occurrences"], 1);
         assert!(first["domains"]["tokens"]["summary"]["defined"].as_u64().unwrap() >= 1);
         let _ = fs::remove_dir_all(root);
     }
