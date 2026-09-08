@@ -1,3 +1,15 @@
+#[path = "architecture.rs"]
+mod architecture;
+#[path = "architecture_analysis.rs"]
+mod architecture_analysis;
+#[cfg_attr(not(test), allow(unused_imports))]
+#[expect(
+    unused_variables,
+    reason = "the matched exception value is retained alongside its index for the upcoming registry-backed exception report"
+)]
+#[path = "architecture_contract.rs"]
+mod architecture_contract;
+mod architecture_score;
 mod design_system;
 
 use include_dir::{include_dir, Dir, DirEntry};
@@ -334,10 +346,12 @@ fn codebase_audit(root: &Path) -> Value {
     let has_tests = tests > 0;
     let has_docs = docs > 0 || root.join("README.md").exists() || root.join("docs").exists();
     let has_lock = manifests.is_empty() || !locks.is_empty();
+    let architecture = architecture_score::audit(root);
+    let measured_architecture_score = architecture["score"].as_i64().unwrap_or(0);
     let mut scores = BTreeMap::new();
     scores.insert("code_quality", clamp(75 - 5 * large.len() as i64 - todos.min(15)));
     scores.insert("maintainability", clamp(72 - 4 * large.len() as i64 + if has_docs { 5 } else { -8 }));
-    scores.insert("architecture", if root.join("ARCHITECTURE.md").exists() || root.join("docs/architecture").exists() { 78 } else { 58 });
+    scores.insert("architecture", measured_architecture_score);
     scores.insert("testing", if has_tests && ci { 78 } else if has_tests { 62 } else { 38 });
     scores.insert("security", clamp((if security { 72 } else { 48 }) + if ci { 6 } else { -5 }));
     scores.insert("performance", if root.join("docs/performance.md").exists() || root.join("benchmarks").exists() { 70 } else { 55 });
@@ -354,6 +368,7 @@ fn codebase_audit(root: &Path) -> Value {
     if !ci { findings.push(json!({"severity":"high","dimension":"operations","message":"No GitHub Actions workflow detected."})); }
     if !security { findings.push(json!({"severity":"high","dimension":"security","message":"No security guidance/configuration detected."})); }
     if !ops { findings.push(json!({"severity":"medium","dimension":"operations","message":"No deployment/rollback/runbook/observability material detected."})); }
+    findings.extend(architecture_score::codebase_findings(&architecture));
 
     let ds = design_system::audit(root);
     if ds["active"].as_bool().unwrap_or(false) {
@@ -378,9 +393,10 @@ fn codebase_audit(root: &Path) -> Value {
             "critical": clamp(overall - if has_tests && ci && security && ops { 22 } else { 35 })
         },
         "profile": {"root":root,"files":files.len(),"code_files":code,"code_loc":loc,"doc_files":docs,"tests_detected":tests,"workflows":workflows,"manifests":manifests,"lockfiles":locks,"large_code_files":large,"todo_markers":todos},
+        "architecture": architecture,
         "design_system": ds,
         "findings": findings,
-        "checks": {"performed":["repository structure","file/LOC scan","test/CI presence","docs/security/agent/operations presence","manifest/lockfile presence","design-system compliance when active"],"not_checked":["build execution","test execution","coverage","dependency vulnerabilities","runtime performance","branch protection","deployment environment","visual regression"]}
+        "checks": {"performed":["repository structure","file/LOC scan","test/CI presence","docs/security/agent/operations presence","manifest/lockfile presence","architecture source dependency and boundary analysis","design-system compliance when active"],"not_checked":["build execution","test execution","coverage","dependency vulnerabilities","runtime performance","branch protection","deployment environment","visual regression"]}
     })
 }
 
@@ -457,7 +473,7 @@ fn harness_audit(root: &Path) -> Value {
 }
 
 fn usage(prog: &str) {
-    println!("Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  init TARGET [--boilerplate NAME] [--preset NAME] [--profile NAME] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]\n\ncompatibility:\n  --template NAME is retained as an alias for --boilerplate NAME");
+    println!("Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  init TARGET [--boilerplate NAME] [--preset NAME] [--profile NAME] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N] [--max-architecture-errors N] [--fail-on-architecture-error]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]\n\ncompatibility:\n  --template NAME is retained as an alias for --boilerplate NAME");
 }
 
 fn required_value(args: &[String], index: usize, flag: &str) -> String {
@@ -574,11 +590,13 @@ fn main() {
         "gate" => {
             if argv.len() < 3 { die("gate requires audit JSON"); }
             let data: Value = serde_json::from_str(&fs::read_to_string(&argv[2]).unwrap_or_else(|e| die(e.to_string()))).unwrap_or_else(|e| die(e.to_string()));
-            let mut min = 0f64; let mut req = Vec::new(); let mut i = 3;
+            let mut min = 0f64; let mut req = Vec::new(); let mut max_architecture_errors = None; let mut i = 3;
             while i < argv.len() {
                 match argv[i].as_str() {
                     "--min-overall" => { i += 1; min = required_value(&argv, i, "--min-overall").parse().unwrap_or_else(|_| die("invalid --min-overall")); }
                     "--min-score" => { i += 1; req.push(required_value(&argv, i, "--min-score")); }
+                    "--max-architecture-errors" => { i += 1; max_architecture_errors = Some(required_value(&argv, i, "--max-architecture-errors").parse::<u64>().unwrap_or_else(|_| die("invalid --max-architecture-errors"))); }
+                    "--fail-on-architecture-error" => { max_architecture_errors = Some(0); }
                     x => die(format!("unknown option: {x}")),
                 }
                 i += 1;
@@ -590,6 +608,11 @@ fn main() {
                 let value: f64 = value.parse().unwrap_or_else(|_| die("invalid --min-score value"));
                 let actual = data["scores"][name].as_f64();
                 if actual.map(|a| a < value).unwrap_or(true) { failures.push(format!("{name} {:?} < {value}", actual)); }
+            }
+            if let Some(max_errors) = max_architecture_errors {
+                if let Some(failure) = architecture_score::gate_failure(&data, max_errors) {
+                    failures.push(failure);
+                }
             }
             let ok = failures.is_empty(); pretty(json!({"passed":ok,"failures":failures})); if ok { 0 } else { 1 }
         }
