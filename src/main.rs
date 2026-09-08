@@ -2,6 +2,7 @@
 mod architecture;
 #[path = "architecture_analysis.rs"]
 mod architecture_analysis;
+#[allow(dead_code)]
 #[cfg_attr(not(test), allow(unused_imports))]
 #[expect(
     unused_variables,
@@ -609,10 +610,10 @@ fn main() {
                 let actual = data["scores"][name].as_f64();
                 if actual.map(|a| a < value).unwrap_or(true) { failures.push(format!("{name} {:?} < {value}", actual)); }
             }
-            if let Some(max_errors) = max_architecture_errors {
-                if let Some(failure) = architecture_score::gate_failure(&data, max_errors) {
-                    failures.push(failure);
-                }
+            if let Some(max_errors) = max_architecture_errors
+                && let Some(failure) = architecture_score::gate_failure(&data, max_errors)
+            {
+                failures.push(failure);
             }
             let ok = failures.is_empty(); pretty(json!({"passed":ok,"failures":failures})); if ok { 0 } else { 1 }
         }
