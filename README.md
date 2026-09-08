@@ -52,14 +52,14 @@ ah gate audit.json --min-overall 80 --min-score security=80 --min-score design_s
 
 ## Experimental design intelligence
 
-The first implementation slice adds deterministic static design analysis in source checkouts:
+Deterministic static design analysis is available in source checkouts:
 
 ```bash
 ./ah design analyze . --level static
-./ah design analyze ./my-app --level static --output design-analysis.json
+./ah design analyze ./my-app --level static --output before.json
 ```
 
-This initial analyzer measures source-level evidence for:
+The initial analyzer measures source-level evidence for:
 
 - hexadecimal color usage;
 - `font-size` pixel values;
@@ -67,7 +67,18 @@ This initial analyzer measures source-level evidence for:
 - border-radius pixel values;
 - CSS custom-property definitions and references.
 
-It emits Design Analysis format version 1 and explicitly lists runtime/visual checks that were **not** performed. Runtime contrast, responsive layout, accessibility evidence, richer token/component health, and drift comparison are follow-up work.
+It emits Design Analysis format version 1 and explicitly lists runtime/visual checks that were **not** performed.
+
+Two analysis artifacts can be compared without AI:
+
+```bash
+./ah design diff before.json after.json
+./ah design diff before.json after.json --output design-diff.json
+```
+
+The diff reports new/removed measured values, changed usage counts, finding IDs that appeared/disappeared, and changes in performed/not-checked verification. These are **drift observations**, not a subjective quality or originality score.
+
+Runtime contrast, responsive layout, accessibility evidence, richer token/component health, and Design Genome review remain follow-up work.
 
 The source launcher currently routes `design` to the experimental `ah-design` binary. Stable release-binary command integration will be completed before the design command is promoted from experimental status.
 
@@ -78,7 +89,7 @@ The source launcher currently routes `design` to the experimental `ah-design` bi
 - existing-project upgrades that preserve project-specific truth
 - codebase and harness audits
 - design-system component planning and structural compliance checks
-- experimental deterministic design analysis
+- experimental deterministic design analysis and drift comparison
 - baseline secret scanning
 - machine-readable validation and quality gates
 - self-contained native binaries for supported release platforms
