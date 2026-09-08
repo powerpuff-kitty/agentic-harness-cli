@@ -98,7 +98,10 @@ fn main() {
             }
             let before = read_json(&inputs[0]);
             let after = read_json(&inputs[1]);
-            let report = design_diff::diff_analysis(&before, &after).unwrap_or_else(die);
+            let report = match design_diff::diff_analysis(&before, &after) {
+                Ok(report) => report,
+                Err(error) => die(error),
+            };
             write_output(&report, output);
         }
         _ => {
