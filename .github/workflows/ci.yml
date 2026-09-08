@@ -44,3 +44,6 @@ jobs:
       - run: ./ah agentic improve . > /tmp/improve.json
       - run: ./ah agentic models . > /tmp/wrapper-models.json
       - run: test "$(python3 -c 'import json; print(len(json.load(open("/tmp/wrapper-models.json"))["models"]))')" -ge 2
+      - run: ./ah design analyze . --level static --output /tmp/design-analysis.json > /tmp/design-analysis-stdout.json
+      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["format_version"])')" -eq 1
+      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["metadata"]["deterministic"])')" = True
