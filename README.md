@@ -78,7 +78,18 @@ Two analysis artifacts can be compared without AI:
 
 The diff reports new/removed measured values, changed usage counts, finding IDs that appeared/disappeared, and changes in performed/not-checked verification. These are **drift observations**, not a subjective quality or originality score.
 
-Runtime contrast, responsive layout, accessibility evidence, richer token/component health, and Design Genome review remain follow-up work.
+An approved Design Genome and structured Design Task can also be compiled into a model-neutral implementation brief without calling an LLM:
+
+```bash
+./ah design prompt \
+  --genome design-genome.json \
+  --task design-task.json \
+  --output implementation-brief.md
+```
+
+The compiler selects only rules whose scope matches the task's mode/surface/page/component/state/breakpoint context, orders required guidance before advisory guidance, includes requested approved component contracts, and reports unresolved component names instead of inventing contracts. The output records Design Genome/compiler provenance and includes explicit requirements, non-goals, responsive/state expectations, implementation constraints, validation, and completion boundaries.
+
+Runtime contrast, responsive layout, accessibility evidence, richer token/component health, Design Genome candidate generation/review, and model-specific prompt adapters remain follow-up work.
 
 The source launcher currently routes `design` to the experimental `ah-design` binary. Stable release-binary command integration will be completed before the design command is promoted from experimental status.
 
@@ -89,7 +100,7 @@ The source launcher currently routes `design` to the experimental `ah-design` bi
 - existing-project upgrades that preserve project-specific truth
 - codebase and harness audits
 - design-system component planning and structural compliance checks
-- experimental deterministic design analysis and drift comparison
+- experimental deterministic design analysis, drift comparison, and prompt compilation
 - baseline secret scanning
 - machine-readable validation and quality gates
 - self-contained native binaries for supported release platforms

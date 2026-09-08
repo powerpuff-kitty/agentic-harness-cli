@@ -1,0 +1,22 @@
+{
+  "format_version": 1,
+  "id": "fixture-security-settings",
+  "objective": "Implement account security settings",
+  "operation": "create",
+  "mode": "extend",
+  "surface": "settings",
+  "components": ["Button"],
+  "states": ["default", "loading", "error"],
+  "breakpoints": ["mobile", "desktop"],
+  "requirements": ["Preserve existing navigation and account information architecture"],
+  "non_goals": ["Do not redesign authentication or introduce unrelated account features"],
+  "implementation": {
+    "framework": "vue",
+    "language": "typescript"
+  },
+  "validation": {
+    "required_checks": ["typecheck", "accessibility"],
+    "required_states": ["focus"],
+    "required_viewports": ["375x812", "1440x900"]
+  }
+}

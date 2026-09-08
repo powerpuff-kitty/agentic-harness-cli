@@ -1,0 +1,48 @@
+{
+  "format_version": 1,
+  "id": "fixture-product",
+  "version": "1.0.0",
+  "status": "approved",
+  "identity": {
+    "principles": ["Technical clarity before decoration", "Preserve strong information hierarchy"],
+    "personality": ["precise", "editorial"],
+    "differentiation": ["Avoid generic dashboard composition when the product task does not require it"],
+    "anti_patterns": ["Do not introduce decorative gradients without an approved reason"]
+  },
+  "visual": {},
+  "composition": {},
+  "components": [
+    {
+      "id": "button",
+      "name": "Button",
+      "status": "approved",
+      "variants": ["primary", "ghost"],
+      "states": ["default", "focus", "disabled"],
+      "usage": ["Use the existing Button primitive instead of raw duplicate controls"]
+    }
+  ],
+  "rules": [
+    {
+      "id": "global.tokens",
+      "kind": "constraint",
+      "importance": "required",
+      "statement": "Reuse canonical design tokens instead of introducing arbitrary visual values"
+    },
+    {
+      "id": "settings.compact",
+      "kind": "do",
+      "importance": "recommended",
+      "statement": "Keep operational settings controls compact and information-dense",
+      "scope": {"surfaces": ["settings"]}
+    },
+    {
+      "id": "marketing.display",
+      "kind": "do",
+      "importance": "recommended",
+      "statement": "Use expressive display typography for marketing hierarchy",
+      "scope": {"surfaces": ["marketing"]}
+    }
+  ],
+  "examples": [],
+  "sources": [{"id": "fixture", "type": "project"}]
+}
