@@ -29,7 +29,7 @@ self-contained target project
 
 - **[agentic-harness](https://github.com/powerpuff-kitty/agentic-harness):** canonical architecture, complete boilerplates, reusable modules, and public machine contracts
 - **[agentic-harness-agents](https://github.com/powerpuff-kitty/agentic-harness-agents):** agent-facing skills, prompts and workflows
-- **This repository:** deterministic composition, audits, validation, security checks, design analysis, and quality gates
+- **This repository:** deterministic composition, audits, validation, security checks, architecture/design analysis, and quality gates
 
 Release binaries embed pinned snapshots of the canonical and agent repositories, so generated projects and binary users do not require GitHub access or Rust at runtime.
 
@@ -41,6 +41,8 @@ ah init ./saas --preset vue-saas --profile startup
 ah upgrade ./existing --profile enterprise
 ah audit .
 ah architecture detect .
+ah architecture analyze .
+ah architecture analyze . --profile pattern/feature-first/1
 ah design-system-components . --write
 ah validate .
 ah security-scan .
@@ -53,15 +55,39 @@ ah gate audit.json --min-overall 80 --min-score security=80 --min-score design_s
 
 ## Experimental architecture intelligence
 
-Architecture detection is offline and deterministic:
+Architecture intelligence is offline and deterministic.
+
+### Detect
 
 ```bash
 ./ah architecture detect ./my-app
 ```
 
-It detects supported framework markers (currently Vue, Nuxt, Angular, React and Next), separates build/workspace tooling such as Vite and Nx from application frameworks, detects ecosystem packages such as Pinia and Vue Router, and classifies visible source structure as feature-first, technical-layered, layered, hexagonal/clean, mixed or unknown.
+Detection finds supported framework markers (currently Vue, Nuxt, Angular, React and Next), separates build/workspace tooling such as Vite and Nx from application frameworks, detects ecosystem packages such as Pinia and Vue Router, and classifies visible source structure as feature-first, technical-layered, layered, hexagonal/clean, mixed or unknown.
 
-Detection output includes evidence, confidence and candidate architecture profile IDs. Unknown or mixed projects are intentionally left unresolved rather than being forced into a generic folder template. This is the first slice of the Architecture Registry/analyzer work; import-graph validation, dependency-boundary enforcement and generated ESLint/Nx/dependency-cruiser adapters are follow-up work.
+Detection output includes evidence, confidence and candidate Architecture Registry profile IDs. Unknown or mixed projects are intentionally left unresolved rather than being forced into a generic folder template.
+
+### Analyze
+
+```bash
+./ah architecture analyze ./my-app
+./ah architecture analyze ./my-app --profile pattern/feature-first/1
+```
+
+Architecture Analysis v1 currently builds a local JS/TS/Vue source dependency graph and reports source-file/import/line evidence for:
+
+- import cycles
+- Nuxt `app/` ↔ `server/` boundary violations
+- Nuxt `shared/` importing app/server-only code
+- cross-feature imports that reach into another feature's internals instead of its root public interface
+- shared/common code importing feature-owned internals
+- reverse dependencies between presentation, application, domain and infrastructure layers when the layered profile is selected or detected
+
+The analyzer resolves relative imports and built-in `@/`, `~/` and `#shared/` aliases. Unresolved local imports are reported separately rather than silently treated as external packages. Findings carry stable Architecture Registry rule IDs plus authority and deterministic/heuristic classification.
+
+The report also explicitly lists what is not yet checked, including non-JS language graphs, arbitrary custom alias maps, computed runtime imports, semantic business-logic placement and project-local exceptions.
+
+Project-local architecture contracts, general registry rule compilation, ESLint/Nx/dependency-cruiser adapters, additional languages and integration into the main audit score remain follow-up work.
 
 ## Experimental design intelligence
 
@@ -118,7 +144,7 @@ The source launcher currently routes `design` to the experimental `ah-design` bi
 - profile, pack, policy and skill installation
 - existing-project upgrades that preserve project-specific truth
 - codebase and harness audits
-- experimental framework/architecture detection with evidence and confidence
+- experimental framework/architecture detection and deterministic import-boundary analysis
 - design-system component planning and structural compliance checks
 - experimental deterministic design analysis, candidate preservation, drift comparison, and prompt compilation
 - baseline secret scanning
