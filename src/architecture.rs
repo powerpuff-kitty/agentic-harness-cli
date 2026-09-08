@@ -106,10 +106,10 @@ fn top_level_dirs(root: &Path) -> BTreeSet<String> {
         };
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() {
-                if let Some(name) = path.file_name().and_then(|value| value.to_str()) {
-                    dirs.insert(name.to_string());
-                }
+            if path.is_dir()
+                && let Some(name) = path.file_name().and_then(|value| value.to_str())
+            {
+                dirs.insert(name.to_string());
             }
         }
     }
@@ -408,15 +408,16 @@ pub fn detect(root: &Path) -> Value {
             );
         }
     }
-    if let Some(style) = structure.get("style").and_then(Value::as_str) {
-        if style != "unknown" && style != "mixed" {
-            collect_profile(
-                &mut candidate_profiles,
-                &mut unresolved_profile_families,
-                "pattern",
-                style,
-            );
-        }
+    if let Some(style) = structure.get("style").and_then(Value::as_str)
+        && style != "unknown"
+        && style != "mixed"
+    {
+        collect_profile(
+            &mut candidate_profiles,
+            &mut unresolved_profile_families,
+            "pattern",
+            style,
+        );
     }
 
     json!({
