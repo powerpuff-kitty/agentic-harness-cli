@@ -46,6 +46,9 @@ jobs:
       - run: test "$(python3 -c 'import json; print(len(json.load(open("/tmp/wrapper-models.json"))["models"]))')" -ge 2
       - run: ./ah architecture detect . > /tmp/architecture-detect.json
       - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/architecture-detect.json"))["structure"]["style"])')" != ""
+      - run: ./ah architecture analyze . > /tmp/architecture-analysis.json
+      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/architecture-analysis.json"))["format_version"])')" -eq 1
+      - run: test "$(python3 -c 'import json; print("graph" in json.load(open("/tmp/architecture-analysis.json")))')" = True
       - run: ./ah design analyze . --level static --output /tmp/design-analysis.json > /tmp/design-analysis-stdout.json
       - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["format_version"])')" -eq 1
       - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["metadata"]["deterministic"])')" = True
