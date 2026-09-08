@@ -72,7 +72,7 @@ fn main() {
                 eprintln!("{error}");
                 2
             }
-            Ok((root, profiles)) if !root.exists() => {
+            Ok((root, _)) if !root.exists() => {
                 eprintln!("target does not exist: {}", root.display());
                 2
             }
