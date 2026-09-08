@@ -52,33 +52,29 @@ ah gate audit.json --min-overall 80 --min-score security=80 --min-score design_s
 
 ## Experimental design intelligence
 
-Deterministic static design analysis is available in source checkouts:
+The first closed-loop design workflow is deterministic and does not require an LLM:
 
 ```bash
-./ah design analyze . --level static
-./ah design analyze ./my-app --level static --output before.json
-```
-
-The initial analyzer measures source-level evidence for:
-
-- hexadecimal color usage;
-- `font-size` pixel values;
-- margin/padding/gap pixel values;
-- border-radius pixel values;
-- CSS custom-property definitions and references.
-
-It emits Design Analysis format version 1 and explicitly lists runtime/visual checks that were **not** performed.
-
-Two analysis artifacts can be compared without AI:
-
-```bash
-./ah design diff before.json after.json
+./ah design analyze ./my-app --level static --output design-analysis.json
+./ah design preserve --analysis design-analysis.json --output design-genome.candidate.json
+./ah design prompt --genome design-genome.approved.json --task design-task.json --output implementation-brief.md
+# implement the task, then analyze again
 ./ah design diff before.json after.json --output design-diff.json
 ```
 
-The diff reports new/removed measured values, changed usage counts, finding IDs that appeared/disappeared, and changes in performed/not-checked verification. These are **drift observations**, not a subjective quality or originality score.
+### Analyze
 
-An approved Design Genome and structured Design Task can also be compiled into a model-neutral implementation brief without calling an LLM:
+The static analyzer measures source-level evidence for hexadecimal color usage, `font-size` pixel values, margin/padding/gap values, border radii, and CSS custom-property definitions/references. It emits Design Analysis format v1 and explicitly lists runtime/visual checks that were **not** performed.
+
+### Preserve
+
+`design preserve` transforms a Design Analysis v1 artifact into a **candidate**, review-required Design Genome. It preserves measured values, counts, source evidence, analysis findings, token observations, and the unverified-check boundary. It deliberately does **not** infer brand identity from frequency, does not auto-approve design rules, and marks intent that cannot be established from static evidence as unknown.
+
+The candidate includes a review queue for promoting only intentional evidence into an approved Design Genome. Approval remains a human/project decision.
+
+### Compile
+
+An approved Design Genome plus a structured Design Task can be compiled into a model-neutral implementation brief without calling an LLM:
 
 ```bash
 ./ah design prompt \
@@ -87,9 +83,19 @@ An approved Design Genome and structured Design Task can also be compiled into a
   --output implementation-brief.md
 ```
 
-The compiler selects only rules whose scope matches the task's mode/surface/page/component/state/breakpoint context, orders required guidance before advisory guidance, includes requested approved component contracts, and reports unresolved component names instead of inventing contracts. The output records Design Genome/compiler provenance and includes explicit requirements, non-goals, responsive/state expectations, implementation constraints, validation, and completion boundaries.
+The compiler selects only rules whose scope matches the task's mode/surface/page/component/state/breakpoint context, orders required guidance before advisory guidance, includes requested approved component contracts, and reports unresolved component names instead of inventing contracts.
 
-Runtime contrast, responsive layout, accessibility evidence, richer token/component health, Design Genome candidate generation/review, and model-specific prompt adapters remain follow-up work.
+### Verify
+
+Two Design Analysis artifacts can be compared without AI:
+
+```bash
+./ah design diff before.json after.json
+```
+
+The diff reports new/removed measured values, changed usage counts, finding IDs that appeared/disappeared, and changes in performed/not-checked verification. These are **drift observations**, not a subjective quality or originality score.
+
+Runtime contrast, responsive layout, accessibility evidence, richer token/component health, interactive Design Genome approval, and model-specific prompt adapters remain follow-up work.
 
 The source launcher currently routes `design` to the experimental `ah-design` binary. Stable release-binary command integration will be completed before the design command is promoted from experimental status.
 
@@ -100,7 +106,7 @@ The source launcher currently routes `design` to the experimental `ah-design` bi
 - existing-project upgrades that preserve project-specific truth
 - codebase and harness audits
 - design-system component planning and structural compliance checks
-- experimental deterministic design analysis, drift comparison, and prompt compilation
+- experimental deterministic design analysis, candidate preservation, drift comparison, and prompt compilation
 - baseline secret scanning
 - machine-readable validation and quality gates
 - self-contained native binaries for supported release platforms

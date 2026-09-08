@@ -2,6 +2,8 @@
 mod design_analysis;
 #[path = "../design_diff.rs"]
 mod design_diff;
+#[path = "../design_genome.rs"]
+mod design_genome;
 #[path = "../design_prompt.rs"]
 mod design_prompt;
 
@@ -17,7 +19,7 @@ fn die(message: impl AsRef<str>) -> ! {
 
 fn usage(program: &str) {
     println!(
-        "Agentic Harness Design (experimental)\n\nusage:\n  {program} analyze [TARGET] [--level static] [--output FILE]\n  {program} diff BEFORE.json AFTER.json [--output FILE]\n  {program} prompt --genome DESIGN-GENOME.json --task DESIGN-TASK.json [--output FILE]\n\ncommands:\n  analyze    deterministically inspect static design values and emit design-analysis format v1\n  diff       compare two design-analysis v1 artifacts and report measurable drift\n  prompt     deterministically compile an approved Design Genome + structured task into a model-neutral implementation brief"
+        "Agentic Harness Design (experimental)\n\nusage:\n  {program} analyze [TARGET] [--level static] [--output FILE]\n  {program} preserve --analysis DESIGN-ANALYSIS.json [--output FILE]\n  {program} diff BEFORE.json AFTER.json [--output FILE]\n  {program} prompt --genome DESIGN-GENOME.json --task DESIGN-TASK.json [--output FILE]\n\ncommands:\n  analyze     deterministically inspect static design values and emit Design Analysis format v1\n  preserve    derive a review-required candidate Design Genome from measured analysis evidence\n  diff        compare two Design Analysis v1 artifacts and report measurable drift\n  prompt      deterministically compile an approved Design Genome + structured task into a model-neutral implementation brief"
     );
 }
 
@@ -83,6 +85,36 @@ fn main() {
             }
 
             write_json_output(&design_analysis::analyze_static(&target), output);
+        }
+        "preserve" => {
+            let mut analysis: Option<PathBuf> = None;
+            let mut output: Option<PathBuf> = None;
+            let mut i = 2;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--analysis" => {
+                        i += 1;
+                        analysis = Some(PathBuf::from(args.get(i).cloned().unwrap_or_else(|| die("--analysis requires a value"))));
+                    }
+                    "--output" => {
+                        i += 1;
+                        output = Some(PathBuf::from(args.get(i).cloned().unwrap_or_else(|| die("--output requires a value"))));
+                    }
+                    option => die(format!("unknown preserve option: {option}")),
+                }
+                i += 1;
+            }
+
+            let analysis_path = analysis.unwrap_or_else(|| die("preserve requires --analysis DESIGN-ANALYSIS.json"));
+            let analysis_value = read_json(&analysis_path);
+            let candidate = match design_genome::candidate_from_analysis(
+                &analysis_value,
+                &analysis_path.to_string_lossy(),
+            ) {
+                Ok(candidate) => candidate,
+                Err(error) => die(error),
+            };
+            write_json_output(&candidate, output);
         }
         "diff" => {
             let mut inputs = Vec::new();
