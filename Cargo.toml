@@ -18,6 +18,10 @@ path = "src/bin/ah-agentic.rs"
 name = "ah-design"
 path = "src/bin/ah-design.rs"
 
+[[bin]]
+name = "ah-architecture"
+path = "src/bin/ah-architecture.rs"
+
 [dependencies]
 include_dir = "0.7"
 serde_json = "1"
