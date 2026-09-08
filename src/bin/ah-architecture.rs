@@ -2,6 +2,11 @@
 mod architecture;
 #[path = "../architecture_analysis.rs"]
 mod architecture_analysis;
+#[expect(
+    unused_imports,
+    unused_variables,
+    reason = "contract test support and exception tuple are intentionally retained until registry-backed rule compilation replaces the initial map"
+)]
 #[path = "../architecture_contract.rs"]
 mod architecture_contract;
 
