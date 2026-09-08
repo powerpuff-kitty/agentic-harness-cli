@@ -2,10 +2,10 @@
 mod architecture;
 #[path = "../architecture_analysis.rs"]
 mod architecture_analysis;
+#[cfg_attr(not(test), allow(unused_imports))]
 #[expect(
-    unused_imports,
     unused_variables,
-    reason = "contract test support and exception tuple are intentionally retained until registry-backed rule compilation replaces the initial map"
+    reason = "the matched exception value is retained alongside its index for the upcoming registry-backed exception report"
 )]
 #[path = "../architecture_contract.rs"]
 mod architecture_contract;
