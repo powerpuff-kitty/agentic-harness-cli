@@ -20,6 +20,17 @@ if [ "${1:-}" = "agentic" ]; then
   exit 127
 fi
 
+if [ "${1:-}" = "design" ]; then
+  shift
+  if [ -x "$ROOT/target/release/ah-design" ]; then exec "$ROOT/target/release/ah-design" "$@"; fi
+  if [ -x "$ROOT/target/debug/ah-design" ]; then exec "$ROOT/target/debug/ah-design" "$@"; fi
+  if command -v cargo >/dev/null 2>&1; then
+    exec cargo run --quiet --manifest-path "$ROOT/Cargo.toml" --bin ah-design -- "$@"
+  fi
+  echo "Agentic Harness design analyzer is not built. Install a release binary or build with Cargo." >&2
+  exit 127
+fi
+
 if [ -x "$ROOT/target/release/ah" ]; then exec "$ROOT/target/release/ah" "$@"; fi
 if [ -x "$ROOT/target/debug/ah" ]; then exec "$ROOT/target/debug/ah" "$@"; fi
 if command -v cargo >/dev/null 2>&1; then
