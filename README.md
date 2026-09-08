@@ -19,7 +19,7 @@ ah validate ./app
 Agentic Harness separates project truth, agent behavior, and deterministic enforcement:
 
 ```text
-agentic-harness          canonical boilerplates + modules
+agentic-harness          canonical boilerplates + modules + public schemas
 agentic-harness-agents   skills + prompts + adapters
         ↓ pinned snapshots
 agentic-harness-cli      native Rust `ah` engine
@@ -27,9 +27,9 @@ agentic-harness-cli      native Rust `ah` engine
 self-contained target project
 ```
 
-- **[agentic-harness](https://github.com/powerpuff-kitty/agentic-harness):** canonical architecture, complete boilerplates and reusable modules
+- **[agentic-harness](https://github.com/powerpuff-kitty/agentic-harness):** canonical architecture, complete boilerplates, reusable modules, and public machine contracts
 - **[agentic-harness-agents](https://github.com/powerpuff-kitty/agentic-harness-agents):** agent-facing skills, prompts and workflows
-- **This repository:** deterministic composition, audits, validation, security checks and quality gates
+- **This repository:** deterministic composition, audits, validation, security checks, design analysis, and quality gates
 
 Release binaries embed pinned snapshots of the canonical and agent repositories, so generated projects and binary users do not require GitHub access or Rust at runtime.
 
@@ -50,6 +50,27 @@ ah gate audit.json --min-overall 80 --min-score security=80 --min-score design_s
 
 `--boilerplate` is the preferred project-shape flag. `--template` remains a backward-compatible alias for existing automation.
 
+## Experimental design intelligence
+
+The first implementation slice adds deterministic static design analysis in source checkouts:
+
+```bash
+./ah design analyze . --level static
+./ah design analyze ./my-app --level static --output design-analysis.json
+```
+
+This initial analyzer measures source-level evidence for:
+
+- hexadecimal color usage;
+- `font-size` pixel values;
+- margin/padding/gap pixel values;
+- border-radius pixel values;
+- CSS custom-property definitions and references.
+
+It emits Design Analysis format version 1 and explicitly lists runtime/visual checks that were **not** performed. Runtime contrast, responsive layout, accessibility evidence, richer token/component health, and drift comparison are follow-up work.
+
+The source launcher currently routes `design` to the experimental `ah-design` binary. Stable release-binary command integration will be completed before the design command is promoted from experimental status.
+
 ## What `ah` provides
 
 - deterministic boilerplate composition
@@ -57,6 +78,7 @@ ah gate audit.json --min-overall 80 --min-score security=80 --min-score design_s
 - existing-project upgrades that preserve project-specific truth
 - codebase and harness audits
 - design-system component planning and structural compliance checks
+- experimental deterministic design analysis
 - baseline secret scanning
 - machine-readable validation and quality gates
 - self-contained native binaries for supported release platforms
