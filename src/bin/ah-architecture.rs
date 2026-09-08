@@ -9,13 +9,17 @@ mod architecture_analysis;
 )]
 #[path = "../architecture_contract.rs"]
 mod architecture_contract;
+#[path = "../architecture_adapters.rs"]
+mod architecture_adapters;
+#[path = "../architecture_adapter_command.rs"]
+mod architecture_adapter_command;
 
 use std::env;
 use std::path::{Path, PathBuf};
 
 fn usage(prog: &str) {
     println!(
-        "Agentic Harness Architecture\n\nusage:\n  {prog} detect [TARGET]\n  {prog} analyze [TARGET] [--profile PROFILE]\n  {prog} enforce [TARGET] [--profile PROFILE] [--write]\n\ncommands:\n  detect [TARGET]   Detect framework, ecosystem tooling, language and current architecture shape\n  analyze [TARGET]  Build the local import graph and report deterministic architecture violations\n  enforce [TARGET]  Preview or write the normalized project architecture contract"
+        "Agentic Harness Architecture\n\nusage:\n  {prog} detect [TARGET]\n  {prog} analyze [TARGET] [--profile PROFILE]\n  {prog} enforce [TARGET] [--profile PROFILE] [--write]\n  {prog} adapter [TARGET] --target ADAPTER [--write]\n\ncommands:\n  detect [TARGET]   Detect framework, ecosystem tooling, language and current architecture shape\n  analyze [TARGET]  Build the local import graph and report deterministic architecture violations\n  enforce [TARGET]  Preview or write the normalized project architecture contract\n  adapter [TARGET]  Compile the architecture contract to dependency-cruiser, ESLint or Nx enforcement artifacts"
     );
 }
 
@@ -49,6 +53,46 @@ fn profile_args(args: &[String], allow_write: bool) -> Result<(PathBuf, Vec<Stri
         index += 1;
     }
     Ok((root, profiles, write))
+}
+
+fn adapter_args(args: &[String]) -> Result<(PathBuf, String, bool), String> {
+    let mut root = PathBuf::from(".");
+    let mut root_set = false;
+    let mut target = None;
+    let mut write = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--target" => {
+                index += 1;
+                let Some(value) = args.get(index) else {
+                    return Err("--target requires an adapter name".to_string());
+                };
+                if !architecture_adapters::ADAPTERS.contains(&value.as_str()) {
+                    return Err(format!(
+                        "unsupported architecture adapter: {value}; expected {}",
+                        architecture_adapters::ADAPTERS.join("|")
+                    ));
+                }
+                target = Some(value.clone());
+            }
+            "--write" => write = true,
+            value if value.starts_with('-') => return Err(format!("unknown option: {value}")),
+            value if !root_set => {
+                root = PathBuf::from(value);
+                root_set = true;
+            }
+            value => return Err(format!("unexpected argument: {value}")),
+        }
+        index += 1;
+    }
+    let target = target.ok_or_else(|| {
+        format!(
+            "architecture adapter requires --target {}; preview is the default",
+            architecture_adapters::ADAPTERS.join("|")
+        )
+    })?;
+    Ok((root, target, write))
 }
 
 fn print_result(result: Result<serde_json::Value, String>) -> i32 {
@@ -132,6 +176,19 @@ fn main() {
                 } else {
                     print_result(architecture_contract::preview(&root, &profiles))
                 }
+            }
+        },
+        "adapter" => match adapter_args(&argv[2..]) {
+            Err(error) => {
+                eprintln!("{error}");
+                2
+            }
+            Ok((root, _, _)) if !root.exists() => {
+                eprintln!("target does not exist: {}", root.display());
+                2
+            }
+            Ok((root, target, write)) => {
+                print_result(architecture_adapter_command::generate(&root, &target, write))
             }
         },
         _ => {
