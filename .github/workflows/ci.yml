@@ -47,3 +47,6 @@ jobs:
       - run: ./ah design analyze . --level static --output /tmp/design-analysis.json > /tmp/design-analysis-stdout.json
       - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["format_version"])')" -eq 1
       - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["metadata"]["deterministic"])')" = True
+      - run: ./ah design diff /tmp/design-analysis.json /tmp/design-analysis.json --output /tmp/design-diff.json > /tmp/design-diff-stdout.json
+      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-diff.json"))["kind"])')" = design-analysis-diff
+      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-diff.json"))["metadata"]["deterministic"])')" = True
