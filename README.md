@@ -8,6 +8,59 @@
 
 > **Status: Beta.** The CLI is pre-1.0: core commands are usable, but command and schema compatibility may still evolve before the first stable release.
 
+## Installation
+
+### Install from source
+
+The current installer supports a local source checkout on macOS and Linux. You need [Git](https://git-scm.com/) and a working [Rust toolchain](https://rustup.rs/).
+
+```bash
+git clone https://github.com/powerpuff-kitty/agentic-harness-cli.git
+cd agentic-harness-cli
+
+./scripts/sync-upstream.sh
+./install.sh
+```
+
+By default, `install.sh` builds the release binary when needed and installs `ah` to `/usr/local/bin/ah`.
+
+If `/usr/local` is not writable for your user, either run the installation with appropriate permissions or install into a user-owned prefix:
+
+```bash
+./install.sh --prefix "$HOME/.local"
+```
+
+When using `~/.local`, make sure `~/.local/bin` is on your `PATH`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Verify the installation:
+
+```bash
+ah --help
+```
+
+The installer can also install an already-built binary:
+
+```bash
+cargo build --release
+./install.sh --binary ./target/release/ah
+```
+
+A custom command name can be selected with `--command`:
+
+```bash
+./install.sh --command agentic-harness
+```
+
+### Release binaries
+
+Release binaries are intended to be the preferred installation path once GitHub Releases are published. They embed pinned snapshots of the canonical `agentic-harness` and `agentic-harness-agents` repositories, so binary users will not need GitHub access or Rust at runtime.
+
+Until release artifacts are available, use the source installation above.
+
 ## Quick start
 
 ```bash
