@@ -16,6 +16,8 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     target = Path(directory)
     (target / 'src').mkdir()
     (target / 'src/main.ts').write_text("import './missing';\n")
+    (target / 'src/a.ts').write_text("import './b';\n")
+    (target / 'src/b.ts').write_text("import './a';\n")
     for args, schema in [(['audit'], 'codebase-audit.v2.schema.json'),
                          (['agentic', 'audit'], 'agentic-readiness.v2.schema.json')]:
         output = subprocess.run([str(binary), *args, str(target)], capture_output=True, text=True, timeout=60)
@@ -23,6 +25,7 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
         validator = Draft202012Validator(json.loads((schemas / schema).read_text()))
         validator.validate(json.loads(output.stdout))
         if args == ['audit']:
+            assert any(f['dimension'] == 'architecture' for f in json.loads(output.stdout)['findings'])
             (target / 'audit.json').write_text(output.stdout)
     for args, schema, expected_exit in [
         (['compare', str(target / 'audit.json'), str(target / 'audit.json')], 'audit-comparison.v1.schema.json', 0),

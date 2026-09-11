@@ -195,6 +195,35 @@ fn gates_validate_artifacts_and_finite_thresholds() {
     );
 }
 #[test]
+fn audits_with_architecture_findings_remain_valid_gate_inputs() {
+    let f = Fixture::new();
+    f.put("a.ts", "import './b';");
+    f.put("b.ts", "import './a';");
+    let value = f.json(&["audit", "."], 1);
+    let finding = value["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["dimension"] == "architecture")
+        .unwrap();
+    assert!(finding["evidence"].is_array());
+    assert!(finding["evidence"][0]["modules"].is_array());
+    f.put("audit.json", value.to_string());
+    assert_eq!(
+        f.json(&["gate", "audit.json", "--max-architecture-errors", "0"], 1)["passed"],
+        false
+    );
+    assert_eq!(
+        f.json(&["gate", "audit.json", "--max-architecture-errors", "1"], 0)["passed"],
+        true
+    );
+    assert_eq!(
+        f.json(&["compare", "audit.json", "audit.json"], 0)["kind"],
+        "audit-comparison"
+    );
+}
+
+#[test]
 fn malformed_optional_audit_evidence_cannot_pass_gate_or_compare() {
     let f = Fixture::new();
     let mut cases = Vec::new();

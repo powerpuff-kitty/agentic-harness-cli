@@ -113,7 +113,7 @@ pub fn codebase_findings(architecture: &Value) -> Vec<Value> {
                 "rule_id": finding["rule_id"],
                 "architecture_severity": finding["severity"],
                 "message": finding["message"],
-                "evidence": finding["evidence"],
+                "evidence": [finding["evidence"]],
                 "authority": finding["authority"],
                 "enforceability": finding["enforceability"],
                 "profile": finding["profile"]
