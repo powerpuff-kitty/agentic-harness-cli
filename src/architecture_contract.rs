@@ -433,7 +433,11 @@ pub fn apply_exceptions(root: &Path, analysis: &mut Value) -> Result<(), String>
     analysis["exceptions_applied"] = json!(applied.into_iter().collect::<Vec<_>>());
     analysis["compliance"]["deterministic_errors"] = json!(deterministic_errors);
     analysis["compliance"]["warnings"] = json!(warnings);
-    analysis["compliance"]["passed"] = json!(deterministic_errors == 0);
+    analysis["compliance"]["passed"] = json!(
+        deterministic_errors == 0
+            && analysis["compliance"]["complete"] != false
+            && analysis["scan"]["complete"] != false
+    );
     Ok(())
 }
 
@@ -550,6 +554,9 @@ mod tests {
         assert!(analysis["findings"].as_array().unwrap().is_empty());
         assert_eq!(analysis["suppressed_findings"].as_array().unwrap().len(), 1);
         assert_eq!(analysis["compliance"]["passed"], true);
+        analysis["compliance"]["complete"] = json!(false);
+        apply_exceptions(&root, &mut analysis).unwrap();
+        assert_eq!(analysis["compliance"]["passed"], false);
         let _ = fs::remove_dir_all(root);
     }
 }

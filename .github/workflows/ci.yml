@@ -42,6 +42,9 @@ jobs:
       - name: Check source launcher and custom-prefix installer
         if: runner.os != 'Windows'
         run: python3 scripts/verify-install.py target/release/ah
+      - name: Record candidate performance evidence
+        if: runner.os == 'Linux'
+        run: python3 scripts/benchmark.py target/release/ah --output dist/benchmark-linux.json
       - name: Package binary and provenance
         shell: bash
         run: |

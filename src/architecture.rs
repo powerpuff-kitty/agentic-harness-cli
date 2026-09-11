@@ -21,7 +21,10 @@ fn package_evidence(root: &Path) -> std::collections::BTreeMap<String, Vec<Strin
                     for name in deps.keys() {
                         result.entry(name.clone()).or_default().push(format!(
                             "{}:{name}",
-                            path.strip_prefix(root).unwrap_or(&path).display()
+                            path.strip_prefix(root)
+                                .unwrap_or(&path)
+                                .to_string_lossy()
+                                .replace('\\', "/")
                         ));
                     }
                 }

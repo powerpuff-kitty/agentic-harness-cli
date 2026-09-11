@@ -638,3 +638,24 @@ fn explicit_generated_artifacts_reject_external_symlink_destinations() {
     );
     assert_eq!(fs::read_to_string(file).unwrap(), "retain original");
 }
+
+#[test]
+fn wildcard_workspace_exports_and_non_code_resources_are_classified() {
+    let f = Fixture::new();
+    f.put(
+        "packages/core/package.json",
+        r#"{"name":"@test/core","exports":{"./utils/*":"./src/utils/*.ts"}}"#,
+    );
+    f.put(
+        "packages/core/src/utils/value.ts",
+        "export const value = 1;",
+    );
+    f.put("packages/app/src/style.css", "body { color: red; }");
+    f.put("packages/app/src/data.json", "{}");
+    f.put("packages/app/src/App.svelte", "<script>import { value } from '@test/core/utils/value'; import './style.css'; import data from './data.json';</script><button>Save</button>");
+    let report = f.json(&["architecture", "analyze", "."], 0);
+    assert_eq!(report["graph"]["source_files"], 2);
+    assert_eq!(report["graph"]["local_edges"], 1);
+    assert_eq!(report["graph"]["resource_imports"], 2);
+    assert_eq!(report["compliance"]["complete"], true);
+}

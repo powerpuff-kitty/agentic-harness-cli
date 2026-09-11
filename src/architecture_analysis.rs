@@ -5,7 +5,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-const SOURCE_EXTENSIONS: &[&str] = &["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "vue"];
+const SOURCE_EXTENSIONS: &[&str] = &[
+    "ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "vue", "svelte",
+];
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct Edge {
@@ -33,6 +35,7 @@ enum Resolution {
     Local(PathBuf),
     UnresolvedLocal,
     External,
+    Resource,
 }
 
 pub fn known_profile(profile: &str) -> bool {
@@ -215,16 +218,38 @@ fn resolve_import(
                         format!("./{rest}")
                     };
                     let exports = &manifest["exports"];
-                    let entry = exports.get(&key).unwrap_or(if key == "." {
-                        exports
-                    } else {
-                        &Value::Null
-                    });
+                    let exact = exports
+                        .get(&key)
+                        .or(if key == "." { Some(exports) } else { None });
+                    let mut wildcard = None;
+                    if exact.is_none()
+                        && let Some(exports) = exports.as_object()
+                    {
+                        let mut patterns: Vec<_> =
+                            exports.iter().filter(|(p, _)| p.contains('*')).collect();
+                        patterns.sort_by_key(|(p, _)| std::cmp::Reverse(p.len()));
+                        for (pattern, entry) in patterns {
+                            if let Some((prefix, suffix)) = pattern.split_once('*')
+                                && let Some(capture) = key
+                                    .strip_prefix(prefix)
+                                    .and_then(|s| s.strip_suffix(suffix))
+                            {
+                                wildcard = Some((entry, capture));
+                                break;
+                            }
+                        }
+                    }
+                    let entry = exact
+                        .or(wildcard.map(|(entry, _)| entry))
+                        .unwrap_or(&Value::Null);
                     let target = entry
                         .as_str()
                         .or_else(|| entry["import"].as_str())
                         .or_else(|| entry["default"].as_str())
-                        .or_else(|| entry["types"].as_str());
+                        .or_else(|| entry["types"].as_str())
+                        .map(|s| {
+                            s.replace('*', wildcard.map(|(_, capture)| capture).unwrap_or(""))
+                        });
                     selected = Some(if let Some(target) = target {
                         directory.join(target)
                     } else if rest.is_empty() {
@@ -248,6 +273,20 @@ fn resolve_import(
     };
 
     let base = lexical_normalize(&base);
+    if !base.starts_with(root) {
+        return Resolution::UnresolvedLocal;
+    }
+    if base.extension().and_then(|s| s.to_str()).is_some_and(|s| {
+        [
+            "json", "css", "scss", "sass", "less", "svg", "png", "jpg", "jpeg", "webp", "gif",
+            "woff", "woff2",
+        ]
+        .contains(&s)
+    }) && base.is_file()
+        && base.canonicalize().is_ok_and(|p| p.starts_with(root))
+    {
+        return Resolution::Resource;
+    }
     let Some(candidate) = existing_source(&base) else {
         return Resolution::UnresolvedLocal;
     };
@@ -260,9 +299,10 @@ fn resolve_import(
     }
 }
 
-fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) {
+fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize, usize) {
     let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let files = source_files(&canonical_root);
+    let allowed: BTreeSet<_> = files.iter().cloned().collect();
     let mut configs = BTreeMap::new();
     for path in crate::scan::files(&canonical_root)
         .into_iter()
@@ -293,6 +333,7 @@ fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) 
     let mut edges = BTreeSet::new();
     let mut unresolved = Vec::new();
     let mut external_imports = 0usize;
+    let mut resource_imports = 0usize;
 
     for path in files {
         let from = relative(&canonical_root, &path);
@@ -305,12 +346,13 @@ fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) 
             }
         };
         let (imports, parse_error) = crate::syntax::imports(&path, &text);
-        if parse_error {
+        if !parse_error.is_empty() {
             unresolved
-                .push(json!({"from":from,"reason":"syntax error; import coverage is partial"}));
+                .push(json!({"from":from,"lines":parse_error,"reason":"parser could not fully interpret source (which may be valid TypeScript); import coverage is partial"}));
         }
         for (line, specifier, kind) in imports {
             match resolve_import(&canonical_root, &path, &specifier, &packages, &configs) {
+                Resolution::Local(target) if !allowed.contains(&target) => unresolved.push(json!({"from":from,"specifier":specifier,"reason":"resolved source is excluded from the declared scan scope"})),
                 Resolution::Local(target) => {
                     let to = relative(&canonical_root, &target);
                     nodes.insert(to.clone());
@@ -328,6 +370,7 @@ fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) 
                     "specifier": specifier,
                 })),
                 Resolution::External => external_imports += 1,
+                Resolution::Resource => resource_imports += 1,
             }
         }
     }
@@ -337,6 +380,7 @@ fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) 
         edges.into_iter().collect(),
         unresolved,
         external_imports,
+        resource_imports,
     )
 }
 
@@ -657,7 +701,8 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
     let detection = architecture::detect(root);
     let profiles = selected_profiles(&detection, requested_profiles);
     let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
-    let (nodes, edges, unresolved, external_imports) = build_graph(&canonical_root);
+    let (nodes, edges, unresolved, external_imports, resource_imports) =
+        build_graph(&canonical_root);
     let runtime: Vec<_> = edges
         .iter()
         .filter(|e| e.kind == "runtime")
@@ -716,6 +761,7 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
             "source_files": nodes.len(),
             "local_edges": edge_values.len(),
             "external_imports": external_imports,
+            "resource_imports": resource_imports,
             "unresolved_local_imports": unresolved,
             "edges": edge_values,
             "cycles": components,

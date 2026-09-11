@@ -14,7 +14,16 @@ pub fn script_source(path: &Path, text: &str) -> String {
             .iter()
             .map(|b| if *b == b'\n' { b'\n' } else { b' ' })
             .collect::<Vec<_>>();
+        static HTML_COMMENTS: LazyLock<regex::Regex> =
+            LazyLock::new(|| regex::Regex::new(r"(?s)<!--.*?-->").unwrap());
+        let comment_ranges: Vec<_> = HTML_COMMENTS.find_iter(text).map(|m| m.range()).collect();
         for capture in SCRIPTS.captures_iter(text) {
+            if comment_ranges
+                .iter()
+                .any(|r| r.contains(&capture.get(0).unwrap().start()))
+            {
+                continue;
+            }
             let part = capture.get(1).unwrap();
             bytes[part.range()].copy_from_slice(part.as_str().as_bytes());
         }
@@ -47,11 +56,22 @@ pub fn walk<'a>(root: Node<'a>) -> Vec<Node<'a>> {
     }
     nodes
 }
-pub fn imports(path: &Path, text: &str) -> (Vec<(usize, String, String)>, bool) {
+pub fn imports(path: &Path, text: &str) -> (Vec<(usize, String, String)>, Vec<usize>) {
     let source = script_source(path, text);
     let tree = parse(path, &source);
     let mut out = Vec::new();
-    for node in walk(tree.root_node()) {
+    let nodes = walk(tree.root_node());
+    let mut gaps: Vec<_> = nodes
+        .iter()
+        .filter(|n| n.is_error() || n.is_missing())
+        .map(|n| n.start_position().row + 1)
+        .collect();
+    if tree.root_node().has_error() && gaps.is_empty() {
+        gaps.push(1);
+    }
+    gaps.sort();
+    gaps.dedup();
+    for node in nodes {
         let (literal, kind) = match node.kind() {
             "import_statement" | "export_statement" => {
                 let statement = node.utf8_text(source.as_bytes()).unwrap_or("");
@@ -61,7 +81,11 @@ pub fn imports(path: &Path, text: &str) -> (Vec<(usize, String, String)>, bool) 
                     .filter(|n| ["import_specifier", "export_specifier"].contains(&n.kind()))
                     .collect();
                 let clause = node.child_by_field_name("source");
-                let only_types = statement.starts_with("import type ")
+                let mut cursor = node.walk();
+                let only_types = node
+                    .children(&mut cursor)
+                    .any(|child| child.kind() == "type")
+                    || statement.starts_with("import type ")
                     || statement.starts_with("export type ")
                     || (!names.is_empty()
                         && names.iter().all(|n| {
@@ -88,7 +112,9 @@ pub fn imports(path: &Path, text: &str) -> (Vec<(usize, String, String)>, bool) 
                 (
                     node.child_by_field_name("arguments")
                         .and_then(|n| n.named_child(0)),
-                    if function == "import" {
+                    if in_type_context(node) {
+                        "type"
+                    } else if function == "import" {
                         "dynamic"
                     } else {
                         "runtime"
@@ -99,6 +125,9 @@ pub fn imports(path: &Path, text: &str) -> (Vec<(usize, String, String)>, bool) 
         };
         if let Some(literal) = literal.filter(|n| n.kind() == "string") {
             let raw = literal.utf8_text(source.as_bytes()).unwrap_or("");
+            if raw.contains('\\') {
+                gaps.push(node.start_position().row + 1);
+            }
             if raw.len() >= 2 && !raw.contains('\\') {
                 out.push((
                     node.start_position().row + 1,
@@ -110,5 +139,54 @@ pub fn imports(path: &Path, text: &str) -> (Vec<(usize, String, String)>, bool) 
     }
     out.sort();
     out.dedup();
-    (out, tree.root_node().has_error())
+    (out, gaps)
+}
+
+fn in_type_context(node: Node<'_>) -> bool {
+    let mut parent = node.parent();
+    while let Some(node) = parent {
+        if [
+            "type_alias_declaration",
+            "type_annotation",
+            "type_query",
+            "interface_declaration",
+        ]
+        .contains(&node.kind())
+        {
+            return true;
+        }
+        if ["statement_block", "program"].contains(&node.kind()) {
+            return false;
+        }
+        parent = node.parent();
+    }
+    false
+}
+
+#[cfg(test)]
+mod parser_tests {
+    use super::*;
+    #[test]
+    fn imported_generic_type_edges_are_never_runtime() {
+        let source = "import /* comment */ type { Env } from './env';\nexport type App = import('library').App<{ Bindings: Env; Variables: { auth: Env }; }>;";
+        let (edges, _) = imports(Path::new("main.ts"), source);
+        assert!(
+            edges
+                .iter()
+                .any(|(_, name, kind)| name == "./env" && kind == "type")
+        );
+        assert!(
+            edges
+                .iter()
+                .any(|(_, name, kind)| name == "library" && kind == "type")
+        );
+        assert!(!edges.iter().any(|(_, _, kind)| kind == "runtime"));
+    }
+    #[test]
+    fn commented_sfc_scripts_are_ignored() {
+        let source = "<!-- <script>import './fake';</script> --><script setup lang=\"ts\">import './real';</script>";
+        let (edges, _) = imports(Path::new("app.vue"), source);
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].1, "./real");
+    }
 }
