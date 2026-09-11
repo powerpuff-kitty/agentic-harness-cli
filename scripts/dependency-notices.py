@@ -77,7 +77,8 @@ def main():
     records, sections = collect(metadata['packages'], sources, ROOT / 'third-party')
     authored = []
     for name, root in [('CLI', ROOT), ('canonical', ROOT / 'upstream/agentic-harness'),
-                       ('agents', ROOT / 'upstream/agentic-harness-agents')]:
+                       ('agents', ROOT / 'upstream/agentic-harness-agents'),
+                       ('model_registry', ROOT / 'upstream/agentic-harness-registry')]:
         # Only repository-root declarations apply to authored sources; do not mistake
         # a vendored dependency or template's LICENSE for the repository's declaration.
         files = sorted(p for p in root.glob('*') if p.is_file() and not p.is_symlink()
@@ -92,8 +93,8 @@ def main():
         missing.append('CLI package metadata')
     header = ('Third-party attribution for Agentic Harness CLI\n'
               'Scope: all resolved Cargo packages, including build and target-specific dependencies.\n'
-              'Original texts and declared license alternatives are retained; this collection does not\n'
-              'grant a license to authored project content or certify legal compatibility.\n'
+              'Original texts and declared license alternatives are retained. Authored-source terms\n'
+              'appear in the source sections below; this collection does not certify legal compatibility.\n'
               'Rust standard-library attribution accompanies this file as .rust.html.\n'
               f'Authored sources without a root license declaration: {", ".join(missing) or "none"}.\n')
     toolchain = subprocess.check_output(['rustc', '--version'], text=True).strip()

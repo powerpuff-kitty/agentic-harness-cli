@@ -50,7 +50,7 @@ jobs:
         if: runner.os == 'Linux'
         run: python3 scripts/benchmark.py target/release/ah --output dist/benchmark-linux.json
       - name: Collect dependency and Rust library attribution
-        run: python scripts/dependency-notices.py --output notices/THIRD_PARTY_NOTICES.txt
+        run: python scripts/dependency-notices.py --output notices/THIRD_PARTY_NOTICES.txt --require-authored-licenses
       - name: Verify packaging failure cases
         run: python scripts/test-artifacts.py target/release/ah${{ runner.os == 'Windows' && '.exe' || '' }} notices/THIRD_PARTY_NOTICES.txt
       - name: Package binary and provenance
@@ -89,7 +89,7 @@ jobs:
         shell: bash
         run: |
           chmod +x "downloaded/${{ matrix.asset }}"
-          python scripts/package-candidate.py "downloaded/${{ matrix.asset }}.zip" --verify-archive
+          python scripts/package-candidate.py "downloaded/${{ matrix.asset }}.zip" --verify-archive --require-authored-licenses
           python scripts/package-candidate.py "downloaded/${{ matrix.asset }}" --verify
           python scripts/verify-candidate.py "downloaded/${{ matrix.asset }}" --report "evidence/${{ matrix.asset }}.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

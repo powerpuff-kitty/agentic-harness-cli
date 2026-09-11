@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- License authored content under MIT and retain copied Harness attribution without licensing generated application code.
+
 - Embed the current canonical catalog and model registry in the unified `ah` command surface.
 - Validate real project YAML/context routes, audit artifacts, thresholds and arguments; preserve explicit legacy reads.
 - Stage composition, preserve custom files, report conflicts, record source/checksum provenance and restore managed metadata after recoverable failures.

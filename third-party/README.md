@@ -12,5 +12,5 @@ packages. It also includes `COPYRIGHT-library.html` from the installed Rust
 compiler distribution. This is attribution evidence, not an inferred license for
 the CLI or its embedded authored sources, and not automatic legal approval.
 
-The current authored-source license decision is tracked in
+The owner-approved MIT decision and implementation evidence are tracked in
 [#53](https://github.com/powerpuff-kitty/agentic-harness-cli/issues/53).

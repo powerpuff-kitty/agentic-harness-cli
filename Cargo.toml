@@ -3,6 +3,7 @@ name = "agentic-harness-cli"
 version = "0.1.0"
 edition = "2024"
 description = "Native Agentic Harness CLI"
+license = "MIT"
 build = "build.rs"
 default-run = "ah"
 

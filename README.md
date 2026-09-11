@@ -221,3 +221,10 @@ The pinned canonical catalog exposes complete root boilerplates (`base`, `web-ap
 ## Contributing
 
 The CLI should contain deterministic mechanics rather than canonical architecture or large prompt collections. Architecture/content changes belong in `agentic-harness`; agent procedure changes belong in `agentic-harness-agents`.
+
+## License
+
+Authored code and content are available under the [MIT License](LICENSE).
+Third-party material retains its existing licenses and attribution requirements.
+Copied Harness templates and skills retain their MIT notice; independently
+written application code may use its own license.

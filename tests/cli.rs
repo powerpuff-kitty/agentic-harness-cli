@@ -743,3 +743,43 @@ fn internal_parser_protocol_rejects_oversized_and_invalid_frames() {
         assert!(result.stderr.is_empty());
     }
 }
+
+#[test]
+fn mit_attribution_is_retained_without_setting_application_licensing() {
+    let f = Fixture::new();
+    for variant in [
+        "base",
+        "web-app",
+        "backend-api",
+        "saas",
+        "monorepo",
+        "library-sdk",
+    ] {
+        f.json(&["init", variant, "--boilerplate", variant], 0);
+        let notice_path = format!("{variant}/.agentic/THIRD_PARTY_NOTICES.md");
+        let notice = fs::read_to_string(f.path().join(&notice_path)).unwrap();
+        assert!(notice.contains("MIT License"));
+        assert!(notice.contains("Copyright (c) 2026 Agentic Harness contributors"));
+        assert!(notice.contains("does not set the license"));
+        assert!(!f.path().join(variant).join("LICENSE").exists());
+        let lock: Value = serde_json::from_slice(
+            &fs::read(f.path().join(variant).join(".agentic/lock.json")).unwrap(),
+        )
+        .unwrap();
+        assert!(lock["checksums"][".agentic/THIRD_PARTY_NOTICES.md"].is_string());
+        f.put(
+            &format!("{variant}/LICENSE"),
+            "Application owner's separate terms\n",
+        );
+        fs::remove_file(f.path().join(&notice_path)).unwrap(); // An older installation lacks notices.
+        f.json(&["upgrade", variant], 0);
+        assert_eq!(
+            fs::read_to_string(f.path().join(&notice_path)).unwrap(),
+            notice
+        );
+        assert_eq!(
+            fs::read_to_string(f.path().join(variant).join("LICENSE")).unwrap(),
+            "Application owner's separate terms\n"
+        );
+    }
+}
