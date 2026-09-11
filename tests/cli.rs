@@ -659,3 +659,20 @@ fn wildcard_workspace_exports_and_non_code_resources_are_classified() {
     assert_eq!(report["graph"]["resource_imports"], 2);
     assert_eq!(report["compliance"]["complete"], true);
 }
+
+#[test]
+fn dotted_module_stems_resolve_without_dropping_the_stem_suffix() {
+    let f = Fixture::new();
+    f.put(
+        "src/resource.types.ts",
+        "export interface Resource { id: string }",
+    );
+    f.put(
+        "src/app.ts",
+        "import type { Resource } from './resource.types'; export const value = 1;",
+    );
+    let report = f.json(&["architecture", "analyze", "."], 0);
+    assert_eq!(report["graph"]["local_edges"], 1);
+    assert_eq!(report["graph"]["edges"][0]["kind"], "type");
+    assert_eq!(report["compliance"]["complete"], true);
+}

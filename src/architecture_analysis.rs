@@ -113,10 +113,16 @@ fn existing_source(base: &Path) -> Option<PathBuf> {
             }
         }
     }
-    if base.extension().is_none() {
+    if base
+        .extension()
+        .and_then(|s| s.to_str())
+        .is_none_or(|s| !SOURCE_EXTENSIONS.contains(&s))
+    {
         for extension in SOURCE_EXTENSIONS {
-            let mut candidate = base.to_path_buf();
-            candidate.set_extension(extension);
+            let mut name = base.as_os_str().to_os_string();
+            name.push(".");
+            name.push(extension);
+            let candidate = PathBuf::from(name);
             if candidate.is_file() {
                 return Some(candidate);
             }
