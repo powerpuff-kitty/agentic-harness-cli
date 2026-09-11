@@ -1,6 +1,6 @@
 # Production-core release gates
 
-The package remains beta (`0.1.0`). A passing numeric audit score is not release approval. The production-core roadmap is tracked in [#51](https://github.com/powerpuff-kitty/agentic-harness-cli/issues/51).
+The production-core candidate is package `0.1.0`; experimental surfaces and pre-1.0 compatibility remain explicit in [CLI contracts](cli-contracts.md). A passing numeric audit score is not release approval. The production-core roadmap is tracked in [#51](https://github.com/powerpuff-kitty/agentic-harness-cli/issues/51).
 
 A candidate needs evidence tied to its commit and binary checksums:
 

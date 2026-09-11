@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 — production-core candidate (unpublished)
 
+- Reject malformed optional audit evidence before gates/comparisons and version their result envelopes.
+- Document the supported production-core contract, pre-1.0 compatibility and platform installation/recovery.
 - License authored content under MIT and retain copied Harness attribution without licensing generated application code.
 
 - Embed the current canonical catalog and model registry in the unified `ah` command surface.

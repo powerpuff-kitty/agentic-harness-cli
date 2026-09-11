@@ -22,4 +22,13 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
         assert output.returncode in (0, 1), output.stderr
         validator = Draft202012Validator(json.loads((schemas / schema).read_text()))
         validator.validate(json.loads(output.stdout))
-print('Actual CLI outputs conform to pinned canonical v2 schemas')
+        if args == ['audit']:
+            (target / 'audit.json').write_text(output.stdout)
+    for args, schema, expected_exit in [
+        (['compare', str(target / 'audit.json'), str(target / 'audit.json')], 'audit-comparison.v1.schema.json', 0),
+        (['gate', str(target / 'audit.json')], 'audit-gate.v1.schema.json', 1),
+    ]:
+        output = subprocess.run([str(binary), *args], capture_output=True, text=True, timeout=60)
+        assert output.returncode == expected_exit, output.stderr
+        Draft202012Validator(json.loads((schemas / schema).read_text())).validate(json.loads(output.stdout))
+print('Actual CLI outputs conform to pinned canonical audit, agentic, gate and comparison schemas')

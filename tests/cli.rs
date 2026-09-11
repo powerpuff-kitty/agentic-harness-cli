@@ -195,6 +195,42 @@ fn gates_validate_artifacts_and_finite_thresholds() {
     );
 }
 #[test]
+fn malformed_optional_audit_evidence_cannot_pass_gate_or_compare() {
+    let f = Fixture::new();
+    let mut cases = Vec::new();
+    for complete in [json!("false"), json!(null), json!(0), json!({})] {
+        let mut value = audit(json!(100));
+        value["architecture"]["compliance"]["complete"] = complete;
+        cases.push(value);
+    }
+    for evidence in [json!(false), json!([null]), json!([123])] {
+        let mut value = audit(json!(100));
+        value["findings"] = json!([{"severity":"info","dimension":"testing","message":"observed","evidence":evidence}]);
+        cases.push(value);
+    }
+    let mut invalid_maturity = audit(json!(100));
+    invalid_maturity["target_maturity"] = json!("ready");
+    cases.push(invalid_maturity);
+    for value in cases {
+        f.put("bad.json", value.to_string());
+        for args in [
+            vec!["gate", "bad.json", "--max-architecture-errors", "0"],
+            vec!["compare", "bad.json", "bad.json"],
+        ] {
+            let output = f.run(&args);
+            assert_eq!(output.status.code(), Some(2), "{args:?}: {value}");
+            assert!(output.stdout.is_empty());
+            let error: Value = serde_json::from_slice(&output.stderr).unwrap();
+            assert_eq!(error["kind"], "diagnostic");
+        }
+    }
+    let mut valid = audit(json!(100));
+    valid["architecture"]["compliance"]["complete"] = json!(false);
+    f.put("partial.json", valid.to_string());
+    assert_eq!(f.json(&["gate", "partial.json"], 1)["passed"], false);
+}
+
+#[test]
 fn arguments_and_model_ids_are_strict() {
     let f = Fixture::new();
     f.put("file", "{}");
@@ -214,6 +250,82 @@ fn arguments_and_model_ids_are_strict() {
         );
     }
 }
+#[test]
+fn documented_command_options_fail_with_structured_diagnostics() {
+    let f = Fixture::new();
+    let commands: &[(&[&str], &[&str])] = &[
+        (
+            &["init", "new"],
+            &[
+                "--boilerplate",
+                "--template",
+                "--preset",
+                "--profile",
+                "--pack",
+                "--skill",
+                "--policy",
+                "--name",
+                "--maturity",
+            ],
+        ),
+        (
+            &["upgrade", "."],
+            &[
+                "--boilerplate",
+                "--template",
+                "--preset",
+                "--profile",
+                "--pack",
+                "--skill",
+                "--policy",
+                "--name",
+                "--maturity",
+            ],
+        ),
+        (&["audit", "."], &[]),
+        (&["validate", "."], &[]),
+        (&["harness-audit", "."], &[]),
+        (&["security-scan", "."], &[]),
+        (&["catalog-check"], &[]),
+        (&["design-system-components", "."], &[]),
+        (&["compare", "before.json", "after.json"], &[]),
+        (
+            &["gate", "audit.json"],
+            &["--min-overall", "--min-score", "--max-architecture-errors"],
+        ),
+        (&["architecture", "detect", "."], &[]),
+        (&["architecture", "analyze", "."], &["--profile", "--as-of"]),
+        (&["architecture", "enforce", "."], &["--profile", "--as-of"]),
+        (&["design", "analyze", "."], &["--level", "--output"]),
+        (&["design", "preserve"], &["--analysis", "--output"]),
+        (&["design", "prompt"], &["--genome", "--task", "--output"]),
+        (
+            &["design", "diff", "before.json", "after.json"],
+            &["--output"],
+        ),
+        (&["agentic", "audit", "."], &[]),
+        (&["agentic", "context", "."], &[]),
+        (&["agentic", "skills", "."], &[]),
+        (&["agentic", "models", "."], &["--task"]),
+        (&["agentic", "improve", "."], &[]),
+        (&["agentic", "migrate", "."], &["--from", "--to"]),
+        (&["agentic", "compare", "a", "b"], &[]),
+    ];
+    for (command, flags) in commands {
+        for flag in ["--unsupported"].iter().chain(flags.iter()) {
+            let mut args = command.to_vec();
+            args.push(flag);
+            let output = f.run(&args);
+            assert_eq!(output.status.code(), Some(2), "{args:?}");
+            assert!(output.stdout.is_empty(), "{args:?}");
+            let error: Value = serde_json::from_slice(&output.stderr).unwrap();
+            assert_eq!(error["kind"], "diagnostic", "{args:?}");
+            assert_eq!(error["format_version"], 1);
+        }
+    }
+    assert!(!f.path().join("new").exists());
+}
+
 #[test]
 fn runtime_type_and_dynamic_imports_are_distinct() {
     let f = Fixture::new();

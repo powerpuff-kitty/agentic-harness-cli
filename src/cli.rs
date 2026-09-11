@@ -1149,7 +1149,7 @@ pub fn run(argv: Vec<String>) {
                 scores.insert(key, json!({"before":x,"after":y,"delta":match(x,y){(Some(x),Some(y))=>Some(y-x),_=>None}}));
             }
             pretty(
-                json!({"overall":{"before":before["overall"],"after":after["overall"],"delta":after["overall"].as_f64().zip(before["overall"].as_f64()).map(|(a,b)|a-b)},"scores":scores}),
+                json!({"format_version":1,"kind":"audit-comparison","overall":{"before":before["overall"],"after":after["overall"],"delta":after["overall"].as_f64().zip(before["overall"].as_f64()).map(|(a,b)|a-b)},"scores":scores}),
             );
             0
         }
@@ -1224,7 +1224,7 @@ pub fn run(argv: Vec<String>) {
                 failures.push(failure);
             }
             let ok = failures.is_empty();
-            pretty(json!({"passed":ok,"failures":failures}));
+            pretty(json!({"format_version":1,"kind":"audit-gate","passed":ok,"failures":failures}));
             if ok { 0 } else { 1 }
         }
         _ => {

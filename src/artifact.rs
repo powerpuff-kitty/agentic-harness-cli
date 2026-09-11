@@ -44,6 +44,28 @@ pub fn validate(value: &Value) -> Result<(), String> {
         {
             return Err("invalid audit finding".into());
         }
+        if let Some(evidence) = finding.get("evidence")
+            && evidence
+                .as_array()
+                .is_none_or(|items| items.iter().any(|v| !v.is_string() && !v.is_object()))
+        {
+            return Err("finding evidence must contain strings or objects".into());
+        }
+    }
+    if let Some(maturity) = value.get("target_maturity")
+        && maturity.as_str().is_none_or(|s| {
+            ![
+                "prototype",
+                "startup",
+                "production",
+                "critical",
+                "beta",
+                "unknown",
+            ]
+            .contains(&s)
+        })
+    {
+        return Err("invalid target maturity".into());
     }
     if legacy || value.get("readiness").is_some() {
         if !value["readiness"].is_object()
@@ -72,7 +94,10 @@ pub fn validate(value: &Value) -> Result<(), String> {
     }
     if value.get("architecture").is_some()
         && (!value["architecture"]["compliance"]["deterministic_errors"].is_u64()
-            || !value["architecture"]["compliance"]["passed"].is_boolean())
+            || !value["architecture"]["compliance"]["passed"].is_boolean()
+            || value["architecture"]["compliance"]
+                .get("complete")
+                .is_some_and(|v| !v.is_boolean()))
     {
         return Err("invalid architecture compliance data".into());
     }

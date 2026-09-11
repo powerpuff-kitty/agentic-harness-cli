@@ -96,6 +96,9 @@ jobs:
         with:
           name: evidence-${{ matrix.asset }}
           path: evidence/*
+      - name: Verify Linux candidate with networking disabled
+        if: runner.os == 'Linux'
+        run: sudo unshare --net python3 scripts/verify-candidate.py "downloaded/${{ matrix.asset }}" > /dev/null
   dependencies:
     runs-on: ubuntu-latest
     steps:

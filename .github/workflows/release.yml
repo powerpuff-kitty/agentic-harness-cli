@@ -5,7 +5,22 @@ on:
 permissions:
   contents: read
 jobs:
+  identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Require tag and package version to match
+        env:
+          CANDIDATE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, tomllib
+          version = tomllib.loads(pathlib.Path('Cargo.toml').read_text())['package']['version']
+          if os.environ['CANDIDATE_TAG'] != f'v{version}':
+              raise SystemExit('Release tag does not match Cargo package version')
+          PY
   verify:
+    needs: identity
     uses: ./.github/workflows/ci.yml
   draft:
     needs: verify

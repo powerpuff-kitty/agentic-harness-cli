@@ -1,12 +1,12 @@
 # Agentic Harness CLI
 
-[![Status: Beta](https://img.shields.io/badge/status-beta-orange)](https://github.com/powerpuff-kitty/agentic-harness-cli)
+[![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/powerpuff-kitty/agentic-harness-cli)
 [![CLI CI](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml)
 [![Rust](https://img.shields.io/badge/Rust-native-000000?logo=rust)](https://www.rust-lang.org/)
 
 **Native Rust `ah` CLI for composing, validating, auditing, and governing agent-native repositories used with Codex, Claude Code, Cursor, GitHub Copilot, Gemini CLI, and other coding agents.**
 
-> **Status: Beta.** The CLI is pre-1.0: core commands are usable, but command and schema compatibility may still evolve before the first stable release.
+> **Production-core scope:** composition, validation, audit/gate, installation and recovery follow the [supported contract](docs/cli-contracts.md). Architecture, design and agentic inspection remain experimental. Package version 0.1.0 uses the documented pre-1.0 compatibility policy. Read the [candidate readiness evidence](docs/release-checklist.md) before deployment.
 
 ## Installation
 
@@ -59,7 +59,7 @@ A custom command name can be selected with `--command`:
 
 Release binaries are intended to be the preferred installation path once GitHub Releases are published. They embed pinned snapshots of the canonical `agentic-harness` and `agentic-harness-agents` repositories, so binary users will not need GitHub access or Rust at runtime.
 
-Until release artifacts are available, use the source installation above. Candidate CI artifacts include a platform ZIP, its SHA-256 checksum, binary provenance, third-party notices and Rust standard-library attribution. When release bundles are published, download the ZIP and checksum together and verify them before extracting or executing code. Retain the notice files alongside the installed binary or in its package documentation directory. See [candidate verification](docs/release-checklist.md).
+Until release artifacts are available, use the source installation above. Candidate CI artifacts include a platform ZIP, its SHA-256 checksum, binary provenance, third-party notices and Rust standard-library attribution. When release bundles are published, download the ZIP and checksum together and verify them before extracting or executing code. Retain the notice files alongside the installed binary or in its package documentation directory. See [candidate verification](docs/release-checklist.md) and [binary installation, upgrades and recovery](docs/operations.md).
 
 ## Quick start
 
@@ -142,9 +142,9 @@ Architecture Analysis v1 currently builds a local JS/TS/Vue source dependency gr
 
 The analyzer resolves relative imports and built-in `@/`, `~/` and `#shared/` aliases. Unresolved local imports are reported separately rather than silently treated as external packages. Findings carry stable Architecture Registry rule IDs plus authority and deterministic/heuristic classification.
 
-The report also explicitly lists what is not yet checked, including non-JS language graphs, arbitrary custom alias maps, computed runtime imports, semantic business-logic placement and project-local exceptions.
+The report lists unsupported coverage, including non-JS language graphs, JSONC/extended tsconfig and Vite-only aliases, computed runtime imports and semantic business-logic placement. Basic JSON tsconfig paths, workspace exports and dated project-local exceptions are supported.
 
-Project-local architecture contracts, general registry rule compilation, ESLint/Nx/dependency-cruiser adapters, additional languages and integration into the main audit score remain follow-up work.
+`architecture enforce` previews or writes the normalized project-local contract. General registry rule compilation, ESLint/Nx/dependency-cruiser adapters and additional languages remain follow-up work. Architecture coverage and deterministic error counts feed audit gates; an unavailable graph score stays null.
 
 ## Experimental design intelligence
 

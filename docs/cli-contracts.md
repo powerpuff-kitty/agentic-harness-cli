@@ -4,6 +4,12 @@
 
 Exit 0 means the requested operation completed or explicit validation/policy passed. Exit 1 means a main audit/security finding, failed project validation or failed gate. Exit 2 means invalid input, unsupported functionality or execution failure. Architecture/design/agentic inspection returns 0 when it produces its report; inspect compliance, coverage and advisory findings rather than interpreting process success as a quality verdict. Help returns 0. Unknown flags, excess operands, missing values, invalid directories and unknown model IDs fail.
 
+## Support and compatibility
+
+The production-core contract covers composition, project validation, audit artifact validation, explicit gates, confined scanning, installation and recovery. Architecture/design analysis and agentic inspection/previews are experimental: their output is evidence with the documented coverage limits. The same input validation and data-preservation guarantees apply to every command family.
+
+Package 0.1.x patch releases preserve supported command arguments, exit semantics and existing fields within an artifact version. Additive JSON fields are allowed; consumers must ignore unknown fields. A breaking command change requires a new minor release while pre-1.0, migration notes and an explicit compatibility review. Incompatible artifact changes require a new `format_version` independently of the package version. Stored complete legacy audits remain readable; there is no silent conversion of unknown measurements to numeric scores.
+
 ## Commands
 
 | Surface | Behavior |
@@ -29,6 +35,8 @@ Exit 0 means the requested operation completed or explicit validation/policy pas
 | `agentic migrate [TARGET] --from MODEL_A --to MODEL_B` | Preview only; distinct from filesystem-layout migration |
 
 ## Evidence versions
+
+Gate and comparison outputs carry `format_version: 1` with `kind: audit-gate` and `kind: audit-comparison`, respectively. Existing result fields retain their meanings; adding these discriminators is compatible with readers that allow additional fields. Malformed optional coverage, maturity and finding-evidence fields are rejected before a gate or comparison.
 
 The authoritative schemas are embedded from `agentic-harness/catalog/schema`. Codebase audit v2 and agentic inspection v2 distinguish static indicators from verified quality. `overall` and readiness remain null because the CLI has not executed release gates. A numeric threshold on a null metric fails with exit 1; an unknown dimension or invalid threshold fails with exit 2. A gate with no thresholds checks artifact validity and explicit completeness only.
 
