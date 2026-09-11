@@ -50,12 +50,26 @@ fn every_family_is_available_in_the_installed_binary() {
         vec!["agentic", "--help"],
         vec!["--version"],
     ] {
-        let o = Command::new(&copy)
-            .args(args)
+        let mut command = Command::new(&copy);
+        command
+            .args(&args)
             .current_dir(f.path())
-            .env_remove("AH_REGISTRY")
-            .output()
-            .unwrap();
+            .env_remove("AH_REGISTRY");
+        // Linux CI can briefly report ETXTBSY after copying an executable while
+        // other tests spawn processes. Retry only this launch error, with a bound;
+        // command failures and all other I/O errors must still fail immediately.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        let o = loop {
+            match command.output() {
+                Err(error)
+                    if error.kind() == std::io::ErrorKind::ExecutableFileBusy
+                        && std::time::Instant::now() < deadline =>
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                result => break result.unwrap(),
+            }
+        };
         assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
     }
     let models = f.json(&["agentic", "models", "."], 0);
