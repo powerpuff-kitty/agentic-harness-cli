@@ -75,7 +75,7 @@ report = {'format_version': 1, 'binary_sha256': hashlib.sha256(binary.read_bytes
           'version': json.loads(subprocess.check_output([str(binary), '--version'])),
           'environment': {'platform': platform.platform(), 'machine': platform.machine(),
                           'processor': platform.processor(), 'python': platform.python_version()},
-          'method': 'One warmup then repeated fresh processes; stdout discarded; per-child peak RSS via wait4 where available.',
+          'method': 'One warmup then repeated fresh processes; stdout discarded; wait4 peak RSS where available (includes reaped parser workers per OS accounting; not summed concurrent process memory).',
           'results': rows}
 args.output.parent.mkdir(parents=True, exist_ok=True)
 args.output.write_text(json.dumps(report, indent=2) + '\n')

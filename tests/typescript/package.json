@@ -1,0 +1,7 @@
+{
+  "name": "ah-typescript-parser-fixtures",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": { "test": "tsc --project tsconfig.json" },
+  "devDependencies": { "typescript": "5.9.3" }
+}

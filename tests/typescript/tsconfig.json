@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "noEmit": true,
+    "types": [],
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["fixtures/**/*"]
+}

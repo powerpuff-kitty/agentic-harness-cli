@@ -117,5 +117,5 @@ pub fn run(argv: Vec<String>) {
         }
     };
 
-    std::process::exit(code);
+    crate::finish(code);
 }

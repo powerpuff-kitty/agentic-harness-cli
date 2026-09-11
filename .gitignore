@@ -1,3 +1,4 @@
 target/
 upstream/
 .DS_Store
+/tests/typescript/node_modules/

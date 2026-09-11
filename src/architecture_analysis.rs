@@ -793,6 +793,8 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
                 "Python/Rust/Go/Java import graphs",
                 "tsconfig inheritance/JSONC, conditional export resolution beyond import/default/types, and Vite-only aliases",
                 "runtime-generated or computed dynamic import targets",
+                "source-phase and deferred import evaluation",
+                "binding analysis for shadowed require identifiers and compiler-dependent import elision",
                 "semantic business-logic placement",
                 "dynamic and type-only cycles are not treated as synchronous runtime cycles",
                 "external package dependency cycles"

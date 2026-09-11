@@ -676,3 +676,70 @@ fn dotted_module_stems_resolve_without_dropping_the_stem_suffix() {
     assert_eq!(report["graph"]["edges"][0]["kind"], "type");
     assert_eq!(report["compliance"]["complete"], true);
 }
+
+#[test]
+fn parser_failure_is_incomplete_and_worker_recovers_for_the_next_file() {
+    let f = Fixture::new();
+    f.put(
+        "src/a.ts",
+        format!(
+            "const deep = {}1{};",
+            "(".repeat(100_000),
+            ")".repeat(100_000)
+        ),
+    );
+    f.put(
+        "src/b.ts",
+        "export type Generic = import('./c').Box<{ value: string }>;",
+    );
+    f.put("src/c.ts", "export interface Box<T> { value: T }");
+    let output = f.run(&["audit", "."]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(
+        output.stderr.is_empty(),
+        "parser crash details must not leak to report stderr"
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let architecture = &report["architecture"];
+    assert_eq!(architecture["compliance"]["complete"], false);
+    assert!(report["scores"]["architecture"].is_null());
+    assert_eq!(
+        architecture["graph"]["unresolved_local_imports"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(
+        architecture["graph"]["edges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["from"] == "src/b.ts" && e["to"] == "src/c.ts" && e["kind"] == "type")
+    );
+    f.put("audit.json", report.to_string());
+    assert_eq!(f.json(&["gate", "audit.json"], 1)["passed"], false);
+}
+
+#[test]
+fn internal_parser_protocol_rejects_oversized_and_invalid_frames() {
+    use std::io::Write;
+    use std::process::Stdio;
+    for frame in [
+        (16 * 1024 * 1024 + 1u32).to_le_bytes().to_vec(),
+        vec![1, 0, 0, 0, b'{'],
+    ] {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_ah"))
+            .arg("--internal-syntax-worker")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child.stdin.take().unwrap().write_all(&frame).unwrap();
+        let result = child.wait_with_output().unwrap();
+        assert_eq!(result.status.code(), Some(2));
+        assert!(result.stdout.is_empty());
+        assert!(result.stderr.is_empty());
+    }
+}

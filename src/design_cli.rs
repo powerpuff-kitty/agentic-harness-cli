@@ -207,7 +207,7 @@ pub fn run(args: Vec<String>) {
         }
         _ => {
             usage(program);
-            std::process::exit(2);
+            crate::finish(2);
         }
     }
 }

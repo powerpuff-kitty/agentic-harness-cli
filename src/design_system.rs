@@ -180,13 +180,10 @@ fn inspect(root: &Path) -> Value {
             .map(|c| c[1].to_string())
             .collect();
         if ["tsx", "jsx"].contains(&ext) {
-            let tree = crate::syntax::parse(path, &text);
-            for node in crate::syntax::walk(tree.root_node()) {
-                if ["jsx_opening_element", "jsx_self_closing_element"].contains(&node.kind())
-                    && let Some(n) = node.child_by_field_name("name")
-                {
-                    tags.push(n.utf8_text(text.as_bytes()).unwrap_or("").into());
-                }
+            let (jsx_tags, gaps) = crate::syntax::jsx_tags(path, &text);
+            tags.extend(jsx_tags);
+            if !gaps.is_empty() {
+                reads.push(json!({"path":rel,"lines":gaps,"reason":"parser could not fully interpret JSX; component coverage is partial"}));
             }
         }
         user_facing |= !tags.is_empty();

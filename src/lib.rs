@@ -16,13 +16,19 @@ mod design_system;
 mod project;
 mod scan;
 mod syntax;
+mod syntax_worker;
 
 pub fn fail(message: impl AsRef<str>) -> ! {
     eprintln!(
         "{}",
         serde_json::json!({"format_version":1,"kind":"diagnostic","code":"invalid-input","message":message.as_ref()})
     );
-    std::process::exit(2)
+    finish(2)
+}
+
+pub(crate) fn finish(code: i32) -> ! {
+    crate::syntax_worker::shutdown();
+    std::process::exit(code)
 }
 
 pub fn version() -> serde_json::Value {
@@ -31,6 +37,12 @@ pub fn version() -> serde_json::Value {
 
 pub fn entry(family: Option<&str>) {
     let mut args: Vec<String> = std::env::args().collect();
+    if args.len() == 2 && args[1] == "--internal-syntax-worker" {
+        if crate::syntax_worker::run().is_err() {
+            std::process::exit(2);
+        }
+        return;
+    }
     if args.get(1).is_some_and(|x| x == "--version" || x == "-V") {
         if args.len() != 2 {
             fail("--version takes no other arguments");
@@ -60,6 +72,7 @@ pub fn entry(family: Option<&str>) {
         Some("design") => design_cli::run(args),
         _ => cli::run(args),
     }
+    crate::syntax_worker::shutdown();
 }
 
 fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {

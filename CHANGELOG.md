@@ -6,6 +6,7 @@
 - Validate real project YAML/context routes, audit artifacts, thresholds and arguments; preserve explicit legacy reads.
 - Stage composition, preserve custom files, report conflicts, record source/checksum provenance and restore managed metadata after recoverable failures.
 - Share confined, ignore-aware inventories; exclude generated/test/tooling content from product metrics.
+- Replace the limited TypeScript grammar with Oxc, compiler-checked fixtures and crash-contained native parsing.
 - Parse JS/TS/TSX and Vue/Svelte scripts; distinguish runtime/type/dynamic imports, resolve common aliases/workspace exports and honor exception expiry.
 - Remove invented quality/readiness scores; publish unmeasured values and unsupported coverage explicitly in audit v2.
 - Use template-aware design discovery and bounded, redacted secret markers.

@@ -1232,7 +1232,7 @@ pub fn run(argv: Vec<String>) {
             2
         }
     };
-    std::process::exit(code)
+    crate::finish(code)
 }
 
 #[cfg(test)]

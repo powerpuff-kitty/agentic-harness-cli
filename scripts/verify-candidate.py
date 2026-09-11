@@ -57,6 +57,19 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     run('compare', 'audit.json', 'audit.json')
     run('gate', 'audit.json', '--min-overall', '90', exits=(1,))
     run('gate', 'audit.json', '--max-architecture-errors', '0')
+    # Exercise the bundled parser worker with no runtime tools on PATH.
+    (root / 'source').mkdir()
+    (root / 'source' / 'env.ts').write_text('export interface Box<T> { value: T }')
+    (root / 'source' / 'main.ts').write_text(
+        "export type App = import('./env').Box<{ value: string }>;")
+    parsed = run('architecture', 'analyze', 'source')
+    assert parsed['compliance']['complete'] is True
+    assert len(parsed['graph']['edges']) == 1
+    assert parsed['graph']['edges'][0]['kind'] == 'type'
+    (root / 'source' / 'bad.ts').write_text('const broken: = ;')
+    partial = run('architecture', 'analyze', 'source')
+    assert partial['compliance']['complete'] is False
+    assert partial.get('score') is None
     for command in ['audit', 'context', 'skills', 'improve']:
         run('agentic', command, 'project')
     models = run('agentic', 'models', 'project')['models']

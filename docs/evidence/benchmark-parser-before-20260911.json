@@ -1,0 +1,535 @@
+{
+  "format_version": 1,
+  "binary_sha256": "70f941aa31df78c156aa5696ee7df3dbcd24bae41c3e84c802c9083f7346ed29",
+  "version": {
+    "format_version": 1,
+    "kind": "version",
+    "sources": {
+      "agents": {
+        "commit": "56ff0a2d85a04c1ab50cbdd46b0b451398c35640",
+        "repository": "powerpuff-kitty/agentic-harness-agents"
+      },
+      "canonical": {
+        "commit": "c44bcf9f09206648a372c12c085a823929dba07a",
+        "repository": "powerpuff-kitty/agentic-harness"
+      },
+      "format": 1,
+      "model_registry": {
+        "commit": "831ea9e773ce1e466e07dda0dd3ddc9792c6a892",
+        "repository": "powerpuff-kitty/agentic-harness"
+      }
+    },
+    "version": "0.1.0"
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "processor": "arm",
+    "python": "3.14.3"
+  },
+  "method": "One warmup then repeated fresh processes; stdout discarded; wait4 peak RSS where available (includes reaped parser workers per OS accounting; not summed concurrent process memory).",
+  "results": [
+    {
+      "workload": "vue-chain",
+      "size": 100,
+      "command": [
+        "audit"
+      ],
+      "seconds": [
+        0.026164417038671672,
+        0.02457320794928819,
+        0.02374454098753631,
+        0.023364708060398698,
+        0.02329274988733232
+      ],
+      "median_seconds": 0.02374454098753631,
+      "min_seconds": 0.02329274988733232,
+      "max_seconds": 0.026164417038671672,
+      "stdev_seconds": 0.001196095503145634,
+      "peak_rss_mib": [
+        5.671875,
+        5.6875,
+        5.59375,
+        5.5625,
+        6.0625
+      ],
+      "exit_codes": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "output_bytes": 24292
+    },
+    {
+      "workload": "vue-chain",
+      "size": 100,
+      "command": [
+        "architecture",
+        "analyze"
+      ],
+      "seconds": [
+        0.014511417015455663,
+        0.014734124997630715,
+        0.015442041913047433,
+        0.014056083979085088,
+        0.014728958019986749
+      ],
+      "median_seconds": 0.014728958019986749,
+      "min_seconds": 0.014056083979085088,
+      "max_seconds": 0.015442041913047433,
+      "stdev_seconds": 0.0005006672545614295,
+      "peak_rss_mib": [
+        5.03125,
+        5.046875,
+        5.046875,
+        5.03125,
+        4.9375
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 18485
+    },
+    {
+      "workload": "vue-chain",
+      "size": 100,
+      "command": [
+        "design-system-components"
+      ],
+      "seconds": [
+        0.009977167006582022,
+        0.01149966602679342,
+        0.009829040965996683,
+        0.010176624986343086,
+        0.009794167010113597
+      ],
+      "median_seconds": 0.009977167006582022,
+      "min_seconds": 0.009794167010113597,
+      "max_seconds": 0.01149966602679342,
+      "stdev_seconds": 0.000711746956677599,
+      "peak_rss_mib": [
+        4.0625,
+        4.078125,
+        4.03125,
+        4.0625,
+        4.078125
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 225
+    },
+    {
+      "workload": "vue-chain",
+      "size": 1000,
+      "command": [
+        "audit"
+      ],
+      "seconds": [
+        0.18439387495163828,
+        0.1911052499199286,
+        0.19132308301050216,
+        0.18833791697397828,
+        0.18530604091938585
+      ],
+      "median_seconds": 0.18833791697397828,
+      "min_seconds": 0.18439387495163828,
+      "max_seconds": 0.19132308301050216,
+      "stdev_seconds": 0.0032022545545137247,
+      "peak_rss_mib": [
+        9.8125,
+        9.6875,
+        9.578125,
+        9.828125,
+        9.875
+      ],
+      "exit_codes": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "output_bytes": 180002
+    },
+    {
+      "workload": "vue-chain",
+      "size": 1000,
+      "command": [
+        "architecture",
+        "analyze"
+      ],
+      "seconds": [
+        0.09583483298774809,
+        0.09082237503025681,
+        0.09051441599149257,
+        0.09156958304811269,
+        0.09240204200614244
+      ],
+      "median_seconds": 0.09156958304811269,
+      "min_seconds": 0.09051441599149257,
+      "max_seconds": 0.09583483298774809,
+      "stdev_seconds": 0.002143898161202937,
+      "peak_rss_mib": [
+        7.96875,
+        8.15625,
+        8.109375,
+        7.984375,
+        8.359375
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 161588
+    },
+    {
+      "workload": "vue-chain",
+      "size": 1000,
+      "command": [
+        "design-system-components"
+      ],
+      "seconds": [
+        0.05496962496545166,
+        0.053331834031268954,
+        0.05105712509248406,
+        0.05211354198399931,
+        0.05218154191970825
+      ],
+      "median_seconds": 0.05218154191970825,
+      "min_seconds": 0.05105712509248406,
+      "max_seconds": 0.05496962496545166,
+      "stdev_seconds": 0.0014880741500139256,
+      "peak_rss_mib": [
+        5.921875,
+        5.9375,
+        5.953125,
+        5.984375,
+        5.96875
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 225
+    },
+    {
+      "workload": "vue-chain",
+      "size": 5000,
+      "command": [
+        "audit"
+      ],
+      "seconds": [
+        0.9076309170341119,
+        0.9237255830084905,
+        0.9309463750105351,
+        0.921717792050913,
+        0.923072624951601
+      ],
+      "median_seconds": 0.923072624951601,
+      "min_seconds": 0.9076309170341119,
+      "max_seconds": 0.9309463750105351,
+      "stdev_seconds": 0.008500385038741934,
+      "peak_rss_mib": [
+        26.890625,
+        27.1875,
+        27.109375,
+        27.265625,
+        27.609375
+      ],
+      "exit_codes": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "output_bytes": 884002
+    },
+    {
+      "workload": "vue-chain",
+      "size": 5000,
+      "command": [
+        "architecture",
+        "analyze"
+      ],
+      "seconds": [
+        0.4548070420278236,
+        0.46472816704772413,
+        0.4514913329621777,
+        0.44479195901658386,
+        0.4424787920434028
+      ],
+      "median_seconds": 0.4514913329621777,
+      "min_seconds": 0.4424787920434028,
+      "max_seconds": 0.46472816704772413,
+      "stdev_seconds": 0.008834221486759069,
+      "peak_rss_mib": [
+        21.578125,
+        22.1875,
+        21.65625,
+        22.28125,
+        21.984375
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 809587
+    },
+    {
+      "workload": "vue-chain",
+      "size": 5000,
+      "command": [
+        "design-system-components"
+      ],
+      "seconds": [
+        0.25167162506841123,
+        0.25896816700696945,
+        0.256649500108324,
+        0.25541579199489206,
+        0.2507544590625912
+      ],
+      "median_seconds": 0.25541579199489206,
+      "min_seconds": 0.2507544590625912,
+      "max_seconds": 0.25896816700696945,
+      "stdev_seconds": 0.0034375928757222943,
+      "peak_rss_mib": [
+        14.234375,
+        14.046875,
+        14.1875,
+        13.765625,
+        14.078125
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 225
+    },
+    {
+      "workload": "identical-skills",
+      "size": 10,
+      "command": [
+        "agentic",
+        "skills"
+      ],
+      "seconds": [
+        0.006896750070154667,
+        0.006647959002293646,
+        0.005686625023372471,
+        0.005971709033474326,
+        0.006093750009313226
+      ],
+      "median_seconds": 0.006093750009313226,
+      "min_seconds": 0.005686625023372471,
+      "max_seconds": 0.006896750070154667,
+      "stdev_seconds": 0.0004988663115296864,
+      "peak_rss_mib": [
+        2.703125,
+        2.671875,
+        2.6875,
+        2.71875,
+        2.6875
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 278
+    },
+    {
+      "workload": "identical-skills",
+      "size": 100,
+      "command": [
+        "agentic",
+        "skills"
+      ],
+      "seconds": [
+        0.012292583007365465,
+        0.013090624939650297,
+        0.012842708034440875,
+        0.012513999943621457,
+        0.014594250009395182
+      ],
+      "median_seconds": 0.012842708034440875,
+      "min_seconds": 0.012292583007365465,
+      "max_seconds": 0.014594250009395182,
+      "stdev_seconds": 0.0009067646078900754,
+      "peak_rss_mib": [
+        2.90625,
+        2.890625,
+        2.890625,
+        2.90625,
+        2.875
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 279
+    },
+    {
+      "workload": "identical-skills",
+      "size": 500,
+      "command": [
+        "agentic",
+        "skills"
+      ],
+      "seconds": [
+        0.04386195901315659,
+        0.04219291696790606,
+        0.04326075001154095,
+        0.042815416934899986,
+        0.04295316699426621
+      ],
+      "median_seconds": 0.04295316699426621,
+      "min_seconds": 0.04219291696790606,
+      "max_seconds": 0.04386195901315659,
+      "stdev_seconds": 0.000611799171652211,
+      "peak_rss_mib": [
+        3.453125,
+        3.46875,
+        3.46875,
+        3.4375,
+        3.5
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 279
+    },
+    {
+      "workload": "representative-repository",
+      "size": null,
+      "command": [
+        "audit"
+      ],
+      "seconds": [
+        3.717955083004199,
+        3.693637292017229,
+        3.7358841249952093,
+        3.7173046249663457,
+        3.6790787500794977
+      ],
+      "median_seconds": 3.7173046249663457,
+      "min_seconds": 3.6790787500794977,
+      "max_seconds": 3.7358841249952093,
+      "stdev_seconds": 0.022377167496112023,
+      "peak_rss_mib": [
+        75.203125,
+        76.796875,
+        76.25,
+        78.625,
+        77.84375
+      ],
+      "exit_codes": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "output_bytes": 5524318
+    },
+    {
+      "workload": "representative-repository",
+      "size": null,
+      "command": [
+        "architecture",
+        "analyze"
+      ],
+      "seconds": [
+        3.388443124946207,
+        3.404699750011787,
+        3.462152042076923,
+        3.4330197499366477,
+        3.4252069169888273
+      ],
+      "median_seconds": 3.4252069169888273,
+      "min_seconds": 3.388443124946207,
+      "max_seconds": 3.462152042076923,
+      "stdev_seconds": 0.028137110239410727,
+      "peak_rss_mib": [
+        72.796875,
+        71.703125,
+        72.875,
+        72.3125,
+        74.078125
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 5193824
+    },
+    {
+      "workload": "representative-repository",
+      "size": null,
+      "command": [
+        "design-system-components"
+      ],
+      "seconds": [
+        0.11347537499386817,
+        0.11253216699697077,
+        0.11311129108071327,
+        0.11288270796649158,
+        0.11763875000178814
+      ],
+      "median_seconds": 0.11311129108071327,
+      "min_seconds": 0.11253216699697077,
+      "max_seconds": 0.11763875000178814,
+      "stdev_seconds": 0.002102530238873506,
+      "peak_rss_mib": [
+        8.484375,
+        8.140625,
+        8.515625,
+        8.203125,
+        8.421875
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output_bytes": 7322
+    }
+  ]
+}
