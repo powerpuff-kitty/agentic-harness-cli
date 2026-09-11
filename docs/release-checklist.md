@@ -15,3 +15,13 @@ A candidate needs evidence tied to its commit and binary checksums:
 - Record a candidate-specific go/no-go report and resolve remaining blockers before publication.
 
 Tag-triggered automation only creates a **draft prerelease** after the reusable CI gates pass. Publishing a stable release remains a separate, explicit release action. No tag or release is created by implementing this roadmap.
+
+## Attribution and artifact verification
+
+`scripts/dependency-notices.py --output notices/THIRD_PARTY_NOTICES.txt` collects original attribution from every resolved Cargo dependency and the installed Rust standard-library distribution. The generated JSON records package versions, source/file hashes, Cargo lock identity, toolchain identity and embedded-source pins. Missing authored-source license declarations remain explicit. Omitted upstream license files are supplemented from exact crate VCS commits under `third-party/`; changed pins or text fail collection.
+
+Package with `python3 scripts/package-candidate.py BINARY --commit FULL_SHA --notices notices/THIRD_PARTY_NOTICES.txt`. Each platform ZIP contains the binary, binary checksum, provenance v2, dependency notice text/metadata and Rust library notices; the ZIP has its own checksum. ZIP timestamps and permissions are normalized. Identical inputs produce identical archives on the same packaging environment; cross-platform toolchain or compression differences may change bytes.
+
+Run `python3 scripts/package-candidate.py ARCHIVE.zip --verify-archive` before extraction. This checks archive integrity, exact allowed members, bounded expansion and the enclosed binary/notice hashes without executing any target-platform code. `--verify` on an extracted binary checks all hashes before invoking `--version`. Checks remain active under Python optimization. Checksums detect changes relative to the downloaded sidecars; they are not signatures or an independent source-authentication mechanism.
+
+Tag-triggered draft preparation additionally uses `--require-authored-licenses`. Undeclared CLI/package, canonical or agent-source licenses prevent draft creation. The owner must still select the authored-source terms and review compatibility/attribution; file presence and SPDX collection alone are not legal approval. CI candidate bundles can be inspected while that decision remains open. Published candidate assets consist of complete ZIPs and ZIP checksums so attribution travels with the binary.

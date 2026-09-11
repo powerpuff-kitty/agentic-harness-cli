@@ -13,13 +13,20 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
+          pattern: ah-*
           path: dist
           merge-multiple: true
+      - name: Check attribution before preparing a release
+        run: |
+          for archive in dist/*.zip; do
+            python3 scripts/package-candidate.py "$archive" --verify-archive --require-authored-licenses
+          done
       - name: Create reviewable prerelease draft
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           CANDIDATE_TAG: ${{ github.ref_name }}
-        run: gh release create "$CANDIDATE_TAG" dist/* --draft --prerelease --generate-notes --verify-tag
+        run: gh release create "$CANDIDATE_TAG" dist/*.zip dist/*.zip.sha256 --draft --prerelease --generate-notes --verify-tag

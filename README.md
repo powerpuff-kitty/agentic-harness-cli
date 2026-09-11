@@ -59,7 +59,7 @@ A custom command name can be selected with `--command`:
 
 Release binaries are intended to be the preferred installation path once GitHub Releases are published. They embed pinned snapshots of the canonical `agentic-harness` and `agentic-harness-agents` repositories, so binary users will not need GitHub access or Rust at runtime.
 
-Until release artifacts are available, use the source installation above.
+Until release artifacts are available, use the source installation above. Candidate CI artifacts include a platform ZIP, its SHA-256 checksum, binary provenance, third-party notices and Rust standard-library attribution. When release bundles are published, download the ZIP and checksum together and verify them before extracting or executing code. Retain the notice files alongside the installed binary or in its package documentation directory. See [candidate verification](docs/release-checklist.md).
 
 ## Quick start
 
@@ -193,7 +193,7 @@ The diff reports new/removed measured values, changed usage counts, finding IDs 
 
 Runtime contrast, responsive layout, accessibility evidence, richer token/component health, interactive Design Genome approval, and model-specific prompt adapters remain follow-up work.
 
-The source launcher currently routes `design` to the experimental `ah-design` binary. Stable release-binary command integration will be completed before the design command is promoted from experimental status.
+The unified `ah` binary and source launcher both include the experimental `design` command family. No sibling executable is required.
 
 ## What `ah` provides
 

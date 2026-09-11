@@ -10,6 +10,8 @@ npm test --prefix tests/typescript
 cargo test --locked --all-targets
 cargo run --locked -- catalog-check
 cargo build --locked --release --bin ah
+python3 scripts/dependency-notices.py --output /tmp/notices/THIRD_PARTY_NOTICES.txt
+python3 scripts/test-artifacts.py target/release/ah /tmp/notices/THIRD_PARTY_NOTICES.txt
 python3 scripts/verify-candidate.py target/release/ah --report /tmp/candidate.json
 python3 scripts/benchmark.py target/release/ah --output /tmp/benchmark.json
 cargo audit
