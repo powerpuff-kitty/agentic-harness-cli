@@ -118,15 +118,17 @@ class NoticeTests(unittest.TestCase):
             notices.collect([self.package], [], self.root)
 
     def test_exact_source_text_and_nested_notices_are_retained(self):
-        text = 'Copyright fixture\nUTF-8 attribution: é\n'
-        (self.root / 'LICENSE').write_text(text, encoding='utf-8')
-        nested = self.root / 'src/unicode/LICENSE-UNICODE'
-        nested.parent.mkdir(parents=True)
-        nested.write_text('Additional Unicode attribution\n')
-        records, sections = notices.collect([self.package], [], self.root)
-        self.assertEqual(len(records[0]['files']), 2)
-        self.assertIn(text, ''.join(sections))
-        self.assertEqual(records[0]['files'][0]['sha256'], notices.digest(text.encode()))
+        for newline in ['\n', '\r\n']:
+            with self.subTest(newline=repr(newline)):
+                text = f'Copyright fixture{newline}UTF-8 attribution: é{newline}'
+                (self.root / 'LICENSE').write_bytes(text.encode('utf-8'))
+                nested = self.root / 'src/unicode/LICENSE-UNICODE'
+                nested.parent.mkdir(parents=True, exist_ok=True)
+                nested.write_bytes(b'Additional Unicode attribution\n')
+                records, sections = notices.collect([self.package], [], self.root)
+                self.assertEqual(len(records[0]['files']), 2)
+                self.assertIn(text, ''.join(sections))
+                self.assertEqual(records[0]['files'][0]['sha256'], notices.digest(text.encode()))
 
     def test_supplement_requires_matching_version_commit_and_bytes(self):
         supplement = self.root / 'supplement'
