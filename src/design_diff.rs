@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 fn frequency_map(domain: Option<&Value>) -> BTreeMap<String, i64> {
@@ -36,7 +36,12 @@ fn finding_ids(analysis: &Value) -> BTreeSet<String> {
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter_map(|finding| finding.get("id").and_then(Value::as_str).map(str::to_string))
+        .filter_map(|finding| {
+            finding
+                .get("id")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
         .collect()
 }
 
@@ -81,8 +86,14 @@ pub fn diff_analysis(before: &Value, after: &Value) -> Result<Value, String> {
     validate_analysis(before)?;
     validate_analysis(after)?;
 
-    let before_domains = before.get("domains").and_then(Value::as_object).expect("validated");
-    let after_domains = after.get("domains").and_then(Value::as_object).expect("validated");
+    let before_domains = before
+        .get("domains")
+        .and_then(Value::as_object)
+        .expect("validated");
+    let after_domains = after
+        .get("domains")
+        .and_then(Value::as_object)
+        .expect("validated");
     let domain_names = before_domains
         .keys()
         .chain(after_domains.keys())
@@ -107,14 +118,19 @@ pub fn diff_analysis(before: &Value, after: &Value) -> Result<Value, String> {
 
         for value in value_names {
             match (before_values.get(&value), after_values.get(&value)) {
-                (None, Some(after_count)) => added.push(json!({"value": value, "count": after_count})),
-                (Some(before_count), None) => removed.push(json!({"value": value, "count": before_count})),
-                (Some(before_count), Some(after_count)) if before_count != after_count => changed.push(json!({
-                    "value": value,
-                    "before": before_count,
-                    "after": after_count,
-                    "delta": after_count - before_count
-                })),
+                (None, Some(after_count)) => {
+                    added.push(json!({"value": value, "count": after_count}))
+                }
+                (Some(before_count), None) => {
+                    removed.push(json!({"value": value, "count": before_count}))
+                }
+                (Some(before_count), Some(after_count)) if before_count != after_count => changed
+                    .push(json!({
+                        "value": value,
+                        "before": before_count,
+                        "after": after_count,
+                        "delta": after_count - before_count
+                    })),
                 _ => {}
             }
         }
@@ -145,8 +161,14 @@ pub fn diff_analysis(before: &Value, after: &Value) -> Result<Value, String> {
 
     let before_findings = finding_ids(before);
     let after_findings = finding_ids(after);
-    let added_findings = after_findings.difference(&before_findings).cloned().collect::<Vec<_>>();
-    let removed_findings = before_findings.difference(&after_findings).cloned().collect::<Vec<_>>();
+    let added_findings = after_findings
+        .difference(&before_findings)
+        .cloned()
+        .collect::<Vec<_>>();
+    let removed_findings = before_findings
+        .difference(&after_findings)
+        .cloned()
+        .collect::<Vec<_>>();
 
     let before_performed = check_set(before, "performed");
     let after_performed = check_set(after, "performed");
@@ -199,20 +221,32 @@ mod tests {
 
     #[test]
     fn reports_new_removed_and_changed_values_deterministically() {
-        let before = analysis(json!([
-            {"value": "#111111", "count": 4},
-            {"value": "#ffffff", "count": 2}
-        ]), &["old"]);
-        let after = analysis(json!([
-            {"value": "#111111", "count": 6},
-            {"value": "#ff5500", "count": 1}
-        ]), &["new"]);
+        let before = analysis(
+            json!([
+                {"value": "#111111", "count": 4},
+                {"value": "#ffffff", "count": 2}
+            ]),
+            &["old"],
+        );
+        let after = analysis(
+            json!([
+                {"value": "#111111", "count": 6},
+                {"value": "#ff5500", "count": 1}
+            ]),
+            &["new"],
+        );
 
         let first = diff_analysis(&before, &after).unwrap();
         let second = diff_analysis(&before, &after).unwrap();
         assert_eq!(first, second);
-        assert_eq!(first["domains"]["color"]["added_values"][0]["value"], "#ff5500");
-        assert_eq!(first["domains"]["color"]["removed_values"][0]["value"], "#ffffff");
+        assert_eq!(
+            first["domains"]["color"]["added_values"][0]["value"],
+            "#ff5500"
+        );
+        assert_eq!(
+            first["domains"]["color"]["removed_values"][0]["value"],
+            "#ffffff"
+        );
         assert_eq!(first["domains"]["color"]["changed_counts"][0]["delta"], 2);
         assert_eq!(first["finding_changes"]["added"][0], "new");
         assert_eq!(first["finding_changes"]["removed"][0], "old");

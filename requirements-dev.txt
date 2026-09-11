@@ -1,0 +1,2 @@
+# Only public-schema validation uses Python dependencies; the CLI runtime uses none.
+jsonschema==4.26.0

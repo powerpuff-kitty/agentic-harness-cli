@@ -1,22 +1,11 @@
 use crate::architecture;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 const SOURCE_EXTENSIONS: &[&str] = &["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "vue"];
-const SKIP_DIRECTORIES: &[&str] = &[
-    ".git",
-    "node_modules",
-    "vendor",
-    "dist",
-    "build",
-    ".next",
-    ".nuxt",
-    "target",
-    "coverage",
-    "upstream",
-];
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct Edge {
@@ -24,6 +13,7 @@ struct Edge {
     to: String,
     line: usize,
     specifier: String,
+    kind: String,
 }
 
 impl Edge {
@@ -33,6 +23,7 @@ impl Edge {
             "to": self.to,
             "line": self.line,
             "specifier": self.specifier,
+            "kind": self.kind,
         })
     }
 }
@@ -61,30 +52,10 @@ fn is_source(path: &Path) -> bool {
 }
 
 fn source_files(root: &Path) -> Vec<PathBuf> {
-    fn walk(path: &Path, out: &mut Vec<PathBuf>) {
-        let Ok(entries) = fs::read_dir(path) else {
-            return;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let name = path
-                .file_name()
-                .and_then(|value| value.to_str())
-                .unwrap_or_default();
-            if path.is_dir() {
-                if !SKIP_DIRECTORIES.contains(&name) {
-                    walk(&path, out);
-                }
-            } else if is_source(&path) {
-                out.push(path);
-            }
-        }
-    }
-
-    let mut files = Vec::new();
-    walk(root, &mut files);
-    files.sort();
-    files
+    crate::scan::files(root)
+        .into_iter()
+        .filter(|p| is_source(p) && crate::scan::product(root, p))
+        .collect()
 }
 
 fn relative(root: &Path, path: &Path) -> String {
@@ -110,73 +81,34 @@ fn lexical_normalize(path: &Path) -> PathBuf {
     result
 }
 
-fn first_quoted(input: &str) -> Option<String> {
-    let single = input.find('\'');
-    let double = input.find('"');
-    let (start, quote) = match (single, double) {
-        (Some(a), Some(b)) if a < b => (a, '\''),
-        (Some(_), Some(b)) => (b, '"'),
-        (Some(a), None) => (a, '\''),
-        (None, Some(b)) => (b, '"'),
-        (None, None) => return None,
-    };
-    let rest = &input[start + 1..];
-    let end = rest.find(quote)?;
-    Some(rest[..end].to_string())
-}
-
-fn marker_specifiers(line: &str, marker: &str) -> Vec<String> {
-    let mut result = Vec::new();
-    let mut rest = line;
-    while let Some(index) = rest.find(marker) {
-        let after = &rest[index + marker.len()..];
-        if let Some(value) = first_quoted(after) {
-            result.push(value);
-        }
-        rest = after;
-    }
-    result
-}
-
-fn import_specifiers(text: &str) -> Vec<(usize, String)> {
-    let mut imports = Vec::new();
-    for (index, line) in text.lines().enumerate() {
-        let trimmed = line.trim();
-        if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') {
-            continue;
-        }
-        let mut line_imports = BTreeSet::new();
-        if let Some(position) = line.rfind(" from ")
-            && let Some(value) = first_quoted(&line[position + 6..])
-        {
-            line_imports.insert(value);
-        } else if (trimmed.starts_with("import ") || trimmed.starts_with("export "))
-            && let Some(value) = first_quoted(trimmed)
-        {
-            line_imports.insert(value);
-        }
-        for marker in ["require(", "import("] {
-            line_imports.extend(marker_specifiers(line, marker));
-        }
-        imports.extend(
-            line_imports
-                .into_iter()
-                .map(|specifier| (index + 1, specifier)),
-        );
-    }
-    imports
-}
-
 fn clean_specifier(specifier: &str) -> &str {
-    specifier
-        .split(['?', '#'])
-        .next()
-        .unwrap_or(specifier)
+    let query = specifier.find('?').unwrap_or(specifier.len());
+    let hash = specifier
+        .char_indices()
+        .find(|(i, c)| *i > 0 && *c == '#')
+        .map(|(i, _)| i)
+        .unwrap_or(specifier.len());
+    &specifier[..query.min(hash)]
 }
 
 fn existing_source(base: &Path) -> Option<PathBuf> {
     if base.is_file() && is_source(base) {
         return Some(base.to_path_buf());
+    }
+    if let Some(ext) = base.extension().and_then(|s| s.to_str()) {
+        let substitute = match ext {
+            "js" => Some("ts"),
+            "jsx" => Some("tsx"),
+            "mjs" => Some("mts"),
+            "cjs" => Some("cts"),
+            _ => None,
+        };
+        if let Some(ext) = substitute {
+            let path = base.with_extension(ext);
+            if path.is_file() {
+                return Some(path);
+            }
+        }
     }
     if base.extension().is_none() {
         for extension in SOURCE_EXTENSIONS {
@@ -196,24 +128,123 @@ fn existing_source(base: &Path) -> Option<PathBuf> {
     None
 }
 
-fn resolve_import(root: &Path, from: &Path, specifier: &str) -> Resolution {
+fn resolve_import(
+    root: &Path,
+    from: &Path,
+    specifier: &str,
+    packages: &BTreeMap<String, (PathBuf, Value)>,
+    configs: &BTreeMap<PathBuf, Value>,
+) -> Resolution {
     let specifier = clean_specifier(specifier);
-    let base = if specifier.starts_with("./") || specifier.starts_with("../") {
+    let package = from
+        .parent()
+        .unwrap_or(root)
+        .ancestors()
+        .take_while(|p| p.starts_with(root))
+        .find(|p| p.join("package.json").is_file())
+        .unwrap_or(root);
+    let mut mapped = None;
+    let mut mapped_pattern = false;
+    for config_root in [package, root] {
+        if mapped.is_some() {
+            break;
+        }
+        if let Some(config) = configs.get(config_root)
+            && let Some(paths) = config["compilerOptions"]["paths"].as_object()
+        {
+            for (pattern, targets) in paths {
+                let capture = if let Some((prefix, suffix)) = pattern.split_once('*') {
+                    specifier
+                        .strip_prefix(prefix)
+                        .and_then(|s| s.strip_suffix(suffix))
+                } else if pattern == specifier {
+                    Some("")
+                } else {
+                    None
+                };
+                if let Some(capture) = capture {
+                    mapped_pattern = true;
+                    for target in targets
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_str)
+                    {
+                        let base = config_root
+                            .join(config["compilerOptions"]["baseUrl"].as_str().unwrap_or("."))
+                            .join(target.replace('*', capture));
+                        if existing_source(&base).is_some() {
+                            mapped = Some(base);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let base = if let Some(base) = mapped {
+        base
+    } else if mapped_pattern {
+        return Resolution::UnresolvedLocal;
+    } else if specifier.starts_with("./") || specifier.starts_with("../") {
         from.parent().unwrap_or(root).join(specifier)
     } else if let Some(rest) = specifier.strip_prefix("@/") {
-        root.join("src").join(rest)
+        package.join("src").join(rest)
     } else if let Some(rest) = specifier.strip_prefix("~/") {
-        if root.join("app").is_dir() {
-            root.join("app").join(rest)
+        if package.join("app").is_dir() {
+            package.join("app").join(rest)
         } else {
             root.join(rest)
         }
     } else if let Some(rest) = specifier.strip_prefix("#shared/") {
-        root.join("shared").join(rest)
+        package.join("shared").join(rest)
     } else if let Some(rest) = specifier.strip_prefix('/') {
         root.join(rest)
     } else {
-        return Resolution::External;
+        let mut selected = None;
+        if selected.is_none() {
+            for (name, (directory, manifest)) in packages {
+                if specifier == name || specifier.starts_with(&format!("{name}/")) {
+                    let rest = specifier
+                        .strip_prefix(name)
+                        .unwrap()
+                        .trim_start_matches('/');
+                    let key = if rest.is_empty() {
+                        ".".to_string()
+                    } else {
+                        format!("./{rest}")
+                    };
+                    let exports = &manifest["exports"];
+                    let entry = exports.get(&key).unwrap_or(if key == "." {
+                        exports
+                    } else {
+                        &Value::Null
+                    });
+                    let target = entry
+                        .as_str()
+                        .or_else(|| entry["import"].as_str())
+                        .or_else(|| entry["default"].as_str())
+                        .or_else(|| entry["types"].as_str());
+                    selected = Some(if let Some(target) = target {
+                        directory.join(target)
+                    } else if rest.is_empty() {
+                        directory.join(
+                            manifest["source"]
+                                .as_str()
+                                .or_else(|| manifest["main"].as_str())
+                                .unwrap_or("src/index.ts"),
+                        )
+                    } else {
+                        directory.join(rest)
+                    });
+                    break;
+                }
+            }
+        }
+        match selected {
+            Some(base) => base,
+            None => return Resolution::External,
+        }
     };
 
     let base = lexical_normalize(&base);
@@ -232,6 +263,32 @@ fn resolve_import(root: &Path, from: &Path, specifier: &str) -> Resolution {
 fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) {
     let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let files = source_files(&canonical_root);
+    let mut configs = BTreeMap::new();
+    for path in crate::scan::files(&canonical_root)
+        .into_iter()
+        .filter(|p| p.file_name().is_some_and(|s| s == "tsconfig.json"))
+    {
+        if let Ok(text) = crate::scan::read(&canonical_root, &path, 1_000_000)
+            && let Ok(value) = serde_json::from_str::<Value>(&text)
+        {
+            configs.insert(path.parent().unwrap().to_path_buf(), value);
+        }
+    }
+    let mut packages = BTreeMap::new();
+    for path in crate::scan::files(&canonical_root).into_iter().filter(|p| {
+        p.file_name().is_some_and(|s| s == "package.json")
+            && crate::scan::product(&canonical_root, p)
+    }) {
+        if let Ok(text) = crate::scan::read(&canonical_root, &path, 1_000_000)
+            && let Ok(value) = serde_json::from_str::<Value>(&text)
+            && let Some(name) = value["name"].as_str()
+        {
+            packages.insert(
+                name.to_owned(),
+                (path.parent().unwrap().to_path_buf(), value),
+            );
+        }
+    }
     let mut nodes = BTreeSet::new();
     let mut edges = BTreeSet::new();
     let mut unresolved = Vec::new();
@@ -240,9 +297,20 @@ fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) 
     for path in files {
         let from = relative(&canonical_root, &path);
         nodes.insert(from.clone());
-        let text = fs::read_to_string(&path).unwrap_or_default();
-        for (line, specifier) in import_specifiers(&text) {
-            match resolve_import(&canonical_root, &path, &specifier) {
+        let text = match crate::scan::read(&canonical_root, &path, 2_000_000) {
+            Ok(text) => text,
+            Err(reason) => {
+                unresolved.push(json!({"from":from,"reason":reason}));
+                continue;
+            }
+        };
+        let (imports, parse_error) = crate::syntax::imports(&path, &text);
+        if parse_error {
+            unresolved
+                .push(json!({"from":from,"reason":"syntax error; import coverage is partial"}));
+        }
+        for (line, specifier, kind) in imports {
+            match resolve_import(&canonical_root, &path, &specifier, &packages, &configs) {
                 Resolution::Local(target) => {
                     let to = relative(&canonical_root, &target);
                     nodes.insert(to.clone());
@@ -251,6 +319,7 @@ fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) 
                         to,
                         line,
                         specifier,
+                        kind,
                     });
                 }
                 Resolution::UnresolvedLocal => unresolved.push(json!({
@@ -263,10 +332,19 @@ fn build_graph(root: &Path) -> (BTreeSet<String>, Vec<Edge>, Vec<Value>, usize) 
         }
     }
 
-    (nodes, edges.into_iter().collect(), unresolved, external_imports)
+    (
+        nodes,
+        edges.into_iter().collect(),
+        unresolved,
+        external_imports,
+    )
 }
 
-fn adjacency(nodes: &BTreeSet<String>, edges: &[Edge], reverse: bool) -> BTreeMap<String, Vec<String>> {
+fn adjacency(
+    nodes: &BTreeSet<String>,
+    edges: &[Edge],
+    reverse: bool,
+) -> BTreeMap<String, Vec<String>> {
     let mut graph = BTreeMap::new();
     for node in nodes {
         graph.insert(node.clone(), Vec::new());
@@ -292,30 +370,35 @@ fn visit_order(
     visited: &mut BTreeSet<String>,
     order: &mut Vec<String>,
 ) {
-    if !visited.insert(node.to_string()) {
-        return;
-    }
-    if let Some(next) = graph.get(node) {
-        for child in next {
-            visit_order(child, graph, visited, order);
+    let mut stack = vec![(node.to_owned(), false)];
+    while let Some((node, expanded)) = stack.pop() {
+        if expanded {
+            order.push(node);
+            continue;
+        }
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        stack.push((node.clone(), true));
+        if let Some(children) = graph.get(&node) {
+            stack.extend(children.iter().rev().map(|c| (c.clone(), false)));
         }
     }
-    order.push(node.to_string());
 }
-
 fn collect_component(
     node: &str,
     graph: &BTreeMap<String, Vec<String>>,
     visited: &mut BTreeSet<String>,
     component: &mut Vec<String>,
 ) {
-    if !visited.insert(node.to_string()) {
-        return;
-    }
-    component.push(node.to_string());
-    if let Some(next) = graph.get(node) {
-        for child in next {
-            collect_component(child, graph, visited, component);
+    let mut stack = vec![node.to_owned()];
+    while let Some(node) = stack.pop() {
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        component.push(node.clone());
+        if let Some(children) = graph.get(&node) {
+            stack.extend(children.iter().cloned());
         }
     }
 }
@@ -424,8 +507,17 @@ fn selected_profiles(detection: &Value, requested: &[String]) -> BTreeSet<String
     let mut profiles = BTreeSet::new();
     profiles.insert("pattern/dependency-hygiene/1".to_string());
     if requested.is_empty() {
-        if let Some(candidates) = detection.get("candidate_profiles").and_then(Value::as_array) {
-            profiles.extend(candidates.iter().filter_map(Value::as_str).filter(|profile| known_profile(profile)).map(str::to_string));
+        if let Some(candidates) = detection
+            .get("candidate_profiles")
+            .and_then(Value::as_array)
+        {
+            profiles.extend(
+                candidates
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .filter(|profile| known_profile(profile))
+                    .map(str::to_string),
+            );
         }
         if detection["frameworks"]
             .as_array()
@@ -457,7 +549,10 @@ fn boundary_findings(edges: &[Edge], profiles: &BTreeSet<String>) -> Vec<Value> 
         if contains_profile(profiles, "framework/nuxt/4") {
             let from = root_role(&edge.from, &["app", "server", "shared"]);
             let to = root_role(&edge.to, &["app", "server", "shared"]);
-            if matches!((from, to), (Some("app"), Some("server")) | (Some("server"), Some("app"))) {
+            if matches!(
+                (from, to),
+                (Some("app"), Some("server")) | (Some("server"), Some("app"))
+            ) {
                 findings.push(edge_finding(
                     "nuxt.boundary.app-server",
                     "error",
@@ -530,10 +625,12 @@ fn boundary_findings(edges: &[Edge], profiles: &BTreeSet<String>) -> Vec<Value> 
                     "layered.application-direction",
                     "Application code imports an outer presentation/infrastructure layer.",
                 )),
-                (Some("domain"), Some("presentation" | "application" | "infrastructure")) => Some((
-                    "layered.domain-independent",
-                    "Domain code imports an outer application, presentation or infrastructure layer.",
-                )),
+                (Some("domain"), Some("presentation" | "application" | "infrastructure")) => {
+                    Some((
+                        "layered.domain-independent",
+                        "Domain code imports an outer application, presentation or infrastructure layer.",
+                    ))
+                }
                 (Some("infrastructure"), Some("presentation" | "application")) => Some((
                     "layered.infrastructure-inward",
                     "Infrastructure code imports presentation/application orchestration instead of inward contracts.",
@@ -561,8 +658,13 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
     let profiles = selected_profiles(&detection, requested_profiles);
     let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let (nodes, edges, unresolved, external_imports) = build_graph(&canonical_root);
-    let components = cycles(&nodes, &edges);
-    let mut findings = boundary_findings(&edges, &profiles);
+    let runtime: Vec<_> = edges
+        .iter()
+        .filter(|e| e.kind == "runtime")
+        .cloned()
+        .collect();
+    let components = cycles(&nodes, &runtime);
+    let mut findings = boundary_findings(&runtime, &profiles);
 
     if contains_profile(&profiles, "pattern/dependency-hygiene/1") {
         for component in &components {
@@ -594,7 +696,9 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
 
     let deterministic_errors = findings
         .iter()
-        .filter(|finding| finding["severity"] == "error" && finding["enforceability"] == "deterministic")
+        .filter(|finding| {
+            finding["severity"] == "error" && finding["enforceability"] == "deterministic"
+        })
         .count();
     let warnings = findings
         .iter()
@@ -607,6 +711,7 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
         "target": root.to_string_lossy(),
         "detection": detection,
         "profiles": profiles,
+        "scan": crate::scan::inventory(root).report(),
         "graph": {
             "source_files": nodes.len(),
             "local_edges": edge_values.len(),
@@ -616,7 +721,8 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
             "cycles": components,
         },
         "compliance": {
-            "passed": deterministic_errors == 0,
+            "passed": deterministic_errors == 0 && unresolved.is_empty() && crate::scan::inventory(root).errors.is_empty(),
+            "complete": unresolved.is_empty() && crate::scan::inventory(root).errors.is_empty(),
             "deterministic_errors": deterministic_errors,
             "warnings": warnings,
         },
@@ -633,10 +739,10 @@ pub fn analyze(root: &Path, requested_profiles: &[String]) -> Value {
             ],
             "not_checked": [
                 "Python/Rust/Go/Java import graphs",
-                "custom tsconfig/vite alias maps beyond built-in aliases",
+                "tsconfig inheritance/JSONC, conditional export resolution beyond import/default/types, and Vite-only aliases",
                 "runtime-generated or computed dynamic import targets",
                 "semantic business-logic placement",
-                "project-local rule exceptions/expiry",
+                "dynamic and type-only cycles are not treated as synchronous runtime cycles",
                 "external package dependency cycles"
             ]
         }
@@ -677,8 +783,16 @@ mod tests {
     #[test]
     fn detects_import_cycle() {
         let root = fixture("cycle");
-        write(&root, "src/a.ts", "import { b } from './b'; export const a = b;");
-        write(&root, "src/b.ts", "import { a } from './a'; export const b = a;");
+        write(
+            &root,
+            "src/a.ts",
+            "import { b } from './b'; export const a = b;",
+        );
+        write(
+            &root,
+            "src/b.ts",
+            "import { a } from './a'; export const b = a;",
+        );
         let result = analyze(&root, &[]);
         assert_eq!(result["graph"]["cycles"].as_array().unwrap().len(), 1);
         assert!(has_rule(&result, "dependency.no-import-cycles"));
@@ -688,9 +802,21 @@ mod tests {
     #[test]
     fn detects_nuxt_app_server_violation() {
         let root = fixture("nuxt-boundary");
-        write(&root, "package.json", r#"{"dependencies":{"nuxt":"^4.0.0"}}"#);
-        write(&root, "nuxt.config.ts", "export default defineNuxtConfig({});");
-        write(&root, "app/pages/index.ts", "import { secret } from '../../server/utils/secret'; export { secret };");
+        write(
+            &root,
+            "package.json",
+            r#"{"dependencies":{"nuxt":"^4.0.0"}}"#,
+        );
+        write(
+            &root,
+            "nuxt.config.ts",
+            "export default defineNuxtConfig({});",
+        );
+        write(
+            &root,
+            "app/pages/index.ts",
+            "import { secret } from '../../server/utils/secret'; export { secret };",
+        );
         write(&root, "server/utils/secret.ts", "export const secret = 1;");
         let result = analyze(&root, &[]);
         assert!(has_rule(&result, "nuxt.boundary.app-server"));
@@ -700,8 +826,16 @@ mod tests {
     #[test]
     fn detects_cross_feature_internal_import() {
         let root = fixture("feature-boundary");
-        write(&root, "src/features/auth/index.ts", "import { total } from '../billing/internal'; export { total };");
-        write(&root, "src/features/billing/internal.ts", "export const total = 1;");
+        write(
+            &root,
+            "src/features/auth/index.ts",
+            "import { total } from '../billing/internal'; export { total };",
+        );
+        write(
+            &root,
+            "src/features/billing/internal.ts",
+            "export const total = 1;",
+        );
         let result = analyze(&root, &[]);
         assert!(has_rule(
             &result,
@@ -713,8 +847,16 @@ mod tests {
     #[test]
     fn permits_cross_feature_public_interface() {
         let root = fixture("feature-public");
-        write(&root, "src/features/auth/index.ts", "import { total } from '../billing'; export { total };");
-        write(&root, "src/features/billing/index.ts", "export const total = 1;");
+        write(
+            &root,
+            "src/features/auth/index.ts",
+            "import { total } from '../billing'; export { total };",
+        );
+        write(
+            &root,
+            "src/features/billing/index.ts",
+            "export const total = 1;",
+        );
         let result = analyze(&root, &[]);
         assert!(!has_rule(
             &result,
@@ -729,7 +871,11 @@ mod tests {
         for layer in ["presentation", "application", "domain", "infrastructure"] {
             fs::create_dir_all(root.join("src").join(layer)).unwrap();
         }
-        write(&root, "src/domain/model.ts", "import { db } from '../infrastructure/db'; export { db };");
+        write(
+            &root,
+            "src/domain/model.ts",
+            "import { db } from '../infrastructure/db'; export { db };",
+        );
         write(&root, "src/infrastructure/db.ts", "export const db = 1;");
         let result = analyze(&root, &[]);
         assert!(has_rule(&result, "layered.domain-independent"));

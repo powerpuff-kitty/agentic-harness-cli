@@ -1,0 +1,302 @@
+[
+  {
+    "files": 100,
+    "command": "ah audit",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.0343441670993343,
+      0.038169541978277266,
+      0.04253741691354662
+    ],
+    "median_seconds": 0.038169541978277266,
+    "min_seconds": 0.0343441670993343,
+    "max_seconds": 0.04253741691354662,
+    "max_rss_bytes": 2899968,
+    "exit_codes": [
+      1,
+      1,
+      1
+    ]
+  },
+  {
+    "files": 100,
+    "command": "ah-architecture detect",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.013314666924998164,
+      0.018868957995437086,
+      0.01788416609633714
+    ],
+    "median_seconds": 0.01788416609633714,
+    "min_seconds": 0.013314666924998164,
+    "max_seconds": 0.018868957995437086,
+    "max_rss_bytes": 1818624,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 100,
+    "command": "ah-architecture analyze",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.019172416999936104,
+      0.015365166938863695,
+      0.014547291910275817
+    ],
+    "median_seconds": 0.015365166938863695,
+    "min_seconds": 0.014547291910275817,
+    "max_seconds": 0.019172416999936104,
+    "max_rss_bytes": 2113536,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 100,
+    "command": "ah-design analyze",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.017573915887624025,
+      0.022229709080420434,
+      0.020458875107578933
+    ],
+    "median_seconds": 0.020458875107578933,
+    "min_seconds": 0.017573915887624025,
+    "max_seconds": 0.022229709080420434,
+    "max_rss_bytes": 3801088,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 100,
+    "command": "ah-agentic audit",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.016318209003657103,
+      0.014077709056437016,
+      0.015027666930109262
+    ],
+    "median_seconds": 0.015027666930109262,
+    "min_seconds": 0.014077709056437016,
+    "max_seconds": 0.016318209003657103,
+    "max_rss_bytes": 1818624,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 1000,
+    "command": "ah audit",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.2802124589215964,
+      0.3187453330028802,
+      0.580172290909104
+    ],
+    "median_seconds": 0.3187453330028802,
+    "min_seconds": 0.2802124589215964,
+    "max_seconds": 0.580172290909104,
+    "max_rss_bytes": 6832128,
+    "exit_codes": [
+      1,
+      1,
+      1
+    ]
+  },
+  {
+    "files": 1000,
+    "command": "ah-architecture detect",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.03731245803646743,
+      0.046110082999803126,
+      0.046056624967604876
+    ],
+    "median_seconds": 0.046056624967604876,
+    "min_seconds": 0.03731245803646743,
+    "max_seconds": 0.046110082999803126,
+    "max_rss_bytes": 1785856,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 1000,
+    "command": "ah-architecture analyze",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.10436379199381918,
+      0.0901126250391826,
+      0.10008829203434289
+    ],
+    "median_seconds": 0.10008829203434289,
+    "min_seconds": 0.0901126250391826,
+    "max_seconds": 0.10436379199381918,
+    "max_rss_bytes": 2736128,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 1000,
+    "command": "ah-design analyze",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.1482092080404982,
+      0.09677304211072624,
+      0.06373825005721301
+    ],
+    "median_seconds": 0.09677304211072624,
+    "min_seconds": 0.06373825005721301,
+    "max_seconds": 0.1482092080404982,
+    "max_rss_bytes": 18595840,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 1000,
+    "command": "ah-agentic audit",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.012152125011198223,
+      0.013486917014233768,
+      0.01237366592977196
+    ],
+    "median_seconds": 0.01237366592977196,
+    "min_seconds": 0.012152125011198223,
+    "max_seconds": 0.013486917014233768,
+    "max_rss_bytes": 1966080,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 5000,
+    "command": "ah audit",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      2.1264005000703037,
+      1.5919033749960363,
+      1.6078385829459876
+    ],
+    "median_seconds": 1.6078385829459876,
+    "min_seconds": 1.5919033749960363,
+    "max_seconds": 2.1264005000703037,
+    "max_rss_bytes": 22085632,
+    "exit_codes": [
+      1,
+      1,
+      1
+    ]
+  },
+  {
+    "files": 5000,
+    "command": "ah-architecture detect",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.052843709010630846,
+      0.05290712497662753,
+      0.05459933402016759
+    ],
+    "median_seconds": 0.05290712497662753,
+    "min_seconds": 0.052843709010630846,
+    "max_seconds": 0.05459933402016759,
+    "max_rss_bytes": 1802240,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 5000,
+    "command": "ah-architecture analyze",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.23079337493982166,
+      0.17037766706198454,
+      0.19968691701069474
+    ],
+    "median_seconds": 0.19968691701069474,
+    "min_seconds": 0.17037766706198454,
+    "max_seconds": 0.23079337493982166,
+    "max_rss_bytes": 5177344,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 5000,
+    "command": "ah-design analyze",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.3103746250271797,
+      0.3131176249589771,
+      0.3886260830331594
+    ],
+    "median_seconds": 0.3131176249589771,
+    "min_seconds": 0.3103746250271797,
+    "max_seconds": 0.3886260830331594,
+    "max_rss_bytes": 80134144,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "files": 5000,
+    "command": "ah-agentic audit",
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "seconds": [
+      0.035400499938987195,
+      0.048481166013516486,
+      0.06883454089984298
+    ],
+    "median_seconds": 0.048481166013516486,
+    "min_seconds": 0.035400499938987195,
+    "max_seconds": 0.06883454089984298,
+    "max_rss_bytes": 2457600,
+    "exit_codes": [
+      0,
+      0,
+      0
+    ]
+  }
+]

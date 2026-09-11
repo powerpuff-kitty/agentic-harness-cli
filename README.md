@@ -12,7 +12,7 @@
 
 ### Install from source
 
-The current installer supports a local source checkout on macOS and Linux. You need [Git](https://git-scm.com/) and a working [Rust toolchain](https://rustup.rs/).
+The current installer supports a local source checkout on macOS and Linux. You need [Git](https://git-scm.com/), Python 3, and a working [Rust toolchain](https://rustup.rs/) (CI uses 1.94.1).
 
 ```bash
 git clone https://github.com/powerpuff-kitty/agentic-harness-cli.git
@@ -45,7 +45,7 @@ ah --help
 The installer can also install an already-built binary:
 
 ```bash
-cargo build --release
+cargo build --locked --release --bin ah
 ./install.sh --binary ./target/release/ah
 ```
 
@@ -86,6 +86,10 @@ self-contained target project
 
 Release binaries embed pinned snapshots of the canonical and agent repositories, so generated projects and binary users do not require GitHub access or Rust at runtime.
 
+Audit v2 reports `overall` and unmeasured quality/readiness scores as `null`. File presence does not establish test quality or production readiness. Gates validate evidence before applying explicit policy. See [command/compatibility contracts](docs/cli-contracts.md), [performance evidence](docs/performance.md), and [release gates](docs/release-checklist.md).
+
+New projects use root `AGENTS.md` and `.agentic/manifest.yaml` with routed context. Upgrades preserve custom files and report conflicts; legacy `agentic.yaml` layouts require an explicit migration. All command families and the pinned model registry are embedded in the installed `ah` binary.
+
 ## Commands
 
 ```bash
@@ -101,7 +105,7 @@ ah validate .
 ah security-scan .
 ah harness-audit .
 ah compare before.json after.json
-ah gate audit.json --min-overall 80 --min-score security=80 --min-score design_system=85
+ah gate audit.json --max-architecture-errors 0
 ```
 
 `--boilerplate` is the preferred project-shape flag. `--template` remains a backward-compatible alias for existing automation.
@@ -209,7 +213,7 @@ The source launcher currently routes `design` to the experimental `ah-design` bi
 ```bash
 ./scripts/sync-upstream.sh
 cargo test --all-targets
-cargo build --release
+cargo build --locked --release --bin ah
 ```
 
 The pinned canonical catalog exposes complete root boilerplates (`base`, `web-app`, `backend-api`, `saas`, `monorepo`, `library-sdk`) and shared modules under `modules/`.

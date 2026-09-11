@@ -1,29 +1,37 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-fn read_package_names(root: &Path) -> BTreeSet<String> {
-    let path = root.join("package.json");
-    let Ok(text) = fs::read_to_string(path) else {
-        return BTreeSet::new();
-    };
-    let Ok(value): Result<Value, _> = serde_json::from_str(&text) else {
-        return BTreeSet::new();
-    };
-
-    let mut names = BTreeSet::new();
-    for section in [
-        "dependencies",
-        "devDependencies",
-        "peerDependencies",
-        "optionalDependencies",
-    ] {
-        if let Some(object) = value.get(section).and_then(Value::as_object) {
-            names.extend(object.keys().cloned());
+fn package_evidence(root: &Path) -> std::collections::BTreeMap<String, Vec<String>> {
+    let mut result = std::collections::BTreeMap::<String, Vec<String>>::new();
+    for path in crate::scan::files(root).into_iter().filter(|p| {
+        p.file_name().is_some_and(|s| s == "package.json") && crate::scan::product(root, p)
+    }) {
+        if let Ok(text) = crate::scan::read(root, &path, 1_000_000)
+            && let Ok(value) = serde_json::from_str::<Value>(&text)
+        {
+            for section in [
+                "dependencies",
+                "devDependencies",
+                "peerDependencies",
+                "optionalDependencies",
+            ] {
+                if let Some(deps) = value[section].as_object() {
+                    for name in deps.keys() {
+                        result.entry(name.clone()).or_default().push(format!(
+                            "{}:{name}",
+                            path.strip_prefix(root).unwrap_or(&path).display()
+                        ));
+                    }
+                }
+            }
         }
     }
-    names
+    result
+}
+fn read_package_names(root: &Path) -> BTreeSet<String> {
+    package_evidence(root).into_keys().collect()
 }
 
 fn has_any(root: &Path, paths: &[&str]) -> Option<String> {
@@ -34,44 +42,9 @@ fn has_any(root: &Path, paths: &[&str]) -> Option<String> {
 }
 
 fn has_extension(root: &Path, extension: &str) -> bool {
-    fn walk(path: &Path, extension: &str, depth: usize) -> bool {
-        if depth > 5 {
-            return false;
-        }
-        let Ok(entries) = fs::read_dir(path) else {
-            return false;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let name = path
-                .file_name()
-                .and_then(|value| value.to_str())
-                .unwrap_or_default();
-            if [
-                "node_modules",
-                ".git",
-                "dist",
-                "build",
-                ".nuxt",
-                ".next",
-                "target",
-            ]
-            .contains(&name)
-            {
-                continue;
-            }
-            if path.is_dir() {
-                if walk(&path, extension, depth + 1) {
-                    return true;
-                }
-            } else if path.extension().and_then(|value| value.to_str()) == Some(extension) {
-                return true;
-            }
-        }
-        false
-    }
-
-    walk(root, extension, 0)
+    crate::scan::files(root).iter().any(|p| {
+        crate::scan::product(root, p) && p.extension().and_then(|s| s.to_str()) == Some(extension)
+    })
 }
 
 fn record(kind: &str, name: &str, confidence: &str, evidence: Vec<String>) -> Value {
@@ -88,7 +61,15 @@ fn project_roots(root: &Path) -> Vec<PathBuf> {
     let mut seen = HashSet::new();
     for candidate in ["src/app", "src", "app"] {
         let path = root.join(candidate);
-        if path.is_dir() && seen.insert(path.clone()) {
+        if path.is_dir()
+            && !path
+                .symlink_metadata()
+                .is_ok_and(|m| m.file_type().is_symlink())
+            && path
+                .canonicalize()
+                .is_ok_and(|p| root.canonicalize().is_ok_and(|r| p.starts_with(r)))
+            && seen.insert(path.clone())
+        {
             roots.push(path);
         }
     }
@@ -106,7 +87,8 @@ fn top_level_dirs(root: &Path) -> BTreeSet<String> {
         };
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir()
+            if !entry.file_type().is_ok_and(|t| t.is_symlink())
+                && path.is_dir()
                 && let Some(name) = path.file_name().and_then(|value| value.to_str())
             {
                 dirs.insert(name.to_string());
@@ -228,7 +210,7 @@ fn collect_profile(
     }
 }
 
-pub fn detect(root: &Path) -> Value {
+fn detect_inner(root: &Path) -> Value {
     let packages = read_package_names(root);
     let mut frameworks = Vec::new();
     let mut tooling = Vec::new();
@@ -326,8 +308,7 @@ pub fn detect(root: &Path) -> Value {
         }
         tooling.push(record("build-tool", "vite", "high", evidence));
     }
-    if packages.contains("nx") || packages.contains("@nx/devkit") || root.join("nx.json").exists()
-    {
+    if packages.contains("nx") || packages.contains("@nx/devkit") || root.join("nx.json").exists() {
         let mut evidence = Vec::new();
         if packages.contains("nx") {
             evidence.push("package.json:nx".to_string());
@@ -438,16 +419,39 @@ pub fn detect(root: &Path) -> Value {
     })
 }
 
+pub fn detect(root: &Path) -> Value {
+    let mut result = detect_inner(root);
+    let sources = package_evidence(root);
+    for field in ["frameworks", "tooling", "ecosystem", "languages"] {
+        if let Some(items) = result[field].as_array_mut() {
+            for item in items {
+                if let Some(evidence) = item["evidence"].as_array_mut() {
+                    let mut updated = Vec::new();
+                    for entry in evidence.iter() {
+                        if let Some(key) =
+                            entry.as_str().and_then(|s| s.strip_prefix("package.json:"))
+                            && let Some(paths) = sources.get(key)
+                        {
+                            updated.extend(paths.iter().map(|p| json!(p)));
+                        } else {
+                            updated.push(entry.clone());
+                        }
+                    }
+                    *evidence = updated;
+                }
+            }
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::env;
 
     fn fixture(name: &str) -> PathBuf {
-        let path = env::temp_dir().join(format!(
-            "ah-architecture-{name}-{}",
-            std::process::id()
-        ));
+        let path = env::temp_dir().join(format!("ah-architecture-{name}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).unwrap();
         path
