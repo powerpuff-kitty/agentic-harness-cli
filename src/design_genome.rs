@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 fn frequency_values(analysis: &Value, domain: &str) -> Vec<Value> {
     analysis["domains"][domain]["measurements"]
@@ -26,7 +26,9 @@ fn observation_rule(id: &str, statement: String) -> Value {
 
 pub fn candidate_from_analysis(analysis: &Value, analysis_uri: &str) -> Result<Value, String> {
     if analysis["format_version"].as_u64() != Some(1) {
-        return Err("candidate genome generation requires Design Analysis format_version 1".to_string());
+        return Err(
+            "candidate genome generation requires Design Analysis format_version 1".to_string(),
+        );
     }
     if !analysis["domains"].is_object() {
         return Err("candidate genome generation requires analysis.domains".to_string());
@@ -75,10 +77,7 @@ pub fn candidate_from_analysis(analysis: &Value, analysis_uri: &str) -> Result<V
             "summary": summary(analysis, "geometry")
         }),
     );
-    visual.insert(
-        "token_sources".to_string(),
-        json!([]),
-    );
+    visual.insert("token_sources".to_string(), json!([]));
     visual.insert(
         "density".to_string(),
         json!({
@@ -223,11 +222,13 @@ mod tests {
         assert_eq!(first["metadata"]["review_required"], true);
         assert_eq!(first["visual"]["color"]["evidence_status"], "observed");
         assert_eq!(first["visual"]["density"]["evidence_status"], "unknown");
-        assert!(first["rules"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|rule| rule["importance"] != "required"));
+        assert!(
+            first["rules"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|rule| rule["importance"] != "required")
+        );
     }
 
     #[test]

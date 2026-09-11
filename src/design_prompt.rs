@@ -38,13 +38,24 @@ fn validate_task(task: &Value) -> Result<(), String> {
     if task.get("format_version").and_then(Value::as_i64) != Some(1) {
         return Err("expected Design Task format_version 1".to_string());
     }
-    if task.get("id").and_then(Value::as_str).is_none_or(str::is_empty) {
+    if task
+        .get("id")
+        .and_then(Value::as_str)
+        .is_none_or(str::is_empty)
+    {
         return Err("Design Task is missing id".to_string());
     }
-    if task.get("objective").and_then(Value::as_str).is_none_or(str::is_empty) {
+    if task
+        .get("objective")
+        .and_then(Value::as_str)
+        .is_none_or(str::is_empty)
+    {
         return Err("Design Task is missing objective".to_string());
     }
-    if !matches!(task.get("mode").and_then(Value::as_str), Some("explore" | "extend" | "reproduce" | "revise")) {
+    if !matches!(
+        task.get("mode").and_then(Value::as_str),
+        Some("explore" | "extend" | "reproduce" | "revise")
+    ) {
         return Err("Design Task mode must be explore, extend, reproduce, or revise".to_string());
     }
     Ok(())
@@ -93,11 +104,20 @@ fn selected_rules<'a>(genome: &'a Value, task: &Value) -> Vec<&'a Value> {
         .collect::<Vec<_>>();
 
     rules.sort_by(|a, b| {
-        let ai = a.get("importance").and_then(Value::as_str).unwrap_or("optional");
-        let bi = b.get("importance").and_then(Value::as_str).unwrap_or("optional");
-        importance_rank(ai)
-            .cmp(&importance_rank(bi))
-            .then_with(|| a.get("id").and_then(Value::as_str).unwrap_or("").cmp(b.get("id").and_then(Value::as_str).unwrap_or("")))
+        let ai = a
+            .get("importance")
+            .and_then(Value::as_str)
+            .unwrap_or("optional");
+        let bi = b
+            .get("importance")
+            .and_then(Value::as_str)
+            .unwrap_or("optional");
+        importance_rank(ai).cmp(&importance_rank(bi)).then_with(|| {
+            a.get("id")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .cmp(b.get("id").and_then(Value::as_str).unwrap_or(""))
+        })
     });
     rules
 }
@@ -107,7 +127,10 @@ fn selected_components<'a>(genome: &'a Value, task: &Value) -> (Vec<&'a Value>, 
     if requested.is_empty() {
         return (Vec::new(), Vec::new());
     }
-    let requested_set = requested.iter().map(|value| value.to_ascii_lowercase()).collect::<BTreeSet<_>>();
+    let requested_set = requested
+        .iter()
+        .map(|value| value.to_ascii_lowercase())
+        .collect::<BTreeSet<_>>();
     let mut found = BTreeSet::new();
     let mut components = genome
         .get("components")
@@ -116,17 +139,35 @@ fn selected_components<'a>(genome: &'a Value, task: &Value) -> (Vec<&'a Value>, 
         .flatten()
         .filter(|component| component.get("status").and_then(Value::as_str) == Some("approved"))
         .filter(|component| {
-            let id = component.get("id").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
-            let name = component.get("name").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
+            let id = component
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            let name = component
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_ascii_lowercase();
             let matches = requested_set.contains(&id) || requested_set.contains(&name);
             if matches {
-                if !id.is_empty() { found.insert(id); }
-                if !name.is_empty() { found.insert(name); }
+                if !id.is_empty() {
+                    found.insert(id);
+                }
+                if !name.is_empty() {
+                    found.insert(name);
+                }
             }
             matches
         })
         .collect::<Vec<_>>();
-    components.sort_by_key(|component| component.get("id").and_then(Value::as_str).unwrap_or("").to_string());
+    components.sort_by_key(|component| {
+        component
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    });
 
     let unresolved = requested
         .into_iter()
@@ -164,16 +205,27 @@ pub fn compile_prompt(genome: &Value, task: &Value) -> Result<String, String> {
 
     let mut output = String::new();
     let task_id = task.get("id").and_then(Value::as_str).expect("validated");
-    let objective = task.get("objective").and_then(Value::as_str).expect("validated");
+    let objective = task
+        .get("objective")
+        .and_then(Value::as_str)
+        .expect("validated");
     let mode = task.get("mode").and_then(Value::as_str).expect("validated");
-    let genome_id = genome.get("id").and_then(Value::as_str).unwrap_or("unnamed-design-genome");
-    let genome_version = genome.get("version").and_then(Value::as_str).unwrap_or("unversioned");
+    let genome_id = genome
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or("unnamed-design-genome");
+    let genome_version = genome
+        .get("version")
+        .and_then(Value::as_str)
+        .unwrap_or("unversioned");
 
     output.push_str("# Agentic Harness Design Implementation Brief\n\n");
     output.push_str("This brief is compiled deterministically from approved project design context. Do not treat it as permission to redesign the identity unless the task mode explicitly says `revise` or `explore`.\n\n");
 
     output.push_str("## Task\n\n");
-    output.push_str(&format!("- ID: `{task_id}`\n- Objective: {objective}\n- Design mode: `{mode}`\n"));
+    output.push_str(&format!(
+        "- ID: `{task_id}`\n- Objective: {objective}\n- Design mode: `{mode}`\n"
+    ));
     if let Some(operation) = task.get("operation").and_then(Value::as_str) {
         output.push_str(&format!("- Operation: `{operation}`\n"));
     }
@@ -183,8 +235,15 @@ pub fn compile_prompt(genome: &Value, task: &Value) -> Result<String, String> {
     output.push('\n');
 
     output.push_str("## Identity\n\n");
-    let identity = genome.get("identity").and_then(Value::as_object).expect("validated");
-    push_list(&mut output, &strings(identity.get("principles")), "- No identity principles recorded.");
+    let identity = genome
+        .get("identity")
+        .and_then(Value::as_object)
+        .expect("validated");
+    push_list(
+        &mut output,
+        &strings(identity.get("principles")),
+        "- No identity principles recorded.",
+    );
     let personality = strings(identity.get("personality"));
     if !personality.is_empty() {
         output.push_str("\nPersonality:\n");
@@ -200,11 +259,19 @@ pub fn compile_prompt(genome: &Value, task: &Value) -> Result<String, String> {
     output.push_str("## Applicable design rules\n\n");
     let rules = selected_rules(genome, task);
     if rules.is_empty() {
-        output.push_str("- No scoped rules matched this task. Do not invent missing rules; report the gap.\n");
+        output.push_str(
+            "- No scoped rules matched this task. Do not invent missing rules; report the gap.\n",
+        );
     } else {
         for rule in rules {
-            let id = rule.get("id").and_then(Value::as_str).unwrap_or("unnamed-rule");
-            let importance = rule.get("importance").and_then(Value::as_str).unwrap_or("optional");
+            let id = rule
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or("unnamed-rule");
+            let importance = rule
+                .get("importance")
+                .and_then(Value::as_str)
+                .unwrap_or("optional");
             let kind = rule.get("kind").and_then(Value::as_str).unwrap_or("info");
             let statement = rule.get("statement").and_then(Value::as_str).unwrap_or("");
             output.push_str(&format!("- **{importance} / {kind}** `{id}` — {statement}"));
@@ -222,15 +289,25 @@ pub fn compile_prompt(genome: &Value, task: &Value) -> Result<String, String> {
         output.push_str("- No approved component contract was selected for this task. Prefer existing project primitives and report any missing contract before creating a duplicate primitive.\n");
     } else {
         for component in components {
-            let id = component.get("id").and_then(Value::as_str).unwrap_or("unnamed-component");
+            let id = component
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or("unnamed-component");
             let name = component.get("name").and_then(Value::as_str).unwrap_or(id);
             output.push_str(&format!("### {name} (`{id}`)\n\n"));
             let variants = strings(component.get("variants"));
             let states = strings(component.get("states"));
             let usage = strings(component.get("usage"));
-            if !variants.is_empty() { output.push_str(&format!("Variants: {}\n\n", variants.join(", "))); }
-            if !states.is_empty() { output.push_str(&format!("States: {}\n\n", states.join(", "))); }
-            if !usage.is_empty() { push_list(&mut output, &usage, ""); output.push('\n'); }
+            if !variants.is_empty() {
+                output.push_str(&format!("Variants: {}\n\n", variants.join(", ")));
+            }
+            if !states.is_empty() {
+                output.push_str(&format!("States: {}\n\n", states.join(", ")));
+            }
+            if !usage.is_empty() {
+                push_list(&mut output, &usage, "");
+                output.push('\n');
+            }
         }
     }
     if !unresolved.is_empty() {
@@ -240,30 +317,52 @@ pub fn compile_prompt(genome: &Value, task: &Value) -> Result<String, String> {
     }
 
     output.push_str("## Task requirements\n\n");
-    push_list(&mut output, &strings(task.get("requirements")), "- No additional requirements recorded.");
+    push_list(
+        &mut output,
+        &strings(task.get("requirements")),
+        "- No additional requirements recorded.",
+    );
     output.push('\n');
 
     output.push_str("## Non-goals\n\n");
-    push_list(&mut output, &strings(task.get("non_goals")), "- Do not expand scope beyond the stated objective and approved product requirements.");
+    push_list(
+        &mut output,
+        &strings(task.get("non_goals")),
+        "- Do not expand scope beyond the stated objective and approved product requirements.",
+    );
     output.push('\n');
 
     output.push_str("## Required states and responsive targets\n\n");
     let mut states = strings(task.get("states"));
-    if let Some(validation_states) = task.get("validation").and_then(|v| v.get("required_states")) {
+    if let Some(validation_states) = task
+        .get("validation")
+        .and_then(|v| v.get("required_states"))
+    {
         states.extend(strings(Some(validation_states)));
     }
     states.sort();
     states.dedup();
     output.push_str("States:\n");
-    push_list(&mut output, &states, "- No explicit states recorded; preserve all states required by existing component contracts.");
+    push_list(
+        &mut output,
+        &states,
+        "- No explicit states recorded; preserve all states required by existing component contracts.",
+    );
     let mut breakpoints = strings(task.get("breakpoints"));
-    if let Some(viewports) = task.get("validation").and_then(|v| v.get("required_viewports")) {
+    if let Some(viewports) = task
+        .get("validation")
+        .and_then(|v| v.get("required_viewports"))
+    {
         breakpoints.extend(strings(Some(viewports)));
     }
     breakpoints.sort();
     breakpoints.dedup();
     output.push_str("\nResponsive targets:\n");
-    push_list(&mut output, &breakpoints, "- No explicit viewport/breakpoint targets recorded; preserve existing responsive behavior.");
+    push_list(
+        &mut output,
+        &breakpoints,
+        "- No explicit viewport/breakpoint targets recorded; preserve existing responsive behavior.",
+    );
     output.push('\n');
 
     output.push_str("## Implementation constraints\n\n");
@@ -274,13 +373,19 @@ pub fn compile_prompt(genome: &Value, task: &Value) -> Result<String, String> {
             output.push_str(&format!("- `{key}`: {}\n", json_scalar(value)));
         }
     } else {
-        output.push_str("- Use the project's existing stack, token sources, and component architecture.\n");
+        output.push_str(
+            "- Use the project's existing stack, token sources, and component architecture.\n",
+        );
     }
     output.push('\n');
 
     let anti_patterns = strings(identity.get("anti_patterns"));
     output.push_str("## Identity anti-patterns\n\n");
-    push_list(&mut output, &anti_patterns, "- No global anti-patterns recorded; do not invent stylistic prohibitions.");
+    push_list(
+        &mut output,
+        &anti_patterns,
+        "- No global anti-patterns recorded; do not invent stylistic prohibitions.",
+    );
     output.push('\n');
 
     output.push_str("## Validation and completion\n\n");
@@ -289,14 +394,25 @@ pub fn compile_prompt(genome: &Value, task: &Value) -> Result<String, String> {
         .and_then(|validation| validation.get("required_checks"))
         .map(|value| strings(Some(value)))
         .unwrap_or_default();
-    push_list(&mut output, &checks, "- Run the project's normal validation and report exactly what was not checked.");
+    push_list(
+        &mut output,
+        &checks,
+        "- Run the project's normal validation and report exactly what was not checked.",
+    );
     output.push_str("- Report files changed, approved components/tokens reused, deviations, unresolved design-contract gaps, and checks performed.\n");
     output.push_str("- Do not update visual baselines merely to make tests pass.\n");
-    output.push_str("- Do not invent product features, testimonials, metrics, or unsupported claims.\n\n");
+    output.push_str(
+        "- Do not invent product features, testimonials, metrics, or unsupported claims.\n\n",
+    );
 
     output.push_str("## Provenance\n\n");
-    output.push_str(&format!("- Design Genome: `{genome_id}` version `{genome_version}`\n"));
-    output.push_str(&format!("- Compiler: `agentic-harness-cli` {}\n", env!("CARGO_PKG_VERSION")));
+    output.push_str(&format!(
+        "- Design Genome: `{genome_id}` version `{genome_version}`\n"
+    ));
+    output.push_str(&format!(
+        "- Compiler: `agentic-harness-cli` {}\n",
+        env!("CARGO_PKG_VERSION")
+    ));
     output.push_str("- Prompt profile: `generic-model-neutral-v1`\n");
 
     Ok(output)
@@ -364,7 +480,11 @@ mod tests {
     fn refuses_candidate_genome() {
         let mut candidate = genome();
         candidate["status"] = json!("candidate");
-        assert!(compile_prompt(&candidate, &task()).unwrap_err().contains("approved"));
+        assert!(
+            compile_prompt(&candidate, &task())
+                .unwrap_err()
+                .contains("approved")
+        );
     }
 
     #[test]

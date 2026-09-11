@@ -1,18 +1,18 @@
 # Agentic Harness CLI
 
-[![Status: Beta](https://img.shields.io/badge/status-beta-orange)](https://github.com/powerpuff-kitty/agentic-harness-cli)
+[![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/powerpuff-kitty/agentic-harness-cli)
 [![CLI CI](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml)
 [![Rust](https://img.shields.io/badge/Rust-native-000000?logo=rust)](https://www.rust-lang.org/)
 
 **Native Rust `ah` CLI for composing, validating, auditing, and governing agent-native repositories used with Codex, Claude Code, Cursor, GitHub Copilot, Gemini CLI, and other coding agents.**
 
-> **Status: Beta.** The CLI is pre-1.0: core commands are usable, but command and schema compatibility may still evolve before the first stable release.
+> **Production-core scope:** composition, validation, audit/gate, installation and recovery follow the [supported contract](docs/cli-contracts.md). Architecture, design and agentic inspection remain experimental. Package version 0.1.0 uses the documented pre-1.0 compatibility policy. Read the [candidate readiness evidence](docs/release-checklist.md) before deployment.
 
 ## Installation
 
 ### Install from source
 
-The current installer supports a local source checkout on macOS and Linux. You need [Git](https://git-scm.com/) and a working [Rust toolchain](https://rustup.rs/).
+The current installer supports a local source checkout on macOS and Linux. You need [Git](https://git-scm.com/), Python 3, and a working [Rust toolchain](https://rustup.rs/) (CI uses 1.94.1).
 
 ```bash
 git clone https://github.com/powerpuff-kitty/agentic-harness-cli.git
@@ -45,7 +45,7 @@ ah --help
 The installer can also install an already-built binary:
 
 ```bash
-cargo build --release
+cargo build --locked --release --bin ah
 ./install.sh --binary ./target/release/ah
 ```
 
@@ -59,7 +59,7 @@ A custom command name can be selected with `--command`:
 
 Release binaries are intended to be the preferred installation path once GitHub Releases are published. They embed pinned snapshots of the canonical `agentic-harness` and `agentic-harness-agents` repositories, so binary users will not need GitHub access or Rust at runtime.
 
-Until release artifacts are available, use the source installation above.
+Until release artifacts are available, use the source installation above. Candidate CI artifacts include a platform ZIP, its SHA-256 checksum, binary provenance, third-party notices and Rust standard-library attribution. When release bundles are published, download the ZIP and checksum together and verify them before extracting or executing code. Retain the notice files alongside the installed binary or in its package documentation directory. See [candidate verification](docs/release-checklist.md) and [binary installation, upgrades and recovery](docs/operations.md).
 
 ## Quick start
 
@@ -86,6 +86,10 @@ self-contained target project
 
 Release binaries embed pinned snapshots of the canonical and agent repositories, so generated projects and binary users do not require GitHub access or Rust at runtime.
 
+Audit v2 reports `overall` and unmeasured quality/readiness scores as `null`. File presence does not establish test quality or production readiness. Gates validate evidence before applying explicit policy. See [command/compatibility contracts](docs/cli-contracts.md), [performance evidence](docs/performance.md), and [release gates](docs/release-checklist.md).
+
+New projects use root `AGENTS.md` and `.agentic/manifest.yaml` with routed context. Upgrades preserve custom files and report conflicts; legacy `agentic.yaml` layouts require an explicit migration. All command families and the pinned model registry are embedded in the installed `ah` binary.
+
 ## Commands
 
 ```bash
@@ -101,7 +105,7 @@ ah validate .
 ah security-scan .
 ah harness-audit .
 ah compare before.json after.json
-ah gate audit.json --min-overall 80 --min-score security=80 --min-score design_system=85
+ah gate audit.json --max-architecture-errors 0
 ```
 
 `--boilerplate` is the preferred project-shape flag. `--template` remains a backward-compatible alias for existing automation.
@@ -138,9 +142,9 @@ Architecture Analysis v1 currently builds a local JS/TS/Vue source dependency gr
 
 The analyzer resolves relative imports and built-in `@/`, `~/` and `#shared/` aliases. Unresolved local imports are reported separately rather than silently treated as external packages. Findings carry stable Architecture Registry rule IDs plus authority and deterministic/heuristic classification.
 
-The report also explicitly lists what is not yet checked, including non-JS language graphs, arbitrary custom alias maps, computed runtime imports, semantic business-logic placement and project-local exceptions.
+The report lists unsupported coverage, including non-JS language graphs, JSONC/extended tsconfig and Vite-only aliases, computed runtime imports and semantic business-logic placement. Basic JSON tsconfig paths, workspace exports and dated project-local exceptions are supported.
 
-Project-local architecture contracts, general registry rule compilation, ESLint/Nx/dependency-cruiser adapters, additional languages and integration into the main audit score remain follow-up work.
+`architecture enforce` previews or writes the normalized project-local contract. General registry rule compilation, ESLint/Nx/dependency-cruiser adapters and additional languages remain follow-up work. Architecture coverage and deterministic error counts feed audit gates; an unavailable graph score stays null.
 
 ## Experimental design intelligence
 
@@ -189,7 +193,7 @@ The diff reports new/removed measured values, changed usage counts, finding IDs 
 
 Runtime contrast, responsive layout, accessibility evidence, richer token/component health, interactive Design Genome approval, and model-specific prompt adapters remain follow-up work.
 
-The source launcher currently routes `design` to the experimental `ah-design` binary. Stable release-binary command integration will be completed before the design command is promoted from experimental status.
+The unified `ah` binary and source launcher both include the experimental `design` command family. No sibling executable is required.
 
 ## What `ah` provides
 
@@ -209,7 +213,7 @@ The source launcher currently routes `design` to the experimental `ah-design` bi
 ```bash
 ./scripts/sync-upstream.sh
 cargo test --all-targets
-cargo build --release
+cargo build --locked --release --bin ah
 ```
 
 The pinned canonical catalog exposes complete root boilerplates (`base`, `web-app`, `backend-api`, `saas`, `monorepo`, `library-sdk`) and shared modules under `modules/`.
@@ -217,3 +221,10 @@ The pinned canonical catalog exposes complete root boilerplates (`base`, `web-ap
 ## Contributing
 
 The CLI should contain deterministic mechanics rather than canonical architecture or large prompt collections. Architecture/content changes belong in `agentic-harness`; agent procedure changes belong in `agentic-harness-agents`.
+
+## License
+
+Authored code and content are available under the [MIT License](LICENSE).
+Third-party material retains its existing licenses and attribution requirements.
+Copied Harness templates and skills retain their MIT notice; independently
+written application code may use its own license.

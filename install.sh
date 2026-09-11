@@ -16,12 +16,16 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
+case "$COMMAND" in
+  ""|.|..|*/*|*\\*) echo "--command must be a filename" >&2; exit 2 ;;
+esac
+
 if [ -z "$BINARY" ]; then
   if [ -x "$ROOT/target/release/ah" ]; then
     BINARY="$ROOT/target/release/ah"
   elif command -v cargo >/dev/null 2>&1; then
     if [ ! -d "$ROOT/upstream/agentic-harness" ]; then "$ROOT/scripts/sync-upstream.sh"; fi
-    cargo build --release --manifest-path "$ROOT/Cargo.toml"
+    cargo build --locked --release --bin ah --manifest-path "$ROOT/Cargo.toml"
     BINARY="$ROOT/target/release/ah"
   else
     echo "No compiled ah binary found. Pass --binary or install Rust to build from source." >&2
@@ -30,6 +34,10 @@ if [ -z "$BINARY" ]; then
 fi
 
 mkdir -p "$PREFIX/bin"
-cp "$BINARY" "$PREFIX/bin/$COMMAND"
-chmod +x "$PREFIX/bin/$COMMAND"
+INSTALL_STAGE=$(mktemp "$PREFIX/bin/.ah-install.XXXXXX")
+trap 'rm -f "$INSTALL_STAGE"' EXIT HUP INT TERM
+cp "$BINARY" "$INSTALL_STAGE"
+chmod +x "$INSTALL_STAGE"
+"$INSTALL_STAGE" --version >/dev/null
+mv -f "$INSTALL_STAGE" "$PREFIX/bin/$COMMAND"
 echo "Installed $COMMAND to $PREFIX/bin/$COMMAND"

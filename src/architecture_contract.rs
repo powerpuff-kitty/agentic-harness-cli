@@ -1,18 +1,15 @@
 use crate::architecture;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeSet;
+#[cfg(test)]
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(test)]
+use std::path::PathBuf;
 
 pub const CONTRACT_PATH: &str = ".agentic/architecture.json";
 
-fn rule(
-    id: &str,
-    profile: &str,
-    severity: &str,
-    authority: &str,
-    enforceability: &str,
-) -> Value {
+fn rule(id: &str, profile: &str, severity: &str, authority: &str, enforceability: &str) -> Value {
     json!({
         "id": id,
         "profile": profile,
@@ -137,7 +134,10 @@ fn rules_for_profile(profile: &str) -> Vec<Value> {
 
 fn detection_profiles(detection: &Value) -> BTreeSet<String> {
     let mut profiles = BTreeSet::new();
-    if let Some(candidates) = detection.get("candidate_profiles").and_then(Value::as_array) {
+    if let Some(candidates) = detection
+        .get("candidate_profiles")
+        .and_then(Value::as_array)
+    {
         profiles.extend(
             candidates
                 .iter()
@@ -191,10 +191,14 @@ fn validate_exceptions(value: &Value) -> Result<Vec<Value>, String> {
             return Err(format!("architecture exception {index} is missing path"));
         };
         let Some(rationale) = object.get("rationale").and_then(Value::as_str) else {
-            return Err(format!("architecture exception {index} is missing rationale"));
+            return Err(format!(
+                "architecture exception {index} is missing rationale"
+            ));
         };
         if rule_id.trim().is_empty() {
-            return Err(format!("architecture exception {index} has an empty rule_id"));
+            return Err(format!(
+                "architecture exception {index} has an empty rule_id"
+            ));
         }
         if exception_path_is_broad(path) {
             return Err(format!(
@@ -208,20 +212,12 @@ fn validate_exceptions(value: &Value) -> Result<Vec<Value>, String> {
         }
         if let Some(expires) = object.get("expires") {
             let Some(expires) = expires.as_str() else {
-                return Err(format!("architecture exception {index} expires must be a string"));
-            };
-            let valid_shape = expires.len() == 10
-                && expires.as_bytes()[4] == b'-'
-                && expires.as_bytes()[7] == b'-'
-                && expires
-                    .chars()
-                    .enumerate()
-                    .all(|(position, value)| position == 4 || position == 7 || value.is_ascii_digit());
-            if !valid_shape {
                 return Err(format!(
-                    "architecture exception {index} expires must use YYYY-MM-DD"
+                    "architecture exception {index} expires must be a string"
                 ));
-            }
+            };
+            crate::date::validate(expires)
+                .map_err(|e| format!("architecture exception {index}: {e}"))?;
         }
         result.push(item.clone());
     }
@@ -244,8 +240,7 @@ pub fn load_contract(root: &Path) -> Result<Option<Value>, String> {
     if !path.exists() {
         return Ok(None);
     }
-    let text = fs::read_to_string(&path)
-        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    let text = crate::scan::read(root, &path, 1_000_000)?;
     let value: Value = serde_json::from_str(&text)
         .map_err(|error| format!("invalid {}: {error}", path.display()))?;
     if value["format_version"] != 1 || value["kind"] != "architecture-contract" {
@@ -318,14 +313,10 @@ pub fn preview(root: &Path, requested: &[String]) -> Result<Value, String> {
 pub fn write(root: &Path, requested: &[String]) -> Result<Value, String> {
     let contract = contract(root, requested)?;
     let path = root.join(CONTRACT_PATH);
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
-    }
     let mut text = serde_json::to_string_pretty(&contract)
         .map_err(|error| format!("failed to serialize architecture contract: {error}"))?;
     text.push('\n');
-    fs::write(&path, text)
+    crate::scan::write(root, CONTRACT_PATH, text.as_bytes())
         .map_err(|error| format!("failed to write {}: {error}", path.display()))?;
     Ok(json!({
         "target": root,
@@ -399,16 +390,25 @@ pub fn apply_exceptions(root: &Path, analysis: &mut Value) -> Result<(), String>
         return Ok(());
     }
 
+    let today = crate::date::today();
+    analysis["evaluation_date"] = json!(today);
+    analysis["expired_exceptions"] = json!(
+        exceptions
+            .iter()
+            .filter(|e| e["expires"].as_str().is_some_and(|d| d < today.as_str()))
+            .collect::<Vec<_>>()
+    );
     let current = analysis["findings"].as_array().cloned().unwrap_or_default();
     let mut kept = Vec::new();
     let mut suppressed = Vec::new();
     let mut applied = BTreeSet::new();
     for finding in current {
-        if let Some((index, exception)) = exceptions
-            .iter()
-            .enumerate()
-            .find(|(_, exception)| finding_matches_exception(&finding, exception))
-        {
+        if let Some((index, _exception)) = exceptions.iter().enumerate().find(|(_, exception)| {
+            exception["expires"]
+                .as_str()
+                .is_none_or(|date| date >= today.as_str())
+                && finding_matches_exception(&finding, exception)
+        }) {
             let mut suppressed_finding = finding.clone();
             suppressed_finding["suppressed_by_exception"] = json!(index);
             suppressed.push(suppressed_finding);
@@ -420,7 +420,9 @@ pub fn apply_exceptions(root: &Path, analysis: &mut Value) -> Result<(), String>
 
     let deterministic_errors = kept
         .iter()
-        .filter(|finding| finding["severity"] == "error" && finding["enforceability"] == "deterministic")
+        .filter(|finding| {
+            finding["severity"] == "error" && finding["enforceability"] == "deterministic"
+        })
         .count();
     let warnings = kept
         .iter()
@@ -431,7 +433,11 @@ pub fn apply_exceptions(root: &Path, analysis: &mut Value) -> Result<(), String>
     analysis["exceptions_applied"] = json!(applied.into_iter().collect::<Vec<_>>());
     analysis["compliance"]["deterministic_errors"] = json!(deterministic_errors);
     analysis["compliance"]["warnings"] = json!(warnings);
-    analysis["compliance"]["passed"] = json!(deterministic_errors == 0);
+    analysis["compliance"]["passed"] = json!(
+        deterministic_errors == 0
+            && analysis["compliance"]["complete"] != false
+            && analysis["scan"]["complete"] != false
+    );
     Ok(())
 }
 
@@ -466,11 +472,13 @@ mod tests {
         write(&root, &["pattern/layered/1".to_string()]).unwrap();
         assert!(root.join(CONTRACT_PATH).exists());
         let loaded = load_contract(&root).unwrap().unwrap();
-        assert!(loaded["profiles"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|profile| profile == "pattern/layered/1"));
+        assert!(
+            loaded["profiles"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|profile| profile == "pattern/layered/1")
+        );
         let _ = fs::remove_dir_all(root);
     }
 
@@ -546,6 +554,9 @@ mod tests {
         assert!(analysis["findings"].as_array().unwrap().is_empty());
         assert_eq!(analysis["suppressed_findings"].as_array().unwrap().len(), 1);
         assert_eq!(analysis["compliance"]["passed"], true);
+        analysis["compliance"]["complete"] = json!(false);
+        apply_exceptions(&root, &mut analysis).unwrap();
+        assert_eq!(analysis["compliance"]["passed"], false);
         let _ = fs::remove_dir_all(root);
     }
 }

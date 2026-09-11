@@ -1,17 +1,8 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
 use std::fs;
 use std::path::{Path, PathBuf};
-
-const SKIP: &[&str] = &[
-    ".git", "node_modules", "vendor", "dist", "build", ".next", ".nuxt", "target", ".venv",
-    "venv", "coverage", "upstream",
-];
-
-const TEXT_EXT: &[&str] = &[
-    "css", "scss", "sass", "less", "html", "htm", "vue", "svelte", "js", "mjs", "cjs", "ts",
-    "tsx", "jsx",
-];
 
 #[derive(Default)]
 struct Frequency {
@@ -24,7 +15,12 @@ impl Frequency {
     fn add(&mut self, value: String, path: &str) {
         self.total += 1;
         *self.values.entry(value.clone()).or_default() += 1;
-        *self.paths.entry(value).or_default().entry(path.to_string()).or_default() += 1;
+        *self
+            .paths
+            .entry(value)
+            .or_default()
+            .entry(path.to_string())
+            .or_default() += 1;
     }
 
     fn rows(&self) -> Vec<Value> {
@@ -45,36 +41,26 @@ impl Frequency {
 }
 
 fn files(root: &Path) -> Vec<PathBuf> {
-    fn walk(path: &Path, root: &Path, out: &mut Vec<PathBuf>) {
-        let Ok(entries) = fs::read_dir(path) else { return };
-        let mut entries = entries.flatten().collect::<Vec<_>>();
-        entries.sort_by_key(|entry| entry.file_name());
-        for entry in entries {
-            let path = entry.path();
-            let rel = path.strip_prefix(root).unwrap_or(&path);
-            if rel
-                .components()
-                .any(|c| SKIP.contains(&c.as_os_str().to_string_lossy().as_ref()))
-            {
-                continue;
-            }
-            if path.is_dir() {
-                walk(&path, root, out);
-            } else if path
-                .extension()
-                .and_then(|x| x.to_str())
-                .map(|ext| TEXT_EXT.contains(&ext.to_ascii_lowercase().as_str()))
-                .unwrap_or(false)
-            {
-                out.push(path);
-            }
-        }
-    }
-
-    let mut out = Vec::new();
-    walk(root, root, &mut out);
-    out.sort();
-    out
+    crate::scan::files(root)
+        .into_iter()
+        .filter(|p| {
+            crate::scan::product(root, p)
+                && matches!(
+                    p.extension().and_then(|s| s.to_str()),
+                    Some(
+                        "css"
+                            | "scss"
+                            | "sass"
+                            | "less"
+                            | "vue"
+                            | "svelte"
+                            | "html"
+                            | "tsx"
+                            | "jsx"
+                    )
+                )
+        })
+        .collect()
 }
 
 fn hex_colors(text: &str) -> Vec<String> {
@@ -109,7 +95,10 @@ fn px_values(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut i = 0;
     while i + 2 <= bytes.len() {
-        if i + 1 < bytes.len() && bytes[i].eq_ignore_ascii_case(&b'p') && bytes[i + 1].eq_ignore_ascii_case(&b'x') {
+        if i + 1 < bytes.len()
+            && bytes[i].eq_ignore_ascii_case(&b'p')
+            && bytes[i + 1].eq_ignore_ascii_case(&b'x')
+        {
             let mut start = i;
             while start > 0 {
                 let c = bytes[start - 1];
@@ -136,13 +125,20 @@ fn px_values(text: &str) -> Vec<String> {
 fn css_declarations(line: &str) -> Vec<(String, String)> {
     line.split(';')
         .filter_map(|segment| {
-            let candidate = segment.rsplit_once('{').map(|(_, tail)| tail).unwrap_or(segment).trim();
+            let candidate = segment
+                .rsplit_once('{')
+                .map(|(_, tail)| tail)
+                .unwrap_or(segment)
+                .trim();
             let (property, value) = candidate.split_once(':')?;
             let property = property.trim().to_ascii_lowercase();
             if property.is_empty() || value.trim().is_empty() {
                 return None;
             }
-            Some((property, value.trim().trim_end_matches('}').trim().to_string()))
+            Some((
+                property,
+                value.trim().trim_end_matches('}').trim().to_string(),
+            ))
         })
         .collect()
 }
@@ -221,14 +217,21 @@ pub fn analyze_static(root: &Path) -> Value {
     let mut token_definitions = BTreeSet::new();
     let mut token_references = BTreeSet::new();
     let mut analyzed_files = Vec::new();
+    let mut skipped = Vec::new();
 
     for path in files(root) {
-        let Ok(meta) = fs::metadata(&path) else { continue };
-        if meta.len() > 2_000_000 {
-            continue;
-        }
-        let Ok(text) = fs::read_to_string(&path) else { continue };
-        let rel = path.strip_prefix(root).unwrap_or(&path).to_string_lossy().replace('\\', "/");
+        let text = match crate::scan::read(root, &path, 2_000_000) {
+            Ok(t) => t,
+            Err(reason) => {
+                skipped.push(json!({"path":path,"reason":reason}));
+                continue;
+            }
+        };
+        let rel = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
         analyzed_files.push(rel.clone());
 
         for line in text.lines() {
@@ -251,7 +254,9 @@ pub fn analyze_static(root: &Path) -> Value {
                     }
                 }
 
-                if property == "border-radius" || property.starts_with("border-") && property.ends_with("-radius") {
+                if property == "border-radius"
+                    || property.starts_with("border-") && property.ends_with("-radius")
+                {
                     for value in px_values(&value_text) {
                         radii.add(value, &rel);
                     }
@@ -355,6 +360,8 @@ pub fn analyze_static(root: &Path) -> Value {
         },
         "metadata": {
             "analyzed_files": analyzed_files,
+            "skipped": skipped,
+            "scan": crate::scan::inventory(root).report(),
             "deterministic": true
         }
     })
@@ -383,7 +390,12 @@ mod tests {
         assert_eq!(first["domains"]["spacing"]["summary"]["occurrences"], 1);
         assert_eq!(first["domains"]["geometry"]["summary"]["occurrences"], 1);
         assert_eq!(first["domains"]["typography"]["summary"]["occurrences"], 1);
-        assert!(first["domains"]["tokens"]["summary"]["defined"].as_u64().unwrap() >= 1);
+        assert!(
+            first["domains"]["tokens"]["summary"]["defined"]
+                .as_u64()
+                .unwrap()
+                >= 1
+        );
         let _ = fs::remove_dir_all(root);
     }
 

@@ -1,0 +1,2 @@
+# Preserve the exact upstream bytes recorded in license-sources.json on every OS.
+*-LICENSE.txt -text

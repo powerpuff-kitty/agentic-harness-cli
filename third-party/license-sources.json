@@ -1,0 +1,96 @@
+{
+  "format_version": 1,
+  "sources": [
+    {
+      "packages": [
+        {
+          "name": "include_dir",
+          "version": "0.7.4"
+        },
+        {
+          "name": "include_dir_macros",
+          "version": "0.7.4"
+        }
+      ],
+      "repository": "https://github.com/Michael-F-Bryan/include_dir",
+      "commit": "d742c6fffce99ee89da91b934e7ce6fb2a82680c",
+      "source": "https://raw.githubusercontent.com/Michael-F-Bryan/include_dir/d742c6fffce99ee89da91b934e7ce6fb2a82680c/LICENSE",
+      "file": "include-dir-LICENSE.txt",
+      "sha256": "9369f62987b3a116111f2edfdc4cc72633e44ddc94d5d0c68659cf537b76a31f"
+    },
+    {
+      "packages": [
+        {
+          "name": "oxc_allocator",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_ast",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_ast_macros",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_ast_visit",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_data_structures",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_diagnostics",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_ecmascript",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_estree",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_parser",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_regular_expression",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_span",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_str",
+          "version": "0.139.0"
+        },
+        {
+          "name": "oxc_syntax",
+          "version": "0.139.0"
+        }
+      ],
+      "repository": "https://github.com/oxc-project/oxc",
+      "commit": "69b2dfc1810e6ad9d5508ae9a20bc773ba5aa18d",
+      "source": "https://raw.githubusercontent.com/oxc-project/oxc/69b2dfc1810e6ad9d5508ae9a20bc773ba5aa18d/LICENSE",
+      "file": "oxc-LICENSE.txt",
+      "sha256": "95ced5ecf1133fbf41d409b5555c86c344f83f3b019926057ddbc07cfdcc27b3"
+    },
+    {
+      "packages": [
+        {
+          "name": "oxc_index",
+          "version": "5.0.0"
+        }
+      ],
+      "repository": "https://github.com/oxc-project/oxc-index-vec",
+      "commit": "8e09fe324eb6df02f56e4eacdfac958930300380",
+      "source": "https://raw.githubusercontent.com/oxc-project/oxc-index-vec/8e09fe324eb6df02f56e4eacdfac958930300380/LICENSE",
+      "file": "oxc-index-LICENSE.txt",
+      "sha256": "95ced5ecf1133fbf41d409b5555c86c344f83f3b019926057ddbc07cfdcc27b3"
+    }
+  ]
+}

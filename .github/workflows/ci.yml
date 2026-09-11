@@ -1,69 +1,115 @@
 name: CLI CI
-
 on:
   pull_request:
   push:
     branches: [main]
-
+  workflow_call:
+  workflow_dispatch:
 permissions:
   contents: read
-
 jobs:
-  test:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: ah-linux-x86_64
+          - os: macos-15-intel
+            asset: ah-macos-x86_64
+          - os: macos-latest
+            asset: ah-macos-arm64
+          - os: windows-latest
+            asset: ah-windows-x86_64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable action
+        with:
+          toolchain: 1.94.1
+          components: clippy,rustfmt
+      - name: Fetch locked source inputs
+        shell: bash
+        run: ./scripts/sync-upstream.sh
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Validate parser fixtures with the pinned TypeScript compiler
+        run: |
+          npm ci --prefix tests/typescript --ignore-scripts --no-audit --no-fund
+          npm test --prefix tests/typescript
+      - run: cargo test --locked --all-targets
+      - run: cargo build --locked --release --bin ah
+      - name: Check canonical output contracts
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python scripts/validate-contracts.py target/release/ah${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: Check source launcher and custom-prefix installer
+        if: runner.os != 'Windows'
+        run: python3 scripts/verify-install.py target/release/ah
+      - name: Record candidate performance evidence
+        if: runner.os == 'Linux'
+        run: python3 scripts/benchmark.py target/release/ah --output dist/benchmark-linux.json
+      - name: Collect dependency and Rust library attribution
+        run: python scripts/dependency-notices.py --output notices/THIRD_PARTY_NOTICES.txt --require-authored-licenses
+      - name: Verify packaging failure cases
+        run: python scripts/test-artifacts.py target/release/ah${{ runner.os == 'Windows' && '.exe' || '' }} notices/THIRD_PARTY_NOTICES.txt
+      - name: Package binary and provenance
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ -f target/release/ah.exe ]; then cp target/release/ah.exe "dist/${{ matrix.asset }}"; else cp target/release/ah "dist/${{ matrix.asset }}"; fi
+          python scripts/package-candidate.py "dist/${{ matrix.asset }}" --commit "${{ github.sha }}" --notices notices/THIRD_PARTY_NOTICES.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/*
+          if-no-files-found: error
+  installed:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: ah-linux-x86_64
+          - os: macos-15-intel
+            asset: ah-macos-x86_64
+          - os: macos-latest
+            asset: ah-macos-arm64
+          - os: windows-latest
+            asset: ah-windows-x86_64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ matrix.asset }}
+          path: downloaded
+      - name: Verify downloaded asset outside checkout
+        shell: bash
+        run: |
+          chmod +x "downloaded/${{ matrix.asset }}"
+          python scripts/package-candidate.py "downloaded/${{ matrix.asset }}.zip" --verify-archive --require-authored-licenses
+          python scripts/package-candidate.py "downloaded/${{ matrix.asset }}" --verify
+          python scripts/verify-candidate.py "downloaded/${{ matrix.asset }}" --report "evidence/${{ matrix.asset }}.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: evidence-${{ matrix.asset }}
+          path: evidence/*
+      - name: Verify Linux candidate with networking disabled
+        if: runner.os == 'Linux'
+        run: sudo unshare --net python3 scripts/verify-candidate.py "downloaded/${{ matrix.asset }}" > /dev/null
+  dependencies:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
         with:
-          repository: powerpuff-kitty/agentic-harness
-          ref: c8e879787803edb5dc431511725392fe4bda9dbe
-          path: upstream/agentic-harness
-      - uses: actions/checkout@v4
+          toolchain: 1.94.1
+      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - run: cargo audit --json > dependency-audit.json
+      - run: python3 scripts/dependency-report.py --output dependency-licenses.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          repository: powerpuff-kitty/agentic-harness-agents
-          ref: 56ff0a2d85a04c1ab50cbdd46b0b451398c35640
-          path: upstream/agentic-harness-agents
-      - uses: actions/checkout@v4
-        with:
-          repository: powerpuff-kitty/agentic-harness
-          ref: 831ea9e773ce1e466e07dda0dd3ddc9792c6a892
-          path: upstream/agentic-harness-registry
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo check --all-targets
-      - run: cargo test --all-targets
-      - run: cargo run --quiet -- validate .
-      - run: cargo run --quiet -- harness-audit upstream/agentic-harness/base
-      - run: cargo run --quiet -- audit . > /tmp/audit.json || test $? -eq 1
-      - run: test "$(python3 -c 'import json; print("architecture" in json.load(open("/tmp/audit.json")))')" = True
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/audit.json"))["scores"]["architecture"])')" -le 70
-      - run: cargo run --quiet -- gate /tmp/audit.json --max-architecture-errors 0
-      - run: printf '%s\n' '{"overall":99,"scores":{"architecture":99},"architecture":{"compliance":{"deterministic_errors":1}}}' > /tmp/bad-architecture-audit.json
-      - run: '! cargo run --quiet -- gate /tmp/bad-architecture-audit.json --fail-on-architecture-error'
-      - run: cargo run --quiet --bin ah-agentic -- audit . > /tmp/agentic-audit.json
-      - run: AH_REGISTRY=upstream/agentic-harness-registry/registry/models cargo run --quiet --bin ah-agentic -- models . > /tmp/models.json
-      - run: test "$(python3 -c 'import json; print(len(json.load(open("/tmp/models.json"))["models"]))')" -ge 2
-      - run: ./ah agentic context . > /tmp/context.json
-      - run: ./ah agentic improve . > /tmp/improve.json
-      - run: ./ah agentic models . > /tmp/wrapper-models.json
-      - run: test "$(python3 -c 'import json; print(len(json.load(open("/tmp/wrapper-models.json"))["models"]))')" -ge 2
-      - run: ./ah architecture detect . > /tmp/architecture-detect.json
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/architecture-detect.json"))["structure"]["style"])')" != ""
-      - run: ./ah architecture enforce . > /tmp/architecture-contract-preview.json
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/architecture-contract-preview.json"))["contract"]["kind"])')" = architecture-contract
-      - run: test ! -e .agentic/architecture.json
-      - run: ./ah architecture analyze . > /tmp/architecture-analysis.json
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/architecture-analysis.json"))["format_version"])')" -eq 1
-      - run: test "$(python3 -c 'import json; print("graph" in json.load(open("/tmp/architecture-analysis.json")))')" = True
-      - run: ./ah design analyze . --level static --output /tmp/design-analysis.json > /tmp/design-analysis-stdout.json
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["format_version"])')" -eq 1
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-analysis.json"))["metadata"]["deterministic"])')" = True
-      - run: ./ah design diff /tmp/design-analysis.json /tmp/design-analysis.json --output /tmp/design-diff.json > /tmp/design-diff-stdout.json
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-diff.json"))["kind"])')" = design-analysis-diff
-      - run: test "$(python3 -c 'import json; print(json.load(open("/tmp/design-diff.json"))["metadata"]["deterministic"])')" = True
-      - run: ./ah design prompt --genome tests/fixtures/design-genome.approved.json --task tests/fixtures/design-task.settings.json --output /tmp/design-prompt.md > /tmp/design-prompt-stdout.md
-      - run: grep -F 'settings.compact' /tmp/design-prompt.md
-      - run: '! grep -Fq "marketing.display" /tmp/design-prompt.md'
-      - run: grep -F 'generic-model-neutral-v1' /tmp/design-prompt.md
+          name: dependency-evidence
+          path: dependency-*.json

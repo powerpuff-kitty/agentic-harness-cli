@@ -1,0 +1,24 @@
+import /* comment */ type { Env } from './env';
+import { type App, type Env as Environment } from './env';
+import defaultValue, { type Env as MixedEnv } from './env';
+import { type Env as AnotherEnv, value } from './env';
+import './env';
+import {} from './env';
+export type { Env as ExportedEnv } from './env';
+export { type Env as NamedEnv } from './env';
+export type * from './env';
+export type * as types from './env';
+export * as runtime from './env';
+export type ImportedApp = import('./env').App<{
+  Bindings: Env;
+  Variables: { auth: Environment };
+}>;
+export type Constructor = typeof import('./env').App<{ token: string }>;
+export type Nested = import('./env').App<import('./env').Env>;
+export const load = () => import('./env');
+export const loadTemplate = () => import(`./env`);
+export { value as escaped } from './\u0065nv';
+export const narrow = { value } satisfies { value: number };
+export const instantiate = <const T>(item: T) => item;
+// import './commented';
+const text = "import './string';";
