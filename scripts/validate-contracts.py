@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from jsonschema import Draft202012Validator
@@ -71,3 +72,4 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
         Draft202012Validator(composition).validate({'context_profile': measurement['context_profile']})
     print(f"Context selection verified across {len(context_result['checks'])} executable probes")
 print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, check-plan and adapter schemas')
+subprocess.run([sys.executable, str(root / 'scripts/validate-execution.py'), str(binary)], check=True)
