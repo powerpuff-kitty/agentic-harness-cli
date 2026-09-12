@@ -126,7 +126,12 @@ fn typed_ui_is_explicit_and_uses_the_pinned_payload() {
     let root = fixture();
     install(root.path(), "claude", "typed-ui");
     let actual = fs::read(root.path().join(".claude/rules/agentic-typed-ui.md")).unwrap();
-    assert_eq!(actual, include_bytes!("../upstream/agentic-harness-agents/adapters/claude/files/.claude/rules/agentic-typed-ui.md"));
+    assert_eq!(
+        actual,
+        include_bytes!(
+            "../upstream/agentic-harness-agents/adapters/claude/files/.claude/rules/agentic-typed-ui.md"
+        )
+    );
 }
 
 #[test]
@@ -146,7 +151,12 @@ fn cursor_scoped_rule_does_not_create_claude_or_overrides() {
     let root = fixture();
     install(root.path(), "cursor", "typed-ui");
     let actual = fs::read(root.path().join(".cursor/rules/agentic-typed-ui.mdc")).unwrap();
-    assert_eq!(actual, include_bytes!("../upstream/agentic-harness-agents/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"));
+    assert_eq!(
+        actual,
+        include_bytes!(
+            "../upstream/agentic-harness-agents/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
+        )
+    );
     assert!(!root.path().join("CLAUDE.md").exists());
     assert!(!root.path().join("AGENTS.override.md").exists());
 }
@@ -176,7 +186,14 @@ fn conflicting_bridge_prevents_the_whole_batch() {
     let before = snapshot(root.path());
     let plan = call(
         root.path(),
-        &["adapters", "sync", "--host", "claude", "--profile", "typed-ui"],
+        &[
+            "adapters",
+            "sync",
+            "--host",
+            "claude",
+            "--profile",
+            "typed-ui",
+        ],
         1,
     );
     assert_eq!(plan["status"], "conflict");
@@ -195,7 +212,11 @@ fn conflicting_bridge_prevents_the_whole_batch() {
 fn license_conflict_does_not_install_an_unattributed_bridge() {
     let root = fixture();
     fs::create_dir_all(root.path().join(".agents/adapters")).unwrap();
-    fs::write(root.path().join(".agents/adapters/LICENSE"), "unrelated notice").unwrap();
+    fs::write(
+        root.path().join(".agents/adapters/LICENSE"),
+        "unrelated notice",
+    )
+    .unwrap();
     let plan = call(root.path(), &["adapters", "sync", "--host", "claude"], 1);
     call(
         root.path(),
@@ -228,7 +249,10 @@ fn destination_change_invalidates_a_review_without_overwrite() {
         &apply_args("claude", "base", plan["plan_digest"].as_str().unwrap()),
         2,
     );
-    assert_eq!(fs::read(root.path().join("CLAUDE.md")).unwrap(), b"owner file");
+    assert_eq!(
+        fs::read(root.path().join("CLAUDE.md")).unwrap(),
+        b"owner file"
+    );
     assert!(!root.path().join(".agents").exists());
 }
 
@@ -251,7 +275,11 @@ fn review_is_bound_to_target_and_profile() {
 fn custom_context_and_unrelated_host_settings_are_preserved() {
     let root = fixture();
     fs::create_dir(root.path().join(".claude")).unwrap();
-    fs::write(root.path().join(".claude/settings.json"), "{\"custom\":true}").unwrap();
+    fs::write(
+        root.path().join(".claude/settings.json"),
+        "{\"custom\":true}",
+    )
+    .unwrap();
     fs::write(root.path().join(".cursorrules"), "user rules").unwrap();
     let before = snapshot(root.path());
     install(root.path(), "claude", "typed-ui");
@@ -268,8 +296,22 @@ fn invalid_selections_and_options_never_write() {
     for args in [
         vec!["adapters", "sync"],
         vec!["adapters", "sync", "--host", "unknown"],
-        vec!["adapters", "sync", "--host", "codex", "--profile", "typed-ui"],
-        vec!["adapters", "sync", "--host", "claude", "--profile", "unknown"],
+        vec![
+            "adapters",
+            "sync",
+            "--host",
+            "codex",
+            "--profile",
+            "typed-ui",
+        ],
+        vec![
+            "adapters",
+            "sync",
+            "--host",
+            "claude",
+            "--profile",
+            "unknown",
+        ],
         vec!["adapters", "sync", "--host", "claude", "--host", "cursor"],
         vec!["adapters", "sync", "--host", "claude", "--apply"],
         vec!["adapters", "sync", "--host", "claude", "--review", "fake"],
@@ -303,7 +345,14 @@ fn directory_destination_and_parent_file_are_rejected() {
     fs::write(root.path().join(".claude"), "not a directory").unwrap();
     call(
         root.path(),
-        &["adapters", "sync", "--host", "claude", "--profile", "typed-ui"],
+        &[
+            "adapters",
+            "sync",
+            "--host",
+            "claude",
+            "--profile",
+            "typed-ui",
+        ],
         2,
     );
 }
@@ -314,8 +363,14 @@ fn successful_copy_never_claims_host_delivery_or_enforcement() {
     let result = install(root.path(), "claude", "base");
     assert_eq!(result["host_delivery_verified"], false);
     assert_eq!(result["enforcement_verified"], false);
-    assert_eq!(result["source"]["repository"], "powerpuff-kitty/agentic-harness-agents");
-    assert_eq!(result["source"]["commit"], "9c847381b3507f338821ce9a354e8d07cbc750fd");
+    assert_eq!(
+        result["source"]["repository"],
+        "powerpuff-kitty/agentic-harness-agents"
+    );
+    assert_eq!(
+        result["source"]["commit"],
+        "9c847381b3507f338821ce9a354e8d07cbc750fd"
+    );
 }
 
 #[cfg(unix)]
@@ -327,7 +382,14 @@ fn symlink_router_destination_and_parent_are_rejected() {
     symlink(outside.path(), root.path().join(".claude")).unwrap();
     call(
         root.path(),
-        &["adapters", "sync", "--host", "claude", "--profile", "typed-ui"],
+        &[
+            "adapters",
+            "sync",
+            "--host",
+            "claude",
+            "--profile",
+            "typed-ui",
+        ],
         2,
     );
     fs::remove_file(root.path().join(".claude")).unwrap();
@@ -335,7 +397,11 @@ fn symlink_router_destination_and_parent_are_rejected() {
     call(root.path(), &["adapters", "sync", "--host", "claude"], 2);
     fs::remove_file(root.path().join("CLAUDE.md")).unwrap();
     fs::remove_file(root.path().join("AGENTS.md")).unwrap();
-    symlink(outside.path().join("AGENTS.md"), root.path().join("AGENTS.md")).unwrap();
+    symlink(
+        outside.path().join("AGENTS.md"),
+        root.path().join("AGENTS.md"),
+    )
+    .unwrap();
     call(root.path(), &["adapters", "sync", "--host", "claude"], 2);
     assert!(!outside.path().join("rules").exists());
 }
@@ -354,7 +420,14 @@ fn windows_junction_parent_is_rejected() {
     assert!(created.status.success());
     call(
         root.path(),
-        &["adapters", "sync", "--host", "claude", "--profile", "typed-ui"],
+        &[
+            "adapters",
+            "sync",
+            "--host",
+            "claude",
+            "--profile",
+            "typed-ui",
+        ],
         2,
     );
     assert!(!outside.path().join("rules").exists());

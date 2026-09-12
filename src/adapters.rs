@@ -29,14 +29,18 @@ const ASSETS: &[Asset] = &[
         profile: "typed-ui",
         source: "claude/files/.claude/rules/agentic-typed-ui.md",
         target: ".claude/rules/agentic-typed-ui.md",
-        bytes: include_bytes!("../upstream/agentic-harness-agents/adapters/claude/files/.claude/rules/agentic-typed-ui.md"),
+        bytes: include_bytes!(
+            "../upstream/agentic-harness-agents/adapters/claude/files/.claude/rules/agentic-typed-ui.md"
+        ),
     },
     Asset {
         host: "cursor",
         profile: "typed-ui",
         source: "cursor/files/.cursor/rules/agentic-typed-ui.mdc",
         target: ".cursor/rules/agentic-typed-ui.mdc",
-        bytes: include_bytes!("../upstream/agentic-harness-agents/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"),
+        bytes: include_bytes!(
+            "../upstream/agentic-harness-agents/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
+        ),
     },
 ];
 const NOTICE: Asset = Asset {
@@ -208,7 +212,8 @@ fn create_parents(root: &Path, relative: &str, created: &mut Vec<String>) -> Res
             Some(_) if path.is_dir() => {}
             Some(_) => return Err("adapters: destination parent is not a directory".into()),
             None => {
-                fs::create_dir(&path).map_err(|_| "adapters: cannot create destination directory")?;
+                fs::create_dir(&path)
+                    .map_err(|_| "adapters: cannot create destination directory")?;
                 created.push(name.clone());
             }
         }
@@ -292,7 +297,11 @@ fn apply_with(
             _ => failure = Some("adapters: post-install verification failed".into()),
         }
     }
-    report["status"] = json!(if failure.is_none() { "applied" } else { "partial" });
+    report["status"] = json!(if failure.is_none() {
+        "applied"
+    } else {
+        "partial"
+    });
     report["created_files"] = json!(created_files);
     report["created_directories"] = json!(created_directories);
     report["error"] = json!(failure);
@@ -301,7 +310,9 @@ fn apply_with(
 
 pub(crate) fn run(args: Vec<String>) {
     if args.len() < 2 || ["--help", "-h"].contains(&args[1].as_str()) {
-        println!("usage: ah adapters sync [TARGET] --host claude|cursor|codex [--profile base|typed-ui]\nPreview by default. Add --apply --review PLAN_DIGEST to create missing files only.");
+        println!(
+            "usage: ah adapters sync [TARGET] --host claude|cursor|codex [--profile base|typed-ui]\nPreview by default. Add --apply --review PLAN_DIGEST to create missing files only."
+        );
         return;
     }
     let mut target = ".";
