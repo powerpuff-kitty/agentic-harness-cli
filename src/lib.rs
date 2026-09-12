@@ -5,6 +5,8 @@ mod architecture_cli;
 mod architecture_contract;
 mod architecture_score;
 mod artifact;
+mod check_inputs;
+mod checks;
 mod cli;
 mod date;
 mod design_analysis;
@@ -53,7 +55,7 @@ pub fn entry(family: Option<&str>) {
     let family = family.map(str::to_owned).or_else(|| {
         if args
             .get(1)
-            .is_some_and(|x| ["agentic", "architecture", "design"].contains(&x.as_str()))
+            .is_some_and(|x| ["agentic", "architecture", "design", "checks"].contains(&x.as_str()))
         {
             Some(args.remove(1))
         } else {
@@ -65,11 +67,17 @@ pub fn entry(family: Option<&str>) {
         crate::date::set(&args[i + 1]).unwrap_or_else(|e| fail(e));
         args.drain(i..=i + 1);
     }
+    if family.is_none()
+        && args.get(1).is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
+    {
+        println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
+    }
     crate::scan::begin();
     match family.as_deref() {
         Some("agentic") => agentic::run(args.into_iter().skip(1).collect()),
         Some("architecture") => architecture_cli::run(args),
         Some("design") => design_cli::run(args),
+        Some("checks") => checks::run(args),
         _ => cli::run(args),
     }
     crate::syntax_worker::shutdown();
@@ -118,6 +126,7 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 1,
                 false,
             ),
+            (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {
