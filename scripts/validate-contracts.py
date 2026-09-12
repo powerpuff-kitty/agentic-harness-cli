@@ -3,11 +3,13 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
 from jsonschema import Draft202012Validator
+from adapter_probe import exercise_adapters
 p = argparse.ArgumentParser()
 p.add_argument('binary', type=Path)
 a = p.parse_args()
@@ -54,4 +56,8 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     from check_plan_probe import framed
     planner_inputs = [(root / p).read_bytes() for p in ['src/checks.rs','src/check_inputs.rs','upstream.lock.json']]
     assert preview['planner_digest'] == framed(b'ah-check-planner-v1\0', planner_inputs)
-print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison and check-plan schemas')
+    adapter_schema = Draft202012Validator(json.loads((schemas / 'adapter-sync.v1.schema.json').read_text()))
+    source = json.loads((root / 'upstream.lock.json').read_text())['agents']
+    adapter_result = exercise_adapters(binary, target, os.environ.copy(), source, adapter_schema.validate)
+    print(f"Actual adapter reports validated across {len(adapter_result['checks'])} executable probes")
+print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, check-plan and adapter schemas')

@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 from onboarding import ROOT, exercise
 from check_plan_probe import exercise_plan
+from adapter_probe import exercise_adapters
 
 parser = argparse.ArgumentParser()
 parser.add_argument('binary', type=Path)
@@ -34,7 +35,7 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
         return json.loads(process.stdout) if json_output else process.stdout
 
     version = run('--version')
-    for family in [[], ['architecture'], ['design'], ['agentic'], ['checks']]:
+    for family in [[], ['architecture'], ['design'], ['agentic'], ['checks'], ['adapters']]:
         run(*family, '--help', json_output=False)
     run('catalog-check')
     run('init', 'project', '--boilerplate', 'web-app')
@@ -85,17 +86,19 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     for argv in [('validate', 'absent'), ('audit', 'project', '--invalid'),
                  ('agentic', 'improve', 'project', '--apply')]:
         run(*argv, exits=(2,), json_output=False)
-    onboarding = exercise(binary, root, environment,
-                          json.loads((ROOT / 'upstream.lock.json').read_text(encoding='utf-8')))
+    expected_sources = json.loads((ROOT / 'upstream.lock.json').read_text(encoding='utf-8'))
+    onboarding = exercise(binary, root, environment, expected_sources)
     planning = exercise_plan(run, root)
+    adapters = exercise_adapters(binary, root, environment, expected_sources['agents'])
 
 report = {'format_version': 1, 'kind': 'candidate-verification', 'passed': True,
           'binary_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
           'version': version, 'checks': results, 'recovery': 'backup/restore validated',
-          'onboarding': onboarding, 'check_planning': planning,
+          'onboarding': onboarding, 'check_planning': planning, 'adapters': adapters,
           'limitations': ['Network access is not OS-sandboxed; proxy variables deny ordinary HTTP clients.',
                           'Design prompt approved-artifact loop is exercised by Rust integration tests.',
-                          'Check planning does not execute or authorize repository commands.']}
+                          'Check planning does not execute or authorize repository commands.',
+                          'Adapter copying does not verify native host loading or enforcement.']}
 text = json.dumps(report, indent=2) + '\n'
 if args.report:
     args.report.parent.mkdir(parents=True, exist_ok=True)
