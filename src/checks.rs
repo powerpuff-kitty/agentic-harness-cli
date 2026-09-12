@@ -1,10 +1,10 @@
-//! Experimental check planning. No subprocesses, approvals, gates or file writes.
+//! Check policy planning and explicit local execution dispatch.
 use crate::check_inputs;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::path::Path;
 
-fn shape<'a>(
+pub(crate) fn shape<'a>(
     value: &'a Value,
     keys: &[&str],
 ) -> Result<&'a serde_json::Map<String, Value>, String> {
@@ -15,7 +15,7 @@ fn shape<'a>(
     Ok(object)
 }
 
-fn text(value: &Value, max: usize) -> Result<&str, String> {
+pub(crate) fn text(value: &Value, max: usize) -> Result<&str, String> {
     let value = value.as_str().ok_or("checks: expected a string")?;
     if value.is_empty() || value.chars().count() > max || value.chars().any(char::is_control) {
         return Err("checks: empty, oversized or control-containing string".into());
@@ -42,7 +42,7 @@ fn array(value: &Value, min: usize, max: usize) -> Result<&Vec<Value>, String> {
     Ok(value)
 }
 
-fn number(value: &Value, max: u64) -> Result<u64, String> {
+pub(crate) fn number(value: &Value, max: u64) -> Result<u64, String> {
     let value = value
         .as_u64()
         .ok_or("checks: expected an unsigned integer")?;
@@ -96,7 +96,6 @@ pub(crate) fn validate_policy(policy: &Value) -> Result<Vec<String>, String> {
         for arg in array(&check["argv"], 1, 64)? {
             text(arg, 4096)?;
         }
-        // An executable name is a request for future host resolution, not proof of identity.
         let executable = text(&check["argv"][0], 128)?;
         if !executable
             .bytes()
@@ -138,8 +137,7 @@ pub(crate) fn plan(target: &Path, config: &str) -> Result<Value, String> {
     let root = check_inputs::root(target)?;
     let config_path = check_inputs::resolve(&root, config, false)?;
     let bytes = check_inputs::read(&config_path, 262_144)?;
-    let policy: Value =
-        serde_json::from_slice(&bytes).map_err(|_| "checks: invalid JSON policy")?;
+    let policy = crate::strict_json::decode(&bytes)?;
     let inputs = validate_policy(&policy)?;
     for check in policy["checks"].as_array().unwrap() {
         let cwd = check_inputs::resolve(&root, check["cwd"].as_str().unwrap(), true)?;
@@ -192,29 +190,60 @@ pub(crate) fn plan(target: &Path, config: &str) -> Result<Value, String> {
 pub(crate) fn run(args: Vec<String>) {
     if args.len() < 2 || ["--help", "-h"].contains(&args[1].as_str()) {
         println!(
-            "usage: ah checks plan [TARGET] [--config PATH]\nExperimental read-only preview. No scripts run; no approval is granted."
+            "usage: ah checks <plan|prepare|run> [TARGET] [--config PATH]\nplan and prepare are read-only. prepare/run accept --settings PATH.\nrun requires --approve-review DIGEST and --allow-unsandboxed. Linux/macOS execution only."
         );
         return;
     }
+    let operation = &args[1];
     let mut target = ".";
     let mut config = ".agentic/checks.json";
-    let mut seen_config = false;
+    let mut settings = ".agentic/check-execution.json";
+    let mut approval = None;
+    let mut allow_unsandboxed = false;
+    let mut seen = BTreeSet::new();
     let mut index = 2;
     while index < args.len() {
-        if args[index] == "--config" {
-            if seen_config {
-                crate::fail("checks: --config cannot be repeated");
+        let arg = args[index].as_str();
+        if arg.starts_with("--") {
+            if !seen.insert(arg) {
+                crate::fail("checks: repeated option is not allowed");
             }
-            seen_config = true;
-            index += 1;
-            config = &args[index];
+            if arg == "--allow-unsandboxed" {
+                allow_unsandboxed = true;
+            } else {
+                index += 1;
+                let value = args[index].as_str();
+                match arg {
+                    "--config" => config = value,
+                    "--settings" => settings = value,
+                    "--approve-review" => approval = Some(value),
+                    _ => crate::fail("checks: unsupported option"),
+                }
+            }
         } else {
-            target = &args[index];
+            target = arg;
         }
         index += 1;
     }
-    match plan(Path::new(target), config) {
-        Ok(value) => println!("{}", serde_json::to_string_pretty(&value).unwrap()),
+    let result = match operation.as_str() {
+        "plan" => plan(Path::new(target), config),
+        "prepare" => crate::execution_review::prepare(Path::new(target), config, settings),
+        "run" => crate::check_execution::run(
+            Path::new(target),
+            config,
+            settings,
+            approval.unwrap_or_else(|| crate::fail("checks: --approve-review is required")),
+            allow_unsandboxed,
+        ),
+        _ => crate::fail("checks: unsupported operation"),
+    };
+    match result {
+        Ok(value) => {
+            println!("{}", serde_json::to_string_pretty(&value).unwrap());
+            if operation == "run" && value["checks_passed"] != true {
+                crate::finish(1);
+            }
+        }
         Err(error) => crate::fail(error),
     }
 }

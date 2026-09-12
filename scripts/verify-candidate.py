@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise a copied candidate offline, outside the checkout, using only Python stdlib."""
+"""Exercise a copied candidate outside the checkout, using only Python stdlib."""
 import argparse
 import hashlib
 import json
@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 from onboarding import ROOT, exercise
 from check_plan_probe import exercise_plan
+from check_execution_probe import exercise_execution
 
 parser = argparse.ArgumentParser()
 parser.add_argument('binary', type=Path)
@@ -23,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     shutil.copy2(source, binary)
     environment = os.environ.copy()
     environment.pop('AH_REGISTRY', None)
-    environment['PATH'] = str(root)  # No Cargo, sibling binaries, or other runtime dependencies.
+    environment['PATH'] = str(root)
     environment.update(HTTP_PROXY='http://127.0.0.1:1', HTTPS_PROXY='http://127.0.0.1:1')
 
     def run(*argv, exits=(0,), json_output=True):
@@ -42,7 +43,6 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     run('harness-audit', 'project')
     run('upgrade', 'project')
     run('validate', 'project')
-    # Restore a project backup and validate it, as the first-release recovery rehearsal.
     shutil.copytree(root / 'project', root / 'backup')
     run('upgrade', 'project', '--policy', 'licensing')
     shutil.rmtree(root / 'project')
@@ -59,7 +59,6 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     run('compare', 'audit.json', 'audit.json')
     run('gate', 'audit.json', '--min-overall', '90', exits=(1,))
     run('gate', 'audit.json', '--max-architecture-errors', '0')
-    # Exercise the bundled parser worker with no runtime tools on PATH.
     (root / 'source').mkdir()
     (root / 'source' / 'env.ts').write_text('export interface Box<T> { value: T }')
     (root / 'source' / 'main.ts').write_text(
@@ -88,14 +87,16 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     onboarding = exercise(binary, root, environment,
                           json.loads((ROOT / 'upstream.lock.json').read_text(encoding='utf-8')))
     planning = exercise_plan(run, root)
+    execution = exercise_execution(run, root)
 
 report = {'format_version': 1, 'kind': 'candidate-verification', 'passed': True,
           'binary_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
           'version': version, 'checks': results, 'recovery': 'backup/restore validated',
-          'onboarding': onboarding, 'check_planning': planning,
-          'limitations': ['Network access is not OS-sandboxed; proxy variables deny ordinary HTTP clients.',
+          'onboarding': onboarding, 'check_planning': planning, 'check_execution': execution,
+          'limitations': ['Network access is not OS-sandboxed unless the caller supplies isolation.',
                           'Design prompt approved-artifact loop is exercised by Rust integration tests.',
-                          'Check planning does not execute or authorize repository commands.']}
+                          'Local execution uses only disposable synthetic programs.',
+                          'Windows execution is unsupported; refusal is tested.']}
 text = json.dumps(report, indent=2) + '\n'
 if args.report:
     args.report.parent.mkdir(parents=True, exist_ok=True)
