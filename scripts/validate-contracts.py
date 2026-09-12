@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from jsonschema import Draft202012Validator
@@ -54,4 +55,5 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     from check_plan_probe import framed
     planner_inputs = [(root / p).read_bytes() for p in ['src/checks.rs','src/check_inputs.rs','upstream.lock.json']]
     assert preview['planner_digest'] == framed(b'ah-check-planner-v1\0', planner_inputs)
-print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison and check-plan schemas')
+subprocess.run([sys.executable, str(root / 'scripts/validate-execution.py'), str(binary)], check=True)
+print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, plan and execution schemas')

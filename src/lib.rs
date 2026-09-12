@@ -5,6 +5,7 @@ mod architecture_cli;
 mod architecture_contract;
 mod architecture_score;
 mod artifact;
+mod check_execution;
 mod check_inputs;
 mod checks;
 mod cli;
@@ -15,8 +16,11 @@ mod design_diff;
 mod design_genome;
 mod design_prompt;
 mod design_system;
+mod execution_review;
+mod process_check;
 mod project;
 mod scan;
+mod strict_json;
 mod syntax;
 mod syntax_worker;
 
@@ -72,7 +76,7 @@ pub fn entry(family: Option<&str>) {
             .get(1)
             .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
-        println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
+        println!("Experimental family: checks <plan|prepare|run> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n");
     }
     crate::scan::begin();
     match family.as_deref() {
@@ -129,6 +133,14 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 false,
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
+            (Some("checks"), "prepare") => (&["--config", "--settings"], &[], 0, 1, true),
+            (Some("checks"), "run") => (
+                &["--config", "--settings", "--approve-review"],
+                &["--allow-unsandboxed"],
+                0,
+                1,
+                true,
+            ),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {

@@ -2,7 +2,7 @@
 
 `ah checks plan [TARGET] [--config PATH]` reads an explicitly authored policy and emits a JSON review preview. It does not discover, approve or run scripts. Exit 0 means the preview was produced; invalid or incomplete declared inputs exit 2 with a diagnostic. Existing audit/gate meanings are unchanged.
 
-Create `.agentic/checks.json` in the target repository, using only input files/directories that exist and are appropriate to inspect:
+Create `.agentic/checks.json` in the target repository using only input files/directories that exist and are appropriate to inspect:
 
 ```json
 {
@@ -11,7 +11,7 @@ Create `.agentic/checks.json` in the target repository, using only input files/d
   "inputs": ["src", "package.json"],
   "checks": [{
     "id": "unit",
-    "argv": ["npm", "test"],
+    "argv": ["node", "--test"],
     "cwd": ".",
     "required": true,
     "timeout_ms": 60000,
@@ -22,27 +22,25 @@ Create `.agentic/checks.json` in the target repository, using only input files/d
 }
 ```
 
-Run from the repository or pass its directory explicitly:
-
 ```sh
 ah checks plan
 ah checks plan ./project --config .agentic/checks.json
 ```
 
-The JSON preview contains the interpreted policy, exact input manifest, source/policy/planner/review digests and source pins. Command strings are argument arrays, not shell lines. Executable identity, actual execution and host controls remain unverified. Required controls stay unverified even when their declarations exist. The review digest is not a token authorizing execution; `checks run`, `--apply`, `--approve` and `--write` are unsupported and rejected.
+The preview contains the interpreted policy, exact input manifest, source/policy/planner/review digests and source pins. Executable identity, actual execution and host controls remain unverified. The plan review digest is not an execution approval token. `--apply`, `--approve` and `--write` are unsupported. Duplicate object keys in policy JSON are rejected rather than silently taking the last value.
+
+## Separate execution review
+
+A separate [opt-in execution workflow](check-execution.md) now uses `checks prepare` to review absolute tool bindings and the explicit environment, then requires its own matching approval digest plus `--allow-unsandboxed` for `checks run`. That does not change `checks plan`: it stays non-executing. Linux/macOS support local execution; Windows explicitly refuses execution pending equivalent cleanup support. No workflow here establishes host sandboxing or owner authentication.
 
 ## Input and privacy boundaries
 
-Inputs are explicit, normalized relative ASCII paths, not globs. `.` is allowed for cwd but not as an input root. Missing/unreadable paths, symlinks, non-regular files and exceeded limits fail rather than producing a successful partial snapshot. No implicit ignore rules hide declared files. Binary data and empty directories contribute to identity; overlapping roots are deduplicated. Paths containing `.git`, `.env` or `.env.*` are rejected, but this is not comprehensive secret detection. Do not select sensitive data under other names. Arguments and paths appear in the preview, so keep credentials out of policies and review output before sharing.
+Inputs are explicit normalized relative ASCII paths, not globs. `.` is allowed for cwd but not as an input root. Missing/unreadable paths, symlinks/reparse points, non-regular files and exceeded limits fail rather than producing a successful partial snapshot. No implicit ignore rules hide declared files. Binary data and empty directories contribute to identity; overlapping roots are deduplicated. Paths containing `.git`, `.env` or `.env.*` are rejected, but this is not comprehensive secret detection. Do not select sensitive data under other names. Arguments and paths appear in previews, so keep credentials out of policies.
 
-The exact snapshot intentionally differs from advisory code scanning: ignored files explicitly selected here remain inputs. Bounds are 2 MB/file, 64 MB total bytes, 10000 entries and depth 64; the policy file is capped at 262144 bytes. Unsupported names/scope must be revised explicitly, not silently skipped.
+Bounds: 2 MB/file, 64 MB total, 10000 entries, depth 64 and 262144 policy bytes. Unsupported scope must be revised explicitly, not silently skipped. Two snapshots plus metadata checks detect ordinary concurrent changes in a quiescent non-hostile worktree, not every malicious race. Identity covers declared input bytes, not host state, transitive dependencies or omitted files.
 
-Two snapshots plus file metadata checks detect ordinary concurrent changes. This is a read-only tool for a non-hostile, quiescent worktree, not a sandbox against filesystem races. Source identity covers declared input bytes only, not external dependencies, host state or files omitted by the user. Executable resolution/environment review and before/after evidence are prerequisites for a future runner.
+## Compatibility
 
-## Compatibility and evidence
+Canonical contract: `upstream/agentic-harness/catalog/schema/checks.v1.schema.json`. Digest framing and semantics are in its accompanying `check-evidence-v1.md`. Exact-byte hashing means whitespace or line-ending changes invalidate a preview. Hashes do not authenticate a producer or prove tests ran.
 
-Canonical contract: `upstream/agentic-harness/catalog/schema/checks.v1.schema.json`; semantics and length-framed SHA-256 algorithm: the pinned canonical `.agentic/docs/project/check-evidence-v1.md`. Digests bind exact bytes, so whitespace or line-ending changes can invalidate a preview. File hashes do not authenticate a producer or establish that tests ran.
-
-`cargo test --locked --test checks` covers positive previews, no execution/writes, source/config changes, invalid fields, path escapes, scope limits and unsupported execution flags. Existing schema validation checks actual output, and the copied-candidate verifier exercises the planner without a real check executable on PATH. No workflow YAML changes are required.
-
-Tracking: #55 and canonical #85. Approved execution, timeouts/process-tree cleanup, trusted evidence ingestion and freshness-aware completion gates remain unimplemented. The governance schema is a data contract, not evidence that an agent or host honored a policy.
+Planning tests cover non-execution, deterministic output, byte changes, malformed inputs, bounds and platform path restrictions. Actual output and independent hash framing are checked against pinned schemas. Trusted imported-evidence evaluation, freshness after execution and whole-project completion remain separate unfinished work under CLI #55 and canonical #85.
