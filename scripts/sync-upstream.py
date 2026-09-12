@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+from onboarding import verify_sources
 
 root = Path(__file__).resolve().parents[1]
 lock = json.loads((root / 'upstream.lock.json').read_text())
@@ -32,3 +33,5 @@ for key, directory in [('canonical', 'agentic-harness'), ('agents', 'agentic-har
     actual = subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD'], text=True).strip()
     assert actual == commit
     print(f'{key}={actual}')
+
+verify_sources(root)

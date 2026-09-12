@@ -5,12 +5,16 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+import unittest
 from jsonschema import Draft202012Validator
 p = argparse.ArgumentParser()
 p.add_argument('binary', type=Path)
 a = p.parse_args()
 binary = a.binary.resolve(strict=True)
 root = Path(__file__).resolve().parents[1]
+suite = unittest.defaultTestLoader.discover(str(root / 'scripts'), pattern='test_onboarding.py')
+if not unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful():
+    raise SystemExit('Onboarding runner regressions failed')
 schemas = root / 'upstream/agentic-harness/catalog/schema'
 with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     target = Path(directory)
