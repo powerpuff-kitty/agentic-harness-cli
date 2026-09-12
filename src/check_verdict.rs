@@ -98,8 +98,7 @@ fn disposition(outcome: &Value) -> Disposition {
     if matches!(status, Some("skipped" | "unsupported")) {
         return if outcome.get("spawned").and_then(Value::as_bool) == Some(false)
             && outcome.get("direct_child_reaped").and_then(Value::as_bool) == Some(false)
-            && outcome.get("process_group_cleanup").and_then(Value::as_str)
-                == Some("not-attempted")
+            && outcome.get("process_group_cleanup").and_then(Value::as_str) == Some("not-attempted")
             && ["exit_code", "signal", "stdout", "stderr"]
                 .iter()
                 .all(|key| null_field(outcome, key))
@@ -109,8 +108,10 @@ fn disposition(outcome: &Value) -> Disposition {
             Disposition::SupervisorFault
         };
     }
-    if !matches!(status, Some("passed" | "failed" | "timeout" | "output-limit"))
-        || outcome.get("spawned").and_then(Value::as_bool) != Some(true)
+    if !matches!(
+        status,
+        Some("passed" | "failed" | "timeout" | "output-limit")
+    ) || outcome.get("spawned").and_then(Value::as_bool) != Some(true)
         || outcome.get("direct_child_reaped").and_then(Value::as_bool) != Some(true)
         || outcome.get("process_group_cleanup").and_then(Value::as_str)
             != Some("signal-sent-or-group-absent")
@@ -118,17 +119,14 @@ fn disposition(outcome: &Value) -> Disposition {
         return Disposition::SupervisorFault;
     }
     let complete = matches!(status, Some("passed" | "failed"));
-    if !valid_stream(&outcome["stdout"], complete)
-        || !valid_stream(&outcome["stderr"], complete)
-    {
+    if !valid_stream(&outcome["stdout"], complete) || !valid_stream(&outcome["stderr"], complete) {
         return Disposition::SupervisorFault;
     }
     let code = outcome.get("exit_code").and_then(Value::as_i64);
     let signal = outcome.get("signal").and_then(Value::as_i64);
-    let normal_exit = code.is_some_and(|value| (0..=255).contains(&value))
-        && null_field(outcome, "signal");
-    let signaled_exit = signal.is_some_and(|value| value > 0)
-        && null_field(outcome, "exit_code");
+    let normal_exit =
+        code.is_some_and(|value| (0..=255).contains(&value)) && null_field(outcome, "signal");
+    let signaled_exit = signal.is_some_and(|value| value > 0) && null_field(outcome, "exit_code");
     if !normal_exit && !signaled_exit {
         return Disposition::SupervisorFault;
     }
@@ -242,9 +240,11 @@ impl RunLedger {
         }
         let checks_passed = self.halt.is_none()
             && self.inputs_current
-            && self.records.iter().filter(|r| r.spec.required).all(|r| {
-                r.outcome.as_ref().map(disposition) == Some(Disposition::Passed)
-            });
+            && self
+                .records
+                .iter()
+                .filter(|r| r.spec.required)
+                .all(|r| r.outcome.as_ref().map(disposition) == Some(Disposition::Passed));
         let checks_executed = self.records.iter().any(|r| {
             r.outcome
                 .as_ref()

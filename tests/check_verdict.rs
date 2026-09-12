@@ -68,10 +68,19 @@ fn optional_unreaped_child_is_fatal() {
 
 #[test]
 fn ordinary_optional_failures_and_clean_limits_remain_visible() {
-    for status in ["failed", "timeout", "output-limit", "skipped", "unsupported"] {
+    for status in [
+        "failed",
+        "timeout",
+        "output-limit",
+        "skipped",
+        "unsupported",
+    ] {
         let verdict = optional_verdict(outcome(status));
         assert!(verdict.checks_passed, "{status}");
-        assert_eq!(verdict.records[1].outcome.as_ref().unwrap()["status"], status);
+        assert_eq!(
+            verdict.records[1].outcome.as_ref().unwrap()["status"],
+            status
+        );
         assert_eq!(verdict.halt_reason, None);
         assert!(!verdict.completion_verified);
     }
@@ -88,7 +97,13 @@ fn required_failure_cannot_be_downgraded_by_result_metadata() {
 
 #[test]
 fn clean_required_nonpass_always_fails_without_inventing_supervisor_failure() {
-    for status in ["failed", "timeout", "output-limit", "skipped", "unsupported"] {
+    for status in [
+        "failed",
+        "timeout",
+        "output-limit",
+        "skipped",
+        "unsupported",
+    ] {
         let mut ledger = RunLedger::new(vec![spec("required", true)]).unwrap();
         ledger.record("required", outcome(status)).unwrap();
         let verdict = ledger.finish();
@@ -116,7 +131,9 @@ fn fault_stops_later_work_and_finishes_with_explicit_skips() {
     ])
     .unwrap();
     ledger.record("required", outcome("passed")).unwrap();
-    ledger.record("optional", outcome("execution-error")).unwrap();
+    ledger
+        .record("optional", outcome("execution-error"))
+        .unwrap();
     assert!(!ledger.may_continue());
     let verdict = ledger.finish();
     assert_eq!(verdict.records.len(), 3);
@@ -148,7 +165,10 @@ fn later_revalidation_error_keeps_earlier_results() {
     assert!(!verdict.inputs_current);
     assert!(!verdict.checks_passed);
     assert_eq!(verdict.records[0].outcome, Some(outcome("passed")));
-    assert_eq!(verdict.records[1].skipped_because, Some(HaltReason::InputRevalidation));
+    assert_eq!(
+        verdict.records[1].skipped_because,
+        Some(HaltReason::InputRevalidation)
+    );
 }
 
 #[test]
@@ -209,7 +229,13 @@ fn budget_failure_after_recording_prevents_success() {
 
 #[test]
 fn missing_or_invalid_supervision_fields_fail_closed() {
-    for key in ["status", "spawned", "direct_child_reaped", "process_group_cleanup", "output_disclosure"] {
+    for key in [
+        "status",
+        "spawned",
+        "direct_child_reaped",
+        "process_group_cleanup",
+        "output_disclosure",
+    ] {
         let mut value = outcome("passed");
         value.as_object_mut().unwrap().remove(key);
         assert!(!optional_verdict(value).checks_passed, "missing {key}");
@@ -278,7 +304,15 @@ fn conflicting_exit_status_is_not_accepted() {
 
 #[test]
 fn no_optional_spawned_result_survives_missing_cleanup_or_reaping() {
-    for status in ["passed", "failed", "timeout", "output-limit", "execution-error", "skipped", "unsupported"] {
+    for status in [
+        "passed",
+        "failed",
+        "timeout",
+        "output-limit",
+        "execution-error",
+        "skipped",
+        "unsupported",
+    ] {
         for reaped in [false, true] {
             for cleanup in ["not-attempted", "failed", "signal-sent-or-group-absent"] {
                 if reaped && cleanup == "signal-sent-or-group-absent" {
