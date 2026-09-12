@@ -6,6 +6,7 @@ mod architecture_contract;
 mod architecture_score;
 mod artifact;
 mod check_inputs;
+pub mod check_verdict;
 mod checks;
 mod cli;
 mod date;
