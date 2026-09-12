@@ -1,3 +1,4 @@
+mod adapters;
 mod agentic;
 mod architecture;
 mod architecture_analysis;
@@ -54,10 +55,9 @@ pub fn entry(family: Option<&str>) {
         return;
     }
     let family = family.map(str::to_owned).or_else(|| {
-        if args
-            .get(1)
-            .is_some_and(|x| ["agentic", "architecture", "design", "checks"].contains(&x.as_str()))
-        {
+        if args.get(1).is_some_and(|x| {
+            ["agentic", "architecture", "design", "checks", "adapters"].contains(&x.as_str())
+        }) {
             Some(args.remove(1))
         } else {
             None
@@ -74,6 +74,7 @@ pub fn entry(family: Option<&str>) {
             .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
         println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
+        println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
     }
     crate::scan::begin();
     match family.as_deref() {
@@ -81,6 +82,7 @@ pub fn entry(family: Option<&str>) {
         Some("architecture") => architecture_cli::run(args),
         Some("design") => design_cli::run(args),
         Some("checks") => checks::run(args),
+        Some("adapters") => adapters::run(args),
         _ => cli::run(args),
     }
     crate::syntax_worker::shutdown();
@@ -128,6 +130,13 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 1,
                 1,
                 false,
+            ),
+            (Some("adapters"), "sync") => (
+                &["--host", "--profile", "--review"],
+                &["--apply"],
+                0,
+                1,
+                true,
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
