@@ -46,9 +46,21 @@ pub(crate) fn valid_path(value: &str, allow_dot: bool) -> bool {
         })
 }
 
+fn is_link(metadata: &fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        // Reject all reparse points, including junctions, not only symbolic links.
+        if metadata.file_attributes() & 0x400 != 0 {
+            return true;
+        }
+    }
+    metadata.file_type().is_symlink()
+}
+
 pub(crate) fn root(path: &Path) -> Result<PathBuf, String> {
     let metadata = fs::symlink_metadata(path).map_err(|_| "checks: unreadable target")?;
-    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+    if is_link(&metadata) || !metadata.is_dir() {
         return Err("checks: target must be a real directory".into());
     }
     path.canonicalize()
@@ -65,7 +77,7 @@ pub(crate) fn resolve(root: &Path, value: &str, allow_dot: bool) -> Result<PathB
             result.push(part);
             let metadata = fs::symlink_metadata(&result)
                 .map_err(|_| "checks: declared path does not exist or cannot be read")?;
-            if metadata.file_type().is_symlink() {
+            if is_link(&metadata) {
                 return Err("checks: symlinks are not supported in declared paths".into());
             }
         }
@@ -75,7 +87,7 @@ pub(crate) fn resolve(root: &Path, value: &str, allow_dot: bool) -> Result<PathB
 
 pub(crate) fn read(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
     let before = fs::symlink_metadata(path).map_err(|_| "checks: unreadable file")?;
-    if !before.is_file() || before.file_type().is_symlink() {
+    if !before.is_file() || is_link(&before) {
         return Err("checks: expected a regular non-symlink file".into());
     }
     let mut bytes = Vec::new();
@@ -88,7 +100,7 @@ pub(crate) fn read(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
         return Err("checks: declared file exceeds read limit".into());
     }
     let after = fs::symlink_metadata(path).map_err(|_| "checks: input changed during read")?;
-    if after.file_type().is_symlink()
+    if is_link(&after)
         || !after.is_file()
         || before.len() != after.len()
         || after.len() != bytes.len() as u64
@@ -126,7 +138,13 @@ pub(crate) fn snapshot(root: &Path, inputs: &[String]) -> Result<(String, Vec<Va
                     .file_name()
                     .into_string()
                     .map_err(|_| "checks: input filename is not supported UTF-8")?;
-                visit(root, &format!("{relative}/{name}"), depth + 1, total, entries)?;
+                visit(
+                    root,
+                    &format!("{relative}/{name}"),
+                    depth + 1,
+                    total,
+                    entries,
+                )?;
             }
         } else {
             let bytes = read(&path, MAX_FILE)?;

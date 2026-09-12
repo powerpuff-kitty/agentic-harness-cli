@@ -17,7 +17,11 @@ fn fixture() -> tempfile::TempDir {
     let temp = tempfile::tempdir().unwrap();
     fs::create_dir(temp.path().join(".agentic")).unwrap();
     fs::create_dir(temp.path().join("src")).unwrap();
-    fs::write(temp.path().join("src/main.ts"), "export const answer = 42;\n").unwrap();
+    fs::write(
+        temp.path().join("src/main.ts"),
+        "export const answer = 42;\n",
+    )
+    .unwrap();
     save(temp.path(), &policy());
     temp
 }
@@ -36,7 +40,11 @@ fn command(root: &Path, args: &[&str]) -> Output {
 
 fn plan(root: &Path) -> Value {
     let output = command(root, &["checks", "plan"]);
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     serde_json::from_slice(&output.stdout).unwrap()
 }
 
@@ -54,12 +62,19 @@ fn check_preview_is_deterministic_and_never_executes_or_approves() {
     let before = fs::read(temp.path().join(".agentic/checks.json")).unwrap();
     let one = plan(temp.path());
     assert_eq!(one, plan(temp.path()));
-    for key in ["checks_executed", "execution_permitted", "executable_identity_verified"] {
+    for key in [
+        "checks_executed",
+        "execution_permitted",
+        "executable_identity_verified",
+    ] {
         assert_eq!(one[key], false);
     }
     assert_eq!(one["control_requirements"][0]["status"], "unverified");
     assert!(!temp.path().join("MUST_NOT_EXIST").exists());
-    assert_eq!(before, fs::read(temp.path().join(".agentic/checks.json")).unwrap());
+    assert_eq!(
+        before,
+        fs::read(temp.path().join(".agentic/checks.json")).unwrap()
+    );
 }
 
 #[test]
@@ -78,7 +93,11 @@ fn source_edits_additions_and_removals_change_review_identity() {
 fn policy_byte_changes_invalidate_preview_even_with_same_semantics() {
     let temp = fixture();
     let baseline = plan(temp.path());
-    fs::write(temp.path().join(".agentic/checks.json"), serde_json::to_string_pretty(&policy()).unwrap()).unwrap();
+    fs::write(
+        temp.path().join(".agentic/checks.json"),
+        serde_json::to_string_pretty(&policy()).unwrap(),
+    )
+    .unwrap();
     let changed = plan(temp.path());
     assert_ne!(baseline["policy_digest"], changed["policy_digest"]);
     assert_ne!(baseline["review_digest"], changed["review_digest"]);
@@ -93,7 +112,13 @@ fn ignore_rules_do_not_hide_declared_inputs() {
     fs::write(temp.path().join("src/ignored.ts"), "observed").unwrap();
     let changed = plan(temp.path());
     assert_ne!(baseline["source_digest"], changed["source_digest"]);
-    assert!(changed["inputs"].as_array().unwrap().iter().any(|entry| entry["path"] == "src/ignored.ts"));
+    assert!(
+        changed["inputs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry["path"] == "src/ignored.ts")
+    );
 }
 
 #[test]
@@ -101,7 +126,10 @@ fn empty_directory_changes_are_fingerprinted() {
     let temp = fixture();
     let baseline = plan(temp.path());
     fs::create_dir(temp.path().join("src/empty")).unwrap();
-    assert_ne!(baseline["source_digest"], plan(temp.path())["source_digest"]);
+    assert_ne!(
+        baseline["source_digest"],
+        plan(temp.path())["source_digest"]
+    );
 }
 
 #[test]
@@ -126,7 +154,11 @@ fn missing_policy_has_no_template_fallback() {
 #[test]
 fn malformed_policy_is_rejected_without_echoing_content() {
     let temp = fixture();
-    fs::write(temp.path().join(".agentic/checks.json"), "{sensitive-example").unwrap();
+    fs::write(
+        temp.path().join(".agentic/checks.json"),
+        "{sensitive-example",
+    )
+    .unwrap();
     let output = command(temp.path(), &["checks", "plan"]);
     assert_eq!(output.status.code(), Some(2));
     assert!(!String::from_utf8_lossy(&output.stderr).contains("sensitive-example"));
@@ -185,7 +217,10 @@ fn duplicate_ids_and_control_requirements_are_rejected() {
     rejects(temp.path(), &["checks", "plan"]);
     value = policy();
     let duplicate = value["required_controls"][0].clone();
-    value["required_controls"].as_array_mut().unwrap().push(duplicate);
+    value["required_controls"]
+        .as_array_mut()
+        .unwrap()
+        .push(duplicate);
     save(temp.path(), &value);
     rejects(temp.path(), &["checks", "plan"]);
 }
@@ -194,13 +229,22 @@ fn duplicate_ids_and_control_requirements_are_rejected() {
 fn distinct_capabilities_for_same_rule_are_independent() {
     let temp = fixture();
     let mut value = policy();
-    value["required_controls"].as_array_mut().unwrap().push(json!({
-        "rule_id":"architecture.boundaries","capability":"declared"
-    }));
+    value["required_controls"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({
+            "rule_id":"architecture.boundaries","capability":"declared"
+        }));
     save(temp.path(), &value);
     let preview = plan(temp.path());
     assert_eq!(preview["control_requirements"].as_array().unwrap().len(), 2);
-    assert!(preview["control_requirements"].as_array().unwrap().iter().all(|c| c["status"] == "unverified"));
+    assert!(
+        preview["control_requirements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|c| c["status"] == "unverified")
+    );
 }
 
 #[test]
@@ -215,7 +259,17 @@ fn unknown_capabilities_are_rejected() {
 #[test]
 fn path_escapes_and_missing_inputs_are_rejected() {
     let temp = fixture();
-    for bad in [".", "..", "../outside", "/etc/passwd", "C:/outside", "src\\main.ts", "src/../src", "src//main.ts", "absent"] {
+    for bad in [
+        ".",
+        "..",
+        "../outside",
+        "/etc/passwd",
+        "C:/outside",
+        "src\\main.ts",
+        "src/../src",
+        "src//main.ts",
+        "absent",
+    ] {
         let mut value = policy();
         value["inputs"] = json!([bad]);
         save(temp.path(), &value);
@@ -251,7 +305,11 @@ fn oversized_files_and_policy_are_not_silently_skipped() {
     fs::write(temp.path().join("src/large.bin"), vec![0u8; 2_000_001]).unwrap();
     rejects(temp.path(), &["checks", "plan"]);
     fs::remove_file(temp.path().join("src/large.bin")).unwrap();
-    fs::write(temp.path().join(".agentic/checks.json"), vec![b' '; 262_145]).unwrap();
+    fs::write(
+        temp.path().join(".agentic/checks.json"),
+        vec![b' '; 262_145],
+    )
+    .unwrap();
     rejects(temp.path(), &["checks", "plan"]);
 }
 
@@ -261,7 +319,10 @@ fn binary_inputs_are_included_in_content_identity() {
     fs::write(temp.path().join("src/data.bin"), [0, 255, 0]).unwrap();
     let baseline = plan(temp.path());
     fs::write(temp.path().join("src/data.bin"), [0, 255, 1]).unwrap();
-    assert_ne!(baseline["source_digest"], plan(temp.path())["source_digest"]);
+    assert_ne!(
+        baseline["source_digest"],
+        plan(temp.path())["source_digest"]
+    );
 }
 
 #[test]
@@ -274,7 +335,14 @@ fn unsupported_execution_and_approval_flags_are_rejected() {
         vec!["checks", "plan", "--write"],
         vec!["checks", "plan", "--config"],
         vec!["checks", "plan", "--config", "../outside"],
-        vec!["checks", "plan", "--config", ".agentic/checks.json", "--config", ".agentic/checks.json"],
+        vec![
+            "checks",
+            "plan",
+            "--config",
+            ".agentic/checks.json",
+            "--config",
+            ".agentic/checks.json",
+        ],
     ] {
         rejects(temp.path(), &args);
     }
@@ -293,7 +361,11 @@ fn experimental_family_help_is_available() {
 fn linked_inputs_config_and_working_directories_are_rejected() {
     use std::os::unix::fs::symlink;
     let temp = fixture();
-    symlink(temp.path().join(".agentic/checks.json"), temp.path().join("src/link")).unwrap();
+    symlink(
+        temp.path().join(".agentic/checks.json"),
+        temp.path().join("src/link"),
+    )
+    .unwrap();
     rejects(temp.path(), &["checks", "plan"]);
     fs::remove_file(temp.path().join("src/link")).unwrap();
     symlink(temp.path().join("src"), temp.path().join("linked")).unwrap();
@@ -302,6 +374,32 @@ fn linked_inputs_config_and_working_directories_are_rejected() {
     save(temp.path(), &value);
     rejects(temp.path(), &["checks", "plan"]);
     save(temp.path(), &policy());
-    symlink(temp.path().join(".agentic/checks.json"), temp.path().join("config.json")).unwrap();
+    symlink(
+        temp.path().join(".agentic/checks.json"),
+        temp.path().join("config.json"),
+    )
+    .unwrap();
     rejects(temp.path(), &["checks", "plan", "--config", "config.json"]);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_junction_inputs_and_cwd_are_rejected() {
+    let temp = fixture();
+    let created = Command::new("cmd")
+        .args(["/C", "mklink", "/J"])
+        .arg(temp.path().join("junction"))
+        .arg(temp.path().join("src"))
+        .output()
+        .unwrap();
+    assert!(created.status.success());
+    let mut value = policy();
+    value["inputs"] = json!(["junction"]);
+    save(temp.path(), &value);
+    rejects(temp.path(), &["checks", "plan"]);
+    value = policy();
+    value["checks"][0]["cwd"] = json!("junction");
+    save(temp.path(), &value);
+    rejects(temp.path(), &["checks", "plan"]);
+    fs::remove_dir(temp.path().join("junction")).unwrap();
 }

@@ -68,7 +68,9 @@ pub fn entry(family: Option<&str>) {
         args.drain(i..=i + 1);
     }
     if family.is_none()
-        && args.get(1).is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
+        && args
+            .get(1)
+            .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
         println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
     }

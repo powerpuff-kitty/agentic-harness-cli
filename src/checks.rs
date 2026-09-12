@@ -43,7 +43,9 @@ fn array(value: &Value, min: usize, max: usize) -> Result<&Vec<Value>, String> {
 }
 
 fn number(value: &Value, max: u64) -> Result<u64, String> {
-    let value = value.as_u64().ok_or("checks: expected an unsigned integer")?;
+    let value = value
+        .as_u64()
+        .ok_or("checks: expected an unsigned integer")?;
     if value == 0 || value > max {
         return Err("checks: numeric limit outside supported bounds".into());
     }
@@ -79,7 +81,14 @@ pub(crate) fn validate_policy(policy: &Value) -> Result<Vec<String>, String> {
     for check in array(&policy["checks"], 1, 64)? {
         shape(
             check,
-            &["id", "argv", "cwd", "required", "timeout_ms", "max_output_bytes"],
+            &[
+                "id",
+                "argv",
+                "cwd",
+                "required",
+                "timeout_ms",
+                "max_output_bytes",
+            ],
         )?;
         if !ids.insert(id(&check["id"])?.to_string()) {
             return Err("checks: duplicate check identifier".into());
