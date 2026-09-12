@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 from onboarding import exercise
+from adapter_probe import exercise_adapters
 p = argparse.ArgumentParser()
 p.add_argument('binary', type=Path)
 a = p.parse_args()
@@ -18,12 +19,13 @@ with tempfile.TemporaryDirectory(prefix='ah-install-') as directory:
     subprocess.run(['sh', str(root / 'install.sh'), '--prefix', str(prefix), '--command', 'custom-ah', '--binary', str(binary)], check=True)
     installed = prefix / 'bin/custom-ah'
     for executable in [installed, root / 'ah']:
-        for family in [[], ['architecture'], ['design'], ['agentic']]:
+        for family in [[], ['architecture'], ['design'], ['agentic'], ['adapters']]:
             subprocess.run([str(executable), *family, '--help'], cwd=prefix, stdout=subprocess.DEVNULL, check=True)
         # The source launcher needs the shell/dirname on PATH. The downloaded
         # candidate verifier separately exercises the native binary without them.
         report = exercise(executable, prefix, os.environ.copy(), expected_sources)
-        print(f"{executable.name}: {len(report['checks'])} onboarding probes passed")
+        adapters = exercise_adapters(executable, prefix, os.environ.copy(), expected_sources['agents'])
+        print(f"{executable.name}: {len(report['checks'])} onboarding and {len(adapters['checks'])} adapter probes passed")
     assert json.loads(subprocess.check_output([str(installed), '--version'])) == json.loads(subprocess.check_output([str(binary), '--version']))
     before = installed.read_bytes()
     invalid = prefix / 'invalid-binary'

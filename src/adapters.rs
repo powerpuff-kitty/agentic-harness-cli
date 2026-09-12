@@ -55,8 +55,8 @@ fn select(host: &str, profile: &str) -> Result<Vec<&'static Asset>, String> {
         return Err("adapters: unsupported host or profile".into());
     }
     // These are reviewed embedded inputs, never paths accepted from target metadata.
-    let inventory: Value = serde_json::from_slice(INVENTORY)
-        .map_err(|_| "adapters: invalid bundled inventory")?;
+    let inventory: Value =
+        serde_json::from_slice(INVENTORY).map_err(|_| "adapters: invalid bundled inventory")?;
     if inventory["format_version"].as_u64() != Some(1)
         || inventory["kind"] != "native-adapter-assets"
         || inventory["modifies_host_permissions"] != false
@@ -64,26 +64,43 @@ fn select(host: &str, profile: &str) -> Result<Vec<&'static Asset>, String> {
     {
         return Err("adapters: unsupported bundled inventory".into());
     }
-    let adapters = inventory["adapters"].as_array()
+    let adapters = inventory["adapters"]
+        .as_array()
         .ok_or("adapters: missing bundled adapters")?;
     let matching: Vec<_> = adapters.iter().filter(|a| a["id"] == host).collect();
     if matching.len() != 1 || matching[0]["router"] != "AGENTS.md" {
         return Err("adapters: invalid bundled host".into());
     }
     let expected: Vec<_> = ASSETS.iter().filter(|a| a.host == host).collect();
-    let files = matching[0]["files"].as_array().ok_or("adapters: invalid bundled files")?;
-    if files.len() != expected.len() || expected.iter().any(|asset| {
-        files.iter().filter(|f| f["source"] == asset.source
-            && f["target"] == asset.target && f["profile"] == asset.profile).count() != 1
-    }) {
+    let files = matching[0]["files"]
+        .as_array()
+        .ok_or("adapters: invalid bundled files")?;
+    if files.len() != expected.len()
+        || expected.iter().any(|asset| {
+            files
+                .iter()
+                .filter(|f| {
+                    f["source"] == asset.source
+                        && f["target"] == asset.target
+                        && f["profile"] == asset.profile
+                })
+                .count()
+                != 1
+        })
+    {
         return Err("adapters: bundled destinations differ from reviewed allowlist".into());
     }
-    let mut chosen: Vec<_> = expected.into_iter()
-        .filter(|a| a.profile == "base" || a.profile == profile).collect();
+    let mut chosen: Vec<_> = expected
+        .into_iter()
+        .filter(|a| a.profile == "base" || a.profile == profile)
+        .collect();
     if !chosen.is_empty() {
         chosen.push(&NOTICE);
     }
-    if chosen.iter().any(|a| a.bytes.is_empty() || a.bytes.len() > LIMIT) {
+    if chosen
+        .iter()
+        .any(|a| a.bytes.is_empty() || a.bytes.len() > LIMIT)
+    {
         return Err("adapters: invalid bundled payload size".into());
     }
     Ok(chosen)
@@ -171,7 +188,10 @@ pub(crate) fn plan(target: &Path, host: &str, profile: &str) -> Result<Value, St
     });
     // Stable internal JSON serialization, not a portable JSON canonicalization claim.
     let encoded = serde_json::to_vec(&report).map_err(|_| "adapters: cannot encode preview")?;
-    report["plan_digest"] = json!(check_inputs::framed_hash(b"ah-adapter-sync-v1\0", &[&encoded]));
+    report["plan_digest"] = json!(check_inputs::framed_hash(
+        b"ah-adapter-sync-v1\0",
+        &[&encoded]
+    ));
     Ok(report)
 }
 
@@ -202,17 +222,29 @@ fn persist(root: &Path, asset: &Asset) -> Result<(), String> {
         return Err("adapters: destination appeared during application".into());
     }
     let destination = root.join(asset.target);
-    let parent = destination.parent().ok_or("adapters: missing destination parent")?;
+    let parent = destination
+        .parent()
+        .ok_or("adapters: missing destination parent")?;
     let mut staged = tempfile::NamedTempFile::new_in(parent)
         .map_err(|_| "adapters: cannot stage context file")?;
-    staged.write_all(asset.bytes).map_err(|_| "adapters: cannot write staged context")?;
-    staged.as_file().sync_all().map_err(|_| "adapters: cannot sync staged context")?;
-    staged.persist_noclobber(destination).map_err(|_| "adapters: context creation failed; no overwrite attempted")?;
+    staged
+        .write_all(asset.bytes)
+        .map_err(|_| "adapters: cannot write staged context")?;
+    staged
+        .as_file()
+        .sync_all()
+        .map_err(|_| "adapters: cannot sync staged context")?;
+    staged
+        .persist_noclobber(destination)
+        .map_err(|_| "adapters: context creation failed; no overwrite attempted")?;
     Ok(())
 }
 
 fn apply_with(
-    target: &Path, host: &str, profile: &str, reviewed: &str,
+    target: &Path,
+    host: &str,
+    profile: &str,
+    reviewed: &str,
     mut write: impl FnMut(&Path, &Asset) -> Result<(), String>,
 ) -> Result<Value, String> {
     let mut report = plan(target, host, profile)?;
@@ -250,12 +282,17 @@ fn apply_with(
     }
     if failure.is_none() {
         match plan(&root, host, profile) {
-            Ok(after) if after["router_sha256"] == report["router_sha256"]
-                && after["entries"].as_array().unwrap().iter().all(|entry| entry["action"] == "unchanged") => {}
+            Ok(after)
+                if after["router_sha256"] == report["router_sha256"]
+                    && after["entries"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .all(|entry| entry["action"] == "unchanged") => {}
             _ => failure = Some("adapters: post-install verification failed".into()),
         }
     }
-    report["status"] = json!(if failure.is_none() {"applied"} else {"partial"});
+    report["status"] = json!(if failure.is_none() { "applied" } else { "partial" });
     report["created_files"] = json!(created_files);
     report["created_directories"] = json!(created_directories);
     report["error"] = json!(failure);
@@ -277,7 +314,9 @@ pub(crate) fn run(args: Vec<String>) {
     while index < args.len() {
         let arg = args[index].as_str();
         if arg.starts_with("--") {
-            if !seen.insert(arg) { crate::fail("adapters: repeated option"); }
+            if !seen.insert(arg) {
+                crate::fail("adapters: repeated option");
+            }
             if arg == "--apply" {
                 apply = true;
             } else {
@@ -289,19 +328,27 @@ pub(crate) fn run(args: Vec<String>) {
                     _ => crate::fail("adapters: unsupported option"),
                 }
             }
-        } else { target = arg; }
+        } else {
+            target = arg;
+        }
         index += 1;
     }
     let host = host.unwrap_or_else(|| crate::fail("adapters: --host is required"));
-    if apply != review.is_some() { crate::fail("adapters: --apply and --review must be supplied together"); }
+    if apply != review.is_some() {
+        crate::fail("adapters: --apply and --review must be supplied together");
+    }
     let result = if apply {
         apply_with(Path::new(target), host, profile, review.unwrap(), persist)
-    } else { plan(Path::new(target), host, profile) };
+    } else {
+        plan(Path::new(target), host, profile)
+    };
     match result {
         Err(error) => crate::fail(error),
         Ok(value) => {
             println!("{}", serde_json::to_string_pretty(&value).unwrap());
-            if ["conflict", "partial"].contains(&value["status"].as_str().unwrap()) { crate::finish(1); }
+            if ["conflict", "partial"].contains(&value["status"].as_str().unwrap()) {
+                crate::finish(1);
+            }
         }
     }
 }
@@ -316,17 +363,41 @@ mod tests {
         fs::write(target.path().join("AGENTS.md"), "# Synthetic router").unwrap();
         let preview = plan(target.path(), "claude", "typed-ui").unwrap();
         let mut calls = 0;
-        let report = apply_with(target.path(), "claude", "typed-ui", preview["plan_digest"].as_str().unwrap(), |root, asset| {
-            calls += 1;
-            if calls == 2 { return Err("synthetic staging failure".into()); }
-            persist(root, asset)
-        }).unwrap();
+        let report = apply_with(
+            target.path(),
+            "claude",
+            "typed-ui",
+            preview["plan_digest"].as_str().unwrap(),
+            |root, asset| {
+                calls += 1;
+                if calls == 2 {
+                    return Err("synthetic staging failure".into());
+                }
+                persist(root, asset)
+            },
+        )
+        .unwrap();
         assert_eq!(report["status"], "partial");
         assert_eq!(report["created_files"], json!(["CLAUDE.md"]));
-        assert_eq!(fs::read(target.path().join("CLAUDE.md")).unwrap(), b"@AGENTS.md\n");
-        assert!(!target.path().join(".claude/rules/agentic-typed-ui.md").exists());
+        assert_eq!(
+            fs::read(target.path().join("CLAUDE.md")).unwrap(),
+            b"@AGENTS.md\n"
+        );
+        assert!(
+            !target
+                .path()
+                .join(".claude/rules/agentic-typed-ui.md")
+                .exists()
+        );
         let fresh = plan(target.path(), "claude", "typed-ui").unwrap();
-        let result = apply_with(target.path(), "claude", "typed-ui", fresh["plan_digest"].as_str().unwrap(), persist).unwrap();
+        let result = apply_with(
+            target.path(),
+            "claude",
+            "typed-ui",
+            fresh["plan_digest"].as_str().unwrap(),
+            persist,
+        )
+        .unwrap();
         assert_eq!(result["status"], "applied");
     }
 }
