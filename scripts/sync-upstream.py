@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 from onboarding import verify_sources
+from source_bytes import clone_source, verify_adapter_bytes
 
 root = Path(__file__).resolve().parents[1]
 lock = json.loads((root / 'upstream.lock.json').read_text())
@@ -27,7 +29,7 @@ for key, directory in [('canonical', 'agentic-harness'), ('agents', 'agentic-har
             raise SystemExit(f'Local source edits in {path}; preserve or commit them before sync')
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(['git', 'clone', '--quiet', '--no-checkout', url, str(path)], check=True)
+        clone_source(url, path)
     subprocess.run(['git', '-C', str(path), 'fetch', '--quiet', 'origin', commit], check=True)
     subprocess.run(['git', '-C', str(path), 'checkout', '--quiet', '--detach', commit], check=True)
     actual = subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD'], text=True).strip()
@@ -35,3 +37,7 @@ for key, directory in [('canonical', 'agentic-harness'), ('agents', 'agentic-har
     print(f'{key}={actual}')
 
 verify_sources(root)
+verify_adapter_bytes(root / 'upstream/agentic-harness-agents')
+subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', str(root / 'scripts'),
+                '-p', 'test_source_bytes.py'], check=True)
+print('Adapter payload bytes match pinned Git objects; clone regression tests passed')
