@@ -1,0 +1,10 @@
+{
+  "format_version": 1,
+  "kind": "public-quick-start",
+  "commands": [
+    ["ah", "init", "./my-app", "--boilerplate", "web-app"],
+    ["ah", "validate", "./my-app"],
+    ["ah", "audit", "./my-app"]
+  ],
+  "verification_boundary": "Documentation fixture only. Installed-command behavior and exit semantics require execution against the exact CLI and pinned catalog versions."
+}

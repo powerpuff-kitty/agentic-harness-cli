@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from onboarding import ROOT, exercise
 
 parser = argparse.ArgumentParser()
 parser.add_argument('binary', type=Path)
@@ -83,10 +84,13 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     for argv in [('validate', 'absent'), ('audit', 'project', '--invalid'),
                  ('agentic', 'improve', 'project', '--apply')]:
         run(*argv, exits=(2,), json_output=False)
+    onboarding = exercise(binary, root, environment,
+                          json.loads((ROOT / 'upstream.lock.json').read_text(encoding='utf-8')))
 
 report = {'format_version': 1, 'kind': 'candidate-verification', 'passed': True,
           'binary_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
           'version': version, 'checks': results, 'recovery': 'backup/restore validated',
+          'onboarding': onboarding,
           'limitations': ['Network access is not OS-sandboxed; proxy variables deny ordinary HTTP clients.',
                           'Design prompt approved-artifact loop is exercised by Rust integration tests.']}
 text = json.dumps(report, indent=2) + '\n'
