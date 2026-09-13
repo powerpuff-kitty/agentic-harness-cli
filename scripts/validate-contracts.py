@@ -10,14 +10,16 @@ import tempfile
 import unittest
 from jsonschema import Draft202012Validator
 from adapter_probe import exercise_adapters
+from skill_delivery_probe import exercise_skill_delivery
 p = argparse.ArgumentParser()
 p.add_argument('binary', type=Path)
 a = p.parse_args()
 binary = a.binary.resolve(strict=True)
 root = Path(__file__).resolve().parents[1]
-suite = unittest.defaultTestLoader.discover(str(root / 'scripts'), pattern='test_onboarding.py')
-if not unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful():
-    raise SystemExit('Onboarding runner regressions failed')
+for pattern in ['test_onboarding.py', 'test_skill_delivery.py']:
+    suite = unittest.defaultTestLoader.discover(str(root / 'scripts'), pattern=pattern)
+    if not unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful():
+        raise SystemExit('Verification-probe regressions failed')
 schemas = root / 'upstream/agentic-harness/catalog/schema'
 with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     target = Path(directory)
@@ -60,4 +62,6 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     source = json.loads((root / 'upstream.lock.json').read_text())['agents']
     adapter_result = exercise_adapters(binary, target, os.environ.copy(), source, adapter_schema.validate)
     print(f"Actual adapter reports validated across {len(adapter_result['checks'])} executable probes")
+    skill_result = exercise_skill_delivery(binary, target, os.environ.copy(), source)
+    print(f"Exact skill delivery verified across {len(skill_result['checks'])} executable probes")
 print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, check-plan and adapter schemas')

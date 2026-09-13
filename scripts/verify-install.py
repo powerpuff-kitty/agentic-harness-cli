@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from onboarding import exercise
 from adapter_probe import exercise_adapters
+from skill_delivery_probe import exercise_skill_delivery
 p = argparse.ArgumentParser()
 p.add_argument('binary', type=Path)
 a = p.parse_args()
@@ -25,7 +26,8 @@ with tempfile.TemporaryDirectory(prefix='ah-install-') as directory:
         # candidate verifier separately exercises the native binary without them.
         report = exercise(executable, prefix, os.environ.copy(), expected_sources)
         adapters = exercise_adapters(executable, prefix, os.environ.copy(), expected_sources['agents'])
-        print(f"{executable.name}: {len(report['checks'])} onboarding and {len(adapters['checks'])} adapter probes passed")
+        skills = exercise_skill_delivery(executable, prefix, os.environ.copy(), expected_sources['agents'])
+        print(f"{executable.name}: {len(report['checks'])} onboarding, {len(adapters['checks'])} adapter and {len(skills['checks'])} skill-delivery probes passed")
     assert json.loads(subprocess.check_output([str(installed), '--version'])) == json.loads(subprocess.check_output([str(binary), '--version']))
     before = installed.read_bytes()
     invalid = prefix / 'invalid-binary'
