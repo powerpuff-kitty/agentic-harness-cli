@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/flagship-skill-delivery.json'
 NAMES = ('codebase-audit', 'design-system-compliance', 'security-review')
 PATH = re.compile(r'(?:SKILL\.md|bundle\.json|references/[a-z-]+\.md)\Z')
+# Optional index supplied by the pinned base context template, not a skill directory.
+INDEX_SHA256 = 'd3d9ab253a85b4af7133f6f7e16a3316e104df066751948497a082ce270d3c94'
 
 
 def require(ok, message):
@@ -58,7 +60,15 @@ def snapshot(root):
 
 def verify_payload(project, names, fixture):
     skills = project / '.agents/skills'
-    require({p.name for p in skills.iterdir()} == set(names), 'skill-delivery: unexpected installed skills')
+    installed = {p.name for p in skills.iterdir()}
+    if 'README.md' in installed:
+        index = skills / 'README.md'
+        require(not index.is_symlink() and index.is_file()
+                and index.stat().st_size <= 65536
+                and hashlib.sha256(index.read_bytes()).hexdigest() == INDEX_SHA256,
+                'skill-delivery: unexpected template index')
+        installed.remove('README.md')
+    require(installed == set(names), 'skill-delivery: unexpected installed skills')
     for name in names:
         require(snapshot(skills / name) == fixture['skills'][name],
                 'skill-delivery: missing, changed or extra documentation')

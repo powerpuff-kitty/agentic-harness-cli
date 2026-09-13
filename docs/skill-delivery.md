@@ -13,11 +13,11 @@ Existing project upgrades preserve existing bytes and report conflicts; they do 
 
 ## Executable verification
 
-`tests/fixtures/flagship-skill-delivery.json` records the exact reviewed agents commit and SHA-256 values for all 13 files in these three folders. The same probe is used by actual-output checks, source/custom-prefix installation and copied/downloaded candidates. It requires no runtime source checkout, external tool or model.
+`tests/fixtures/flagship-skill-delivery.json` records the exact reviewed agents commit and SHA-256 values for all 13 files in these three folders. The same probe is used by actual-output checks, source/custom-prefix installation and copied/downloaded candidates. It requires no runtime source checkout, external tool or model. The base template's optional skills-index README is identified by its exact reviewed hash, not counted as an installed skill; other unexpected files remain rejected.
 
 The 16 calls verify source identity; fresh single-skill and combined composition; actual project validation; two explicit upgrades preserving a customized guide and owner notes; restoration of a missing reference; and non-mutating rejection of an unknown skill. The existing project notice must retain the exact MIT text. Hash checks compare delivered source bytes, not semantic quality.
 
-Nine probe regression tests use synthetic files and a mocked wrong-version process response. They are separate from real candidate execution. Candidate reports include the source/fixture identity, call outcomes and explicit `model_execution: not-run` and false host-delivery status. A failed probe prevents a successful candidate report. No public canonical execution schema is changed by this internal verification record.
+Eleven probe regression tests use synthetic files and a mocked wrong-version process response. They are separate from real candidate execution. Candidate reports include the source/fixture identity, call outcomes and explicit `model_execution: not-run` and false host-delivery status. A failed probe prevents a successful candidate report. No public canonical execution schema is changed by this internal verification record.
 
 The agents repository separately validates standalone ZIP dependency closure and real collection-package contents. Its `bundle.json`/`bundle-lock.json` format is not part of the Agent Skills standard. Standalone ZIP packaging is not a new CLI command; use the agents repository's documented packager for that path.
 
