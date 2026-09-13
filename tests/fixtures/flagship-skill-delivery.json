@@ -1,0 +1,30 @@
+{
+  "format_version": 1,
+  "kind": "flagship-skill-delivery",
+  "source": {
+    "repository": "powerpuff-kitty/agentic-harness-agents",
+    "commit": "65c1e2706db353ba9e96368a8be6a6634385f917"
+  },
+  "skills": {
+    "codebase-audit": {
+      "SKILL.md": "4e6e580913749b40f8f0fc858c50de5e3945d1bab9717e88cd73392140f0682c",
+      "bundle.json": "685b5bed93708dda657a9efbc84e8abf7e1206f493c5b2a59e3007ce7c2ce07a",
+      "references/report-template.md": "72eebf31219e73ef7fc7f00fd21b66069bc0a33a8de65b5cdea1e706f7181e82",
+      "references/review-guide.md": "cedbc8b26c3f2d96987403756f43028fe3770a1d1939457f4583d5e3ec6f5a92"
+    },
+    "design-system-compliance": {
+      "SKILL.md": "f0f9db7727ba2908d25aef53c12ae25022c761b4a50cc76f63edc705fa07f554",
+      "bundle.json": "f50630ebc596ad2c96262236ad2deb928acbdff0f79f0ec0b1b2c235a84641a5",
+      "references/design-intelligence.md": "627649ca0c1c617eacd3e2387a342929bfb53f08208deb2cc1d0fe7f4f065e61",
+      "references/report-template.md": "6df8c55af05bda9673200a6bcd1001914e54e64329a7f5262935035ddf946e02",
+      "references/review-guide.md": "2fcdb588aa106496e5b85e0b3814a91453ce3bf43e71087baa1b54944d10f677"
+    },
+    "security-review": {
+      "SKILL.md": "572742a92760a7feb1fdd6c8f4fbda8a8806fba9c6ddfaa6bf55892c9405f062",
+      "bundle.json": "b8409ca62735e0265e417328bb9b0d2e5f507ff1081bb3bed676961ff7b1ca10",
+      "references/report-template.md": "05370ce48b7a279f1ac066bef10e0884209ba2f7ff1c75f8dfed5ad511d1b3d8",
+      "references/review-guide.md": "7939d7648bc027f0ca51d615504b74275ae485ea9fb54b471dece493c4f03c2b"
+    }
+  },
+  "license": "MIT License\n\nCopyright (c) 2026 Agentic Harness contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
+}

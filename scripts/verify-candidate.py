@@ -11,6 +11,7 @@ import tempfile
 from onboarding import ROOT, exercise
 from check_plan_probe import exercise_plan
 from adapter_probe import exercise_adapters
+from skill_delivery_probe import exercise_skill_delivery
 
 parser = argparse.ArgumentParser()
 parser.add_argument('binary', type=Path)
@@ -90,15 +91,18 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     onboarding = exercise(binary, root, environment, expected_sources)
     planning = exercise_plan(run, root)
     adapters = exercise_adapters(binary, root, environment, expected_sources['agents'])
+    skills = exercise_skill_delivery(binary, root, environment, expected_sources['agents'])
 
 report = {'format_version': 1, 'kind': 'candidate-verification', 'passed': True,
           'binary_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
           'version': version, 'checks': results, 'recovery': 'backup/restore validated',
           'onboarding': onboarding, 'check_planning': planning, 'adapters': adapters,
+          'skill_delivery': skills,
           'limitations': ['Network access is not OS-sandboxed; proxy variables deny ordinary HTTP clients.',
                           'Design prompt approved-artifact loop is exercised by Rust integration tests.',
                           'Check planning does not execute or authorize repository commands.',
-                          'Adapter copying does not verify native host loading or enforcement.']}
+                          'Adapter copying does not verify native host loading or enforcement.',
+                          'Skill reference delivery does not establish model task outcomes.']}
 text = json.dumps(report, indent=2) + '\n'
 if args.report:
     args.report.parent.mkdir(parents=True, exist_ok=True)
