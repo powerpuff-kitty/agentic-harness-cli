@@ -19,6 +19,7 @@ mod design_prompt;
 mod design_system;
 mod project;
 mod scan;
+pub mod source_graph;
 mod syntax;
 mod syntax_worker;
 
@@ -139,6 +140,7 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 true,
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
+            (Some("architecture"), "languages") => (&[], &[], 0, 0, false),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {
