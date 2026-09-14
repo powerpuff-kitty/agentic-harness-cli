@@ -7,7 +7,11 @@ fn architecture_languages_reports_honest_capabilities() {
         .args(["architecture", "languages"])
         .output()
         .unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let value: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(value["format_version"], 1);
     assert_eq!(value["kind"], "language-support-matrix");
@@ -18,10 +22,14 @@ fn architecture_languages_reports_honest_capabilities() {
         .find(|entry| entry["language"] == "javascript-typescript")
         .unwrap();
     assert_eq!(js["implementation"], "oxc");
-    assert!(js["capabilities"].as_array().unwrap().iter().any(
-        |capability| capability["capability"] == "parse"
-            && capability["support"] == "supported"
-    ));
+    assert!(
+        js["capabilities"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|capability| capability["capability"] == "parse"
+                && capability["support"] == "supported")
+    );
 
     for language in ["python", "rust", "go"] {
         let frontend = frontends
