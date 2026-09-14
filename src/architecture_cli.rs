@@ -1,9 +1,9 @@
-use crate::{architecture, architecture_analysis, architecture_contract};
+use crate::{architecture, architecture_analysis, architecture_contract, source_graph};
 use std::path::{Path, PathBuf};
 
 fn usage(prog: &str) {
     println!(
-        "Agentic Harness Architecture\n\nusage:\n  {prog} detect [TARGET]\n  {prog} analyze [TARGET] [--profile PROFILE] [--as-of YYYY-MM-DD]\n  {prog} enforce [TARGET] [--profile PROFILE] [--as-of YYYY-MM-DD] [--write]\n\ncommands:\n  detect [TARGET]   Detect framework, ecosystem tooling, language and current architecture shape\n  analyze [TARGET]  Build the local import graph and report deterministic architecture violations\n  enforce [TARGET]  Preview or write the normalized project architecture contract"
+        "Agentic Harness Architecture\n\nusage:\n  {prog} languages\n  {prog} detect [TARGET]\n  {prog} analyze [TARGET] [--profile PROFILE] [--as-of YYYY-MM-DD]\n  {prog} enforce [TARGET] [--profile PROFILE] [--as-of YYYY-MM-DD] [--write]\n\ncommands:\n  languages         Report source-language analyzer capabilities and coverage level\n  detect [TARGET]   Detect framework, ecosystem tooling, language and current architecture shape\n  analyze [TARGET]  Build the local import graph and report deterministic architecture violations\n  enforce [TARGET]  Preview or write the normalized project architecture contract"
     );
 }
 
@@ -64,6 +64,13 @@ pub fn run(argv: Vec<String>) {
     }
 
     let code = match argv[1].as_str() {
+        "languages" => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&source_graph::support_matrix()).unwrap()
+            );
+            0
+        }
         "detect" => {
             let root = PathBuf::from(argv.get(2).map(String::as_str).unwrap_or("."));
             if !root.exists() {
