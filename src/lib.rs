@@ -19,6 +19,7 @@ mod design_prompt;
 mod design_system;
 mod project;
 mod scan;
+pub mod source_graph;
 mod syntax;
 mod syntax_worker;
 
