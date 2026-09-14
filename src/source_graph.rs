@@ -60,13 +60,47 @@ const JS_TS_EXTENSIONS: &[&str] = &[
 ];
 
 const JS_TS_CAPABILITIES: &[Capability] = &[
-    Capability { name: "parse", support: Support::Supported, note: Some("Oxc parses JS/TS/JSX/TSX; Vue/Svelte script blocks are extracted before parsing") },
-    Capability { name: "imports", support: Support::Supported, note: None },
-    Capability { name: "packages", support: Support::Partial, note: Some("package.json workspace/package exports and selected aliases are resolved") },
-    Capability { name: "type-edges", support: Support::Supported, note: Some("type-only imports remain distinct from runtime edges") },
-    Capability { name: "dynamic-edges", support: Support::Partial, note: Some("static dynamic-import targets are extracted; computed targets are not resolved") },
-    Capability { name: "workspace-resolution", support: Support::Partial, note: Some("basic workspace package exports are resolved; full toolchain resolution is not claimed") },
-    Capability { name: "framework-extraction", support: Support::Supported, note: Some("Vue and Svelte script blocks are supported") },
+    Capability {
+        name: "parse",
+        support: Support::Supported,
+        note: Some(
+            "Oxc parses JS/TS/JSX/TSX; Vue/Svelte script blocks are extracted before parsing",
+        ),
+    },
+    Capability {
+        name: "imports",
+        support: Support::Supported,
+        note: None,
+    },
+    Capability {
+        name: "packages",
+        support: Support::Partial,
+        note: Some("package.json workspace/package exports and selected aliases are resolved"),
+    },
+    Capability {
+        name: "type-edges",
+        support: Support::Supported,
+        note: Some("type-only imports remain distinct from runtime edges"),
+    },
+    Capability {
+        name: "dynamic-edges",
+        support: Support::Partial,
+        note: Some(
+            "static dynamic-import targets are extracted; computed targets are not resolved",
+        ),
+    },
+    Capability {
+        name: "workspace-resolution",
+        support: Support::Partial,
+        note: Some(
+            "basic workspace package exports are resolved; full toolchain resolution is not claimed",
+        ),
+    },
+    Capability {
+        name: "framework-extraction",
+        support: Support::Supported,
+        note: Some("Vue and Svelte script blocks are supported"),
+    },
 ];
 
 impl LanguageFrontend for JsTsFrontend {
@@ -132,7 +166,9 @@ impl PlannedLanguage {
 
 pub fn frontend_for(path: &Path) -> Option<Box<dyn LanguageFrontend>> {
     let frontend = JsTsFrontend;
-    frontend.accepts(path).then(|| Box::new(frontend) as Box<dyn LanguageFrontend>)
+    frontend
+        .accepts(path)
+        .then(|| Box::new(frontend) as Box<dyn LanguageFrontend>)
 }
 
 pub fn support_matrix() -> Value {
@@ -155,7 +191,13 @@ mod tests {
 
     #[test]
     fn routes_existing_js_ts_family_to_oxc() {
-        for path in ["src/a.ts", "src/a.tsx", "src/a.js", "src/A.vue", "src/A.svelte"] {
+        for path in [
+            "src/a.ts",
+            "src/a.tsx",
+            "src/a.js",
+            "src/A.vue",
+            "src/A.svelte",
+        ] {
             let frontend = frontend_for(Path::new(path)).expect(path);
             assert_eq!(frontend.implementation(), "oxc");
         }
@@ -168,16 +210,34 @@ mod tests {
         let descriptor = frontend.descriptor();
         assert_eq!(descriptor["language"], "javascript-typescript");
         let capabilities = descriptor["capabilities"].as_array().unwrap();
-        assert!(capabilities.iter().any(|value| value["capability"] == "workspace-resolution" && value["support"] == "partial"));
-        assert!(capabilities.iter().any(|value| value["capability"] == "type-edges" && value["support"] == "supported"));
+        assert!(
+            capabilities
+                .iter()
+                .any(|value| value["capability"] == "workspace-resolution"
+                    && value["support"] == "partial")
+        );
+        assert!(capabilities.iter().any(
+            |value| value["capability"] == "type-edges" && value["support"] == "supported"
+        ));
     }
 
     #[test]
     fn planned_languages_are_explicitly_unsupported() {
         let matrix = support_matrix();
         for language in ["python", "rust", "go"] {
-            let frontend = matrix["frontends"].as_array().unwrap().iter().find(|entry| entry["language"] == language).unwrap();
-            assert!(frontend["capabilities"].as_array().unwrap().iter().all(|capability| capability["support"] == "unsupported"));
+            let frontend = matrix["frontends"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|entry| entry["language"] == language)
+                .unwrap();
+            assert!(
+                frontend["capabilities"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|capability| capability["support"] == "unsupported")
+            );
         }
     }
 }
