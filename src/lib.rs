@@ -17,6 +17,7 @@ mod design_diff;
 mod design_genome;
 mod design_prompt;
 mod design_system;
+mod decisions;
 mod project;
 mod scan;
 mod syntax;
@@ -56,7 +57,7 @@ pub fn entry(family: Option<&str>) {
     }
     let family = family.map(str::to_owned).or_else(|| {
         if args.get(1).is_some_and(|x| {
-            ["agentic", "architecture", "design", "checks", "adapters"].contains(&x.as_str())
+            ["agentic", "architecture", "design", "checks", "adapters", "decisions"].contains(&x.as_str())
         }) {
             Some(args.remove(1))
         } else {
@@ -75,6 +76,7 @@ pub fn entry(family: Option<&str>) {
     {
         println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
+        println!("Decision Kernel: decisions validate|fingerprint|jev-payload (offline)\n");
     }
     crate::scan::begin();
     match family.as_deref() {
@@ -83,6 +85,7 @@ pub fn entry(family: Option<&str>) {
         Some("design") => design_cli::run(args),
         Some("checks") => checks::run(args),
         Some("adapters") => adapters::run(args),
+        Some("decisions") => decisions::run(args),
         _ => cli::run(args),
     }
     crate::syntax_worker::shutdown();
@@ -139,6 +142,8 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 true,
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
+            (Some("decisions"), "validate" | "fingerprint") => (&[], &[], 1, 1, false),
+            (Some("decisions"), "jev-payload") => (&["--model"], &[], 2, 2, false),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {
