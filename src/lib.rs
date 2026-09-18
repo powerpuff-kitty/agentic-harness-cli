@@ -18,6 +18,7 @@ mod design_diff;
 mod design_genome;
 mod design_prompt;
 mod design_system;
+mod jev_transport;
 mod project;
 mod scan;
 mod syntax;
@@ -84,7 +85,9 @@ pub fn entry(family: Option<&str>) {
     {
         println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
-        println!("Decision Kernel: decisions validate|fingerprint|jev-payload (offline)\n");
+        println!(
+            "Decision Kernel: offline contracts plus opt-in decisions jev-evaluate --allow-network\n"
+        );
     }
     crate::scan::begin();
     match family.as_deref() {
@@ -183,6 +186,19 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 false,
             ),
             (Some("decisions"), "jev-payload") => (&["--model"], &[], 2, 2, false),
+            (Some("decisions"), "jev-evaluate") => (
+                &[
+                    "--model",
+                    "--timeout-ms",
+                    "--max-retries",
+                    "--decided-at",
+                    "--evidence",
+                ],
+                &["--allow-network"],
+                2,
+                2,
+                false,
+            ),
             (Some("decisions"), "jev-receipts") => {
                 (&["--decided-at", "--evidence"], &[], 3, 3, false)
             }

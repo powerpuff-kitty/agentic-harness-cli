@@ -1,8 +1,8 @@
 # Decision Kernel runtime
 
-The `ah decisions` family is the deterministic/offline runtime surface for the provider-neutral Decision Kernel contract pinned from `agentic-harness`.
+The `ah decisions` family is the provider-neutral Decision Kernel runtime pinned from `agentic-harness`.
 
-The current slice intentionally does **not** call TypeSafe or any other hosted provider. It validates artifacts, fingerprints explicit JSON state and constructs a Jev request payload that can be inspected before any future authorized network transport is enabled.
+All contract, planning, replay, outcome and payload commands remain deterministic/offline. Hosted TypeSafe evaluation is a separate opt-in path: `jev-evaluate` performs network I/O only when the caller explicitly supplies `--allow-network` and configures `TYPESAFE_API_KEY` in the process environment.
 
 ## Commands
 
@@ -14,6 +14,7 @@ ah decisions replay graph.json receipts.json
 ah decisions outcome receipt.json --id outcome-1 --observed-at 2026-09-19T10:00:00Z --label confirmed --verification human
 ah decisions compare-receipts champion.json candidate.json --mode shadow --dataset triage-v1 --revision 1 --generated-at 2026-09-19T10:05:00Z --changed provider
 ah decisions jev-payload request.json specs.json --model jev-latest
+ah decisions jev-evaluate request.json specs.json --allow-network --decided-at 2026-09-18T19:30:00Z --model jev-latest --timeout-ms 10000 --max-retries 2
 ah decisions jev-receipts request.json specs.json response.json --decided-at 2026-09-18T19:30:00Z --evidence evidence.json
 ```
 
@@ -97,6 +98,51 @@ The payload contains only the explicit `decision-request.state.payload`, selecte
 The default model name for payload construction is `jev-latest`; an explicit `--model` value can be supplied. This is payload construction only and does not establish that the model alias is reachable, billable, calibrated or suitable for a decision class.
 
 
+### Hosted Jev evaluation
+
+`decisions jev-evaluate` is the only current Decision Kernel command that performs hosted network I/O.
+
+It requires all of the following:
+
+- explicit `--allow-network`;
+- `TYPESAFE_API_KEY` from the environment only;
+- an explicit `--decided-at` timestamp so resulting receipts do not invent decision time;
+- the same explicit DecisionRequest and DecisionSpec files accepted by `jev-payload`.
+
+The transport is deliberately narrow:
+
+- endpoint is pinned to `https://api.typesafe.ai/v1/systemone`;
+- HTTPS is mandatory;
+- redirects are disabled so the bearer credential cannot be forwarded elsewhere;
+- environment HTTP(S) proxy routing is disabled for the secret-bearing request;
+- only the explicit `decision-request.state.payload` and selected reviewed question specs are sent;
+- no repository files, git metadata, memory, agent context or unrelated environment variables are collected;
+- API keys are never printed or persisted; diagnostics show only `Bearer <redacted>`.
+
+Defaults follow the current TypeSafe client contract: `jev-latest`, 10,000 ms per attempt and two retries after the initial attempt. CLI overrides are bounded to at most 60,000 ms per attempt, five retries and a 120,000 ms aggregate transport budget.
+
+Retries are limited to transport failures and retryable HTTP conditions (408, 429 and 5xx). Server `retry-after-ms` or numeric `Retry-After` values are honored only up to 60 seconds; otherwise deterministic exponential backoff starts at 500 ms and caps at 5 seconds.
+
+Successful live responses are validated and immediately normalized into the same review-required DecisionReceipt set produced by `jev-receipts`. The transport envelope records provider/model usage, attempt count, elapsed time and `cost_usd: null` when the API does not return a measurable cost. Provider confidence remains uncalibrated/unknown for project policy until representative evaluation evidence exists.
+
+Stable hosted-provider diagnostics include:
+
+| Code | Meaning |
+| --- | --- |
+| `provider-network-disabled` | `--allow-network` was not supplied |
+| `provider-credentials-missing` | `TYPESAFE_API_KEY` is absent |
+| `provider-credentials-invalid` | API key is empty/malformed |
+| `provider-timeout-invalid` / `provider-retries-invalid` / `provider-budget-invalid` | Local transport policy is invalid |
+| `provider-authentication` | HTTP 401 |
+| `provider-request-rejected` | HTTP 422 |
+| `provider-rate-limited` / `provider-quota` | rate/quota/billing refusal |
+| `provider-overloaded` | HTTP 529 |
+| `provider-server-error` | other retry-exhausted 5xx |
+| `provider-timeout` / `provider-connection` / `provider-tls` / `provider-transport` | bounded transport failure |
+| `provider-malformed-response` | success body is invalid or violates the Jev response contract |
+
+Hosted provider failures exit separately from ordinary invalid CLI input and never trigger another model/provider automatically.
+
 ### Jev response normalization
 
 `decisions jev-receipts` converts an already-recorded TypeSafe response into canonical DecisionReceipts.
@@ -123,18 +169,6 @@ Required evidence is resolved only from the explicit optional evidence manifest 
 
 ## Runtime roadmap
 
-This offline slice establishes the safe boundary required before live inference.
+The shared runtime now covers offline validation/fingerprinting, fan-out planning, stable cache identities, replay, outcome feedback, shadow/challenger/counterfactual evidence, Jev payload construction, recorded-response normalization and opt-in hosted Jev transport.
 
-The merged runtime now also covers fan-out planning, stable cache identities, response normalization and replay without re-inference.
-
-Follow-up under issue #77 adds opt-in hosted TypeSafe transport with:
-
-- `TYPESAFE_API_KEY` read from the environment only;
-- bounded timeout/retry/usage policy;
-- stable diagnostics for credentials, quota, timeout and malformed responses;
-- exact provider/model/usage provenance;
-- deterministic response normalization into DecisionReceipt;
-- no silent provider fallback;
-- live tests opt-in only.
-
-Calibration, threshold tuning, shadow/challenger evaluation, fan-out, cache/replay and adoption into automated routing remain separate work and must use the canonical contract rather than provider-specific application fields.
+Remaining work under the Decision Kernel roadmap is primarily empirical and product-specific: representative calibration datasets, threshold tuning, production cache persistence, durable workflow integration and adoption into application routing only where evaluation demonstrates acceptable behavior.

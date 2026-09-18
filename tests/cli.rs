@@ -23,6 +23,9 @@ impl Fixture {
             .args(args)
             .current_dir(self.path())
             .env_remove("AH_REGISTRY")
+            .env_remove("TYPESAFE_API_KEY")
+            .env_remove("TYPESAFE_BASE_URL")
+            .env_remove("TYPESAFE_DEFAULT_MODEL")
             .output()
             .unwrap()
     }
@@ -384,6 +387,16 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         (
             &["decisions", "jev-payload", "request.json", "specs.json"],
             &["--model"],
+        ),
+        (
+            &["decisions", "jev-evaluate", "request.json", "specs.json"],
+            &[
+                "--model",
+                "--timeout-ms",
+                "--max-retries",
+                "--decided-at",
+                "--evidence",
+            ],
         ),
         (
             &[
@@ -1092,6 +1105,87 @@ fn decision_outcome_and_receipt_comparison_close_the_feedback_loop_without_side_
     ]);
     assert_eq!(invalid.status.code(), Some(2));
     assert!(invalid.stdout.is_empty());
+}
+
+#[test]
+fn hosted_jev_evaluation_is_explicit_and_fails_closed_without_credentials() {
+    let f = Fixture::new();
+    f.put(
+        "specs-live.json",
+        json!([{
+            "format_version":1,
+            "kind":"decision-spec",
+            "id":"task.risk",
+            "revision":1,
+            "decision_kind":"boolean",
+            "description":"Does this task carry meaningful operational risk?",
+            "input":{"schema_id":"task-state","schema_version":1,"immutable_snapshot_required":true},
+            "evidence":{"requirements":[]},
+            "policy":{"risk":"medium","consequential_action":"review-required"}
+        }])
+        .to_string(),
+    );
+    f.put(
+        "request-live.json",
+        json!({
+            "format_version":1,
+            "kind":"decision-request",
+            "request_id":"live-request-1",
+            "state":{
+                "schema_id":"task-state",
+                "schema_version":1,
+                "fingerprint":"sha256:12345678",
+                "payload":{"task":"review this deployment"}
+            },
+            "questions":[{"spec_id":"task.risk","spec_revision":1}],
+            "mode":"live"
+        })
+        .to_string(),
+    );
+
+    let disabled = f.run(&[
+        "decisions",
+        "jev-evaluate",
+        "request-live.json",
+        "specs-live.json",
+        "--decided-at",
+        "2026-09-18T20:00:00Z",
+    ]);
+    assert_eq!(disabled.status.code(), Some(3));
+    assert!(disabled.stdout.is_empty());
+    let disabled_error: Value = serde_json::from_slice(&disabled.stderr).unwrap();
+    assert_eq!(disabled_error["code"], "provider-network-disabled");
+    assert_eq!(disabled_error["authorization_header"], "Bearer <redacted>");
+
+    let missing = f.run(&[
+        "decisions",
+        "jev-evaluate",
+        "request-live.json",
+        "specs-live.json",
+        "--allow-network",
+        "--decided-at",
+        "2026-09-18T20:00:00Z",
+    ]);
+    assert_eq!(missing.status.code(), Some(3));
+    assert!(missing.stdout.is_empty());
+    let missing_error: Value = serde_json::from_slice(&missing.stderr).unwrap();
+    assert_eq!(missing_error["code"], "provider-credentials-missing");
+    assert_eq!(missing_error["attempts"], 0);
+
+    let invalid_budget = f.run(&[
+        "decisions",
+        "jev-evaluate",
+        "request-live.json",
+        "specs-live.json",
+        "--allow-network",
+        "--decided-at",
+        "2026-09-18T20:00:00Z",
+        "--timeout-ms",
+        "99",
+    ]);
+    assert_eq!(invalid_budget.status.code(), Some(3));
+    let budget_error: Value = serde_json::from_slice(&invalid_budget.stderr).unwrap();
+    assert_eq!(budget_error["code"], "provider-timeout-invalid");
 }
 
 #[test]
