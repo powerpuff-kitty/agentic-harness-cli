@@ -112,6 +112,8 @@ ah decisions plan graph.json specs.json state.json --provider typesafe-jev --mod
 ah decisions replay graph.json receipts.json
 ah decisions outcome receipt.json --id outcome-1 --observed-at 2026-09-19T10:00:00Z --label confirmed --verification human
 ah decisions compare-receipts champion.json candidate.json --mode shadow --dataset decisions-v1 --revision 1 --generated-at 2026-09-19T10:05:00Z --changed provider
+ah decisions calibration-report calibration-dataset.json --generated-at 2026-09-19T10:10:00Z
+ah decisions calibration-compare baseline-calibration.json candidate-calibration.json --generated-at 2026-09-19T10:15:00Z
 ah decisions jev-payload request.json specs.json --model jev-latest
 ah decisions jev-evaluate request.json specs.json --allow-network --decided-at 2026-09-18T19:30:00Z
 ah decisions jev-receipts request.json specs.json response.json --decided-at 2026-09-18T19:30:00Z
@@ -129,7 +131,7 @@ ah decisions fingerprint state.json
 ah decisions jev-payload request.json specs.json --model jev-latest
 ```
 
-It validates versioned decision artifacts and semantic invariants, fingerprints only explicitly supplied JSON state, stages DecisionGraphs into parallel fan-out batches with stable cache identities, reconstructs replay inputs from recorded receipts, appends observed outcomes, produces side-effect-free shadow/challenger/counterfactual evaluation artifacts, constructs TypeSafe Jev payloads for boolean/choice/ordinal decisions, and normalizes recorded Jev responses into canonical review-required receipts. All Decision Kernel commands remain offline except the explicit `jev-evaluate --allow-network` path. Hosted evaluation reads only `TYPESAFE_API_KEY` from the environment, sends only the explicit decision state/questions to the pinned TypeSafe endpoint, grants no action authorization and does not claim project calibration. See [Decision Kernel runtime](docs/decisions.md).
+It validates versioned decision artifacts and semantic invariants, fingerprints only explicitly supplied JSON state, stages DecisionGraphs into parallel fan-out batches with stable cache identities, reconstructs replay inputs from recorded receipts, appends observed outcomes, produces side-effect-free shadow/challenger/counterfactual evaluation artifacts, computes offline calibration/reliability/threshold evidence, gates recorded provider regressions in CI, constructs TypeSafe Jev payloads for boolean/choice/ordinal decisions, and normalizes recorded or live Jev responses into canonical review-required receipts. All Decision Kernel commands remain offline except the explicit `jev-evaluate --allow-network` path. Hosted evaluation reads only `TYPESAFE_API_KEY` from the environment, sends only the explicit decision state/questions to the pinned TypeSafe endpoint, grants no action authorization and does not claim project calibration. See [Decision Kernel runtime](docs/decisions.md).
 
 ## Experimental architecture intelligence
 
