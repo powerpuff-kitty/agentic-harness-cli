@@ -31,8 +31,7 @@ fn config_tool(name: &str) -> Option<&'static str> {
         Some("biome")
     } else if name == ".editorconfig" {
         Some("editorconfig")
-    } else if name == "tsconfig.json"
-        || (name.starts_with("tsconfig.") && name.ends_with(".json"))
+    } else if name == "tsconfig.json" || (name.starts_with("tsconfig.") && name.ends_with(".json"))
     {
         Some("typescript")
     } else if ["rustfmt.toml", ".rustfmt.toml"].contains(&name) {
@@ -120,7 +119,12 @@ fn inspect_package(
         return;
     };
 
-    for section in ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"] {
+    for section in [
+        "dependencies",
+        "devDependencies",
+        "peerDependencies",
+        "optionalDependencies",
+    ] {
         if let Some(dependencies) = package[section].as_object() {
             for name in dependencies.keys() {
                 if let Some(tool) = dependency_tool(name) {
@@ -179,12 +183,7 @@ pub fn detect(root: &Path) -> Value {
             .and_then(|value| value.to_str())
             .unwrap_or_default();
         if let Some(tool) = config_tool(name) {
-            add_tool_evidence(
-                &mut tools,
-                tool,
-                Some(relative(root, path)),
-                None,
-            );
+            add_tool_evidence(&mut tools, tool, Some(relative(root, path)), None);
         }
 
         if name == "package.json" {
@@ -375,7 +374,11 @@ mod tests {
               "devDependencies":{"eslint":"9.0.0","prettier":"3.0.0","typescript":"5.9.3"}
             }"#,
         );
-        put(temp.path(), "src/app.ts", "export const answer: number = 42;");
+        put(
+            temp.path(),
+            "src/app.ts",
+            "export const answer: number = 42;",
+        );
 
         let report = detect(temp.path());
         assert_eq!(report["kind"], "quality-detection");
@@ -404,7 +407,10 @@ mod tests {
 
         let report = analyze(temp.path());
         assert_eq!(report["kind"], "quality-analysis");
-        assert_eq!(report["findings"][0]["rule_id"], "typescript.type-safety.strict-mode");
+        assert_eq!(
+            report["findings"][0]["rule_id"],
+            "typescript.type-safety.strict-mode"
+        );
         assert_eq!(report["findings"][0]["severity"], "recommendation");
         assert!(
             report["coverage"]["not_checked"]
