@@ -957,6 +957,7 @@ fn jev_payload(request: &Value, specs: &Value, model: &str) -> Result<Value, Str
     }))
 }
 
+#[cfg(test)]
 fn validate_jev_response(value: &Value) -> Result<(), String> {
     let root = object(value, "Jev response")?;
     text(
