@@ -69,3 +69,22 @@ impl Drop for Job {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Job;
+    use std::process::{Command, Stdio};
+
+    #[test]
+    fn creates_a_kill_on_close_job() {
+        let job = Job::new().expect("job object should be available on Windows CI");
+        let child = Command::new("cmd.exe")
+            .args(["/C", "exit", "0"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("fixture process should spawn");
+        job.assign(&child).expect("child should join owned job");
+    }
+}
