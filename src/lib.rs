@@ -33,6 +33,8 @@ mod scan;
 mod strict_json;
 mod syntax;
 mod syntax_worker;
+#[cfg(windows)]
+mod windows_process;
 
 pub fn fail(message: impl AsRef<str>) -> ! {
     eprintln!(
