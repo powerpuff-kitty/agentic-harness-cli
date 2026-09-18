@@ -106,9 +106,24 @@ ah security-scan .
 ah harness-audit .
 ah compare before.json after.json
 ah gate audit.json --max-architecture-errors 0
+ah decisions validate decision.json
+ah decisions fingerprint state.json
+ah decisions jev-payload request.json specs.json --model jev-latest
 ```
 
 `--boilerplate` is the preferred project-shape flag. `--template` remains a backward-compatible alias for existing automation.
+
+## Decision Kernel
+
+The `decisions` command family implements the offline deterministic boundary for the provider-neutral Decision Kernel contract pinned from the canonical repository.
+
+```bash
+ah decisions validate decision.json
+ah decisions fingerprint state.json
+ah decisions jev-payload request.json specs.json --model jev-latest
+```
+
+It validates versioned decision artifacts and semantic invariants, fingerprints only explicitly supplied JSON state, and can construct a TypeSafe Jev payload for boolean/choice/ordinal decisions. This slice makes **no provider network call**, reads no API key, grants no action authorization and does not claim calibration. See [Decision Kernel runtime](docs/decisions.md).
 
 ## Experimental architecture intelligence
 

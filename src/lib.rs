@@ -14,6 +14,7 @@ mod cli;
 mod completion;
 mod context_selection;
 mod date;
+mod decisions;
 mod design_analysis;
 mod design_cli;
 mod design_diff;
@@ -65,7 +66,15 @@ pub fn entry(family: Option<&str>) {
     }
     let family = family.map(str::to_owned).or_else(|| {
         if args.get(1).is_some_and(|x| {
-            ["agentic", "architecture", "design", "checks", "adapters"].contains(&x.as_str())
+            [
+                "agentic",
+                "architecture",
+                "design",
+                "checks",
+                "adapters",
+                "decisions",
+            ]
+            .contains(&x.as_str())
         }) {
             Some(args.remove(1))
         } else {
@@ -86,6 +95,7 @@ pub fn entry(family: Option<&str>) {
             "Experimental family: checks <plan|prepare|run|complete> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n"
         );
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
+        println!("Decision Kernel: decisions validate|fingerprint|jev-payload (offline)\n");
     }
     crate::scan::begin();
     match family.as_deref() {
@@ -94,6 +104,7 @@ pub fn entry(family: Option<&str>) {
         Some("design") => design_cli::run(args),
         Some("checks") => checks::run(args),
         Some("adapters") => adapters::run(args),
+        Some("decisions") => decisions::run(args),
         _ => cli::run(args),
     }
     crate::syntax_worker::shutdown();
@@ -166,6 +177,8 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 1,
                 true,
             ),
+            (Some("decisions"), "validate" | "fingerprint") => (&[], &[], 1, 1, false),
+            (Some("decisions"), "jev-payload") => (&["--model"], &[], 2, 2, false),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {
