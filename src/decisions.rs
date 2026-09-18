@@ -2256,16 +2256,16 @@ pub(crate) fn run(args: Vec<String>) {
                 max_retries,
             }
             .validate()
-            .unwrap_or_else(provider_fail);
+            .unwrap_or_else(|error| provider_fail(error));
             let payload =
                 jev_payload(&request, &specs, &model).unwrap_or_else(|error| crate::fail(error));
             let provider_request = payload
                 .get("request")
                 .cloned()
                 .unwrap_or_else(|| crate::fail("decisions: Jev provider payload is missing request"));
-            let api_key = jev_transport::api_key_from_env().unwrap_or_else(provider_fail);
+            let api_key = jev_transport::api_key_from_env().unwrap_or_else(|error| provider_fail(error));
             let run = jev_transport::execute(&provider_request, &api_key, transport)
-                .unwrap_or_else(provider_fail);
+                .unwrap_or_else(|error| provider_fail(error));
 
             if let Err(error) = validate_jev_response(&run.response) {
                 provider_fail(ProviderError {
