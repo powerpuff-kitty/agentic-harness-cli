@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-calibration.v1.schema.json",
+  "title": "Agentic Harness DecisionCalibration v1",
+  "description": "Empirical calibration/quality report over one immutable labeled evaluation dataset.",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "dataset",
+    "decision",
+    "state_schema",
+    "provider",
+    "metrics",
+    "reliability",
+    "threshold",
+    "generated_at",
+    "side_effects",
+    "consequence_authorized"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-calibration"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision",
+        "split"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "split": {
+          "enum": [
+            "training",
+            "calibration",
+            "validation",
+            "test"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "decision": {
+      "type": "object",
+      "required": [
+        "spec_id",
+        "spec_revision",
+        "decision_kind"
+      ],
+      "properties": {
+        "spec_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spec_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision_kind": {
+          "enum": [
+            "boolean",
+            "choice",
+            "ordinal"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "state_schema": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "provider": {
+      "type": "object",
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "deterministic",
+            "jev",
+            "llm",
+            "ml",
+            "human",
+            "custom"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "total",
+        "produced",
+        "correct",
+        "abstained",
+        "failed",
+        "coverage",
+        "accuracy",
+        "abstention_rate",
+        "failure_rate",
+        "brier_score",
+        "log_loss",
+        "expected_calibration_error",
+        "ordinal_mae",
+        "mean_latency_ms",
+        "total_cost_usd"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "produced": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correct": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstained": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "abstention_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "failure_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "brier_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "log_loss": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expected_calibration_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ordinal_mae": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mean_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "total_cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "reliability": {
+      "type": "object",
+      "required": [
+        "bin_count",
+        "confidence_case_count",
+        "bins"
+      ],
+      "properties": {
+        "bin_count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 100
+        },
+        "confidence_case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "lower",
+              "upper",
+              "count",
+              "mean_confidence",
+              "accuracy"
+            ],
+            "properties": {
+              "lower": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "upper": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "mean_confidence": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "accuracy": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "threshold": {
+      "type": "object",
+      "required": [
+        "tuning_allowed",
+        "target_accuracy",
+        "minimum_coverage",
+        "minimum_samples",
+        "selected"
+      ],
+      "properties": {
+        "tuning_allowed": {
+          "type": "boolean"
+        },
+        "target_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "selected": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "minimum_provider_confidence",
+                "accepted",
+                "coverage",
+                "accuracy"
+              ],
+              "properties": {
+                "minimum_provider_confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "accepted": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "coverage": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "accuracy": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "additionalProperties": true
+            }
+          ]
+        },
+        "rationale": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "side_effects": {
+      "const": false
+    },
+    "consequence_authorized": {
+      "const": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
