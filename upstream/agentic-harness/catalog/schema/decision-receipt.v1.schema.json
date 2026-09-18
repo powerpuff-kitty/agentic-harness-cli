@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-receipt.v1.schema.json",
+  "title": "Agentic Harness DecisionReceipt v1",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "spec",
+    "state",
+    "status",
+    "provider",
+    "uncertainty",
+    "evidence",
+    "policy",
+    "timing"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-receipt"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "schema_id",
+        "schema_version",
+        "fingerprint"
+      ],
+      "properties": {
+        "schema_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 8
+        }
+      },
+      "additionalProperties": true
+    },
+    "status": {
+      "enum": [
+        "produced",
+        "unknown",
+        "insufficient-evidence",
+        "conflicting-evidence",
+        "out-of-distribution",
+        "abstained",
+        "provider-failure"
+      ]
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "value": {},
+        "alternatives": {
+          "type": "array"
+        },
+        "distribution": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "not": {
+        "required": [
+          "outcome_probability"
+        ]
+      },
+      "additionalProperties": true
+    },
+    "provider": {
+      "type": "object",
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "deterministic",
+            "jev",
+            "llm",
+            "ml",
+            "human",
+            "custom"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "uncertainty": {
+      "type": "object",
+      "required": [
+        "provider_confidence",
+        "calibration",
+        "evidence_coverage",
+        "evidence_reliability",
+        "decision_certainty"
+      ],
+      "properties": {
+        "provider_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "calibration": {
+          "type": "object",
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "calibrated",
+                "uncalibrated",
+                "unknown",
+                "not-applicable"
+              ]
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "evidence_coverage": {
+          "type": "object",
+          "required": [
+            "value",
+            "required_present",
+            "required_total",
+            "missing"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "required_present": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required_total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "evidence_reliability": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "decision_certainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "not": {
+        "required": [
+          "outcome_probability"
+        ]
+      },
+      "additionalProperties": true
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "used",
+        "missing"
+      ],
+      "properties": {
+        "used": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "missing": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision",
+        "disposition",
+        "reasons"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "disposition": {
+          "enum": [
+            "accepted",
+            "review",
+            "abstained",
+            "rejected"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "timing": {
+      "type": "object",
+      "required": [
+        "decided_at"
+      ],
+      "properties": {
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "latency_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "produced"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "result"
+        ]
+      }
+    }
+  ],
+  "not": {
+    "required": [
+      "outcome_probability"
+    ]
+  },
+  "additionalProperties": true
+}
