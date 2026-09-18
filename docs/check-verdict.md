@@ -1,7 +1,7 @@
 # Experimental fail-closed outcome ledger
 
-Tracking: CLI #61, part of #55. This is a pure Rust library component, not a new
-CLI command or an enabled process executor. Draft #60 remains separate.
+Tracking: CLI #61, part of #55. The ledger remains a pure Rust library component. The experimental
+executor now integrates it; see `check-execution.md` for the separate process backend.
 
 `agentic_harness_cli::check_verdict::RunLedger` keeps the reviewed check sequence,
 its required flags and accepted observations. It does not spawn processes, read
@@ -40,12 +40,15 @@ Records preserve original observations for their caller. They are not redacted
 for publication: do not log or publish arbitrary input through this API. No raw
 input appears in ledger error variants. `completion_verified` is always false.
 
-No process-backend integration is included in this slice. To complete #61, the
-executor must consult `may_continue` before each dispatch, record every owned
-process outcome, stop on revalidation errors without dropping prior results, and
-use the finalized verdict instead of filtering only required statuses. That
-integration must be tested after the process-ownership and deadline blockers in
-#62/#63 are fixed. These pure tests do not certify either backend.
+The executor consults `may_continue` before dispatch, records every process outcome
+before further fallible revalidation, and finalizes retained observations on later
+path/input/deadline failures. Backend fault injection covers setup/read/signal/wait
+failures and passes their outcomes through this ledger. The verified macOS
+`no-live-group-members` cleanup state is accepted alongside a successful group
+signal; arbitrary permission errors remain failures.
+
+These integration tests supplement the pure ledger tests; neither authenticates
+imported evidence or changes `completion_verified` from false.
 
 ## Validation
 

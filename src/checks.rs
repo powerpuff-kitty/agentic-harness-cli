@@ -134,9 +134,18 @@ pub(crate) fn validate_policy(policy: &Value) -> Result<Vec<String>, String> {
 }
 
 pub(crate) fn plan(target: &Path, config: &str) -> Result<Value, String> {
+    plan_with_budget(target, config, &crate::execution_budget::Budget::new())
+}
+
+pub(crate) fn plan_with_budget(
+    target: &Path,
+    config: &str,
+    budget: &crate::execution_budget::Budget,
+) -> Result<Value, String> {
+    budget.check()?;
     let root = check_inputs::root(target)?;
     let config_path = check_inputs::resolve(&root, config, false)?;
-    let bytes = check_inputs::read(&config_path, 262_144)?;
+    let bytes = check_inputs::read_with_budget(&config_path, 262_144, budget)?;
     let policy = crate::strict_json::decode(&bytes)?;
     let inputs = validate_policy(&policy)?;
     for check in policy["checks"].as_array().unwrap() {
@@ -145,9 +154,11 @@ pub(crate) fn plan(target: &Path, config: &str) -> Result<Value, String> {
             return Err("checks: working directory is not a directory".into());
         }
     }
-    let (source_digest, entries) = check_inputs::snapshot(&root, &inputs)?;
-    let second = check_inputs::snapshot(&root, &inputs)?;
-    if second.0 != source_digest || check_inputs::read(&config_path, 262_144)? != bytes {
+    let (source_digest, entries) = check_inputs::snapshot_with_budget(&root, &inputs, budget)?;
+    let second = check_inputs::snapshot_with_budget(&root, &inputs, budget)?;
+    if second.0 != source_digest
+        || check_inputs::read_with_budget(&config_path, 262_144, budget)? != bytes
+    {
         return Err("checks: policy or inputs changed during planning".into());
     }
     let policy_digest = check_inputs::hash(&bytes);
@@ -167,6 +178,7 @@ pub(crate) fn plan(target: &Path, config: &str) -> Result<Value, String> {
             planner_digest.as_bytes(),
         ],
     );
+    budget.check()?;
     let requirements: Vec<Value> = policy["required_controls"]
         .as_array()
         .unwrap()

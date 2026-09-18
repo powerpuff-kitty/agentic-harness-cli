@@ -19,6 +19,8 @@ mod design_diff;
 mod design_genome;
 mod design_prompt;
 mod design_system;
+mod execution_budget;
+mod execution_cancel;
 mod execution_review;
 mod process_check;
 mod project;
@@ -78,7 +80,9 @@ pub fn entry(family: Option<&str>) {
             .get(1)
             .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
-        println!("Experimental family: checks <plan|prepare|run> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n");
+        println!(
+            "Experimental family: checks <plan|prepare|run> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n"
+        );
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
     }
     crate::scan::begin();

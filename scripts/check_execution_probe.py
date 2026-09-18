@@ -26,7 +26,7 @@ def exercise_execution(run, root, validate=None):
                   'max_age_ms': 3600000}
         settings = {'format_version': 1, 'kind': 'check-execution-settings',
                     'tools': {'python': sys.executable}, 'environment': {'PATH': ''},
-                    'max_total_ms': 10000}
+                    'max_total_ms': 60000}
         (target / '.agentic/checks.json').write_text(json.dumps(policy), encoding='utf-8')
         (target / '.agentic/check-execution.json').write_text(json.dumps(settings), encoding='utf-8')
         review = run('checks', 'prepare', relative)

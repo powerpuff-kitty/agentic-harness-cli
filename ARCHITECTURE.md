@@ -17,3 +17,7 @@ Architecture analysis uses Oxc JavaScript/TypeScript/TSX syntax trees and extrac
 Audit v2 represents unmeasured quality/readiness as null. Architecture exposes a versioned heuristic indicator with coverage and formula provenance. Gates validate artifacts before evaluating explicit policy; unknown/null metrics cannot satisfy numeric thresholds. Static design observations and agentic heuristics remain advisory and cannot establish production readiness.
 
 The parser and AST visitor run in a reusable native child process launched from the same executable. Requests contain only bounded source text and its path; the worker does not load or execute project code. A parser crash (including stack exhaustion) becomes incomplete coverage, and the next file gets a fresh worker. Parent processes reap workers before normal CLI exit. The internal framed protocol is not a public API. Source reads remain capped at 2 MB; frames are capped at 16 MiB.
+
+## Experimental reviewed check execution
+
+`execution_review` binds explicit native tool identities, environment and the non-executing plan. `execution_budget` carries one cooperative monotonic deadline through review/input/tool reads and finalization. `process_check` owns process-group signaling before direct-child reaping, bounded output and cancellation cleanup; `check_execution` schedules through the pure `check_verdict::RunLedger`. No runtime outcome becomes global completion or owner authentication. See `docs/check-execution.md` for platform, schema and recovery limits.
