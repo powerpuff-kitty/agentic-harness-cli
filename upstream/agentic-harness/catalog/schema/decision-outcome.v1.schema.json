@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-outcome.v1.schema.json",
+  "title": "Agentic Harness DecisionOutcome v1",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "receipt_id",
+    "observed_at",
+    "outcome",
+    "verification",
+    "feedback"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-outcome"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "action_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {},
+        "success": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "human",
+            "deterministic",
+            "external-authority",
+            "measurement",
+            "unknown"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "feedback": {
+      "type": "object",
+      "required": [
+        "usable_for_evaluation"
+      ],
+      "properties": {
+        "usable_for_evaluation": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
