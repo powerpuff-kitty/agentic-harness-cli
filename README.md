@@ -97,6 +97,10 @@ ah init ./app --boilerplate web-app
 ah init ./saas --preset vue-saas --profile startup
 ah upgrade ./existing --profile enterprise
 ah audit .
+ah quality detect .
+ah quality analyze .
+ah quality baseline . --output quality-baseline.json
+ah quality diff quality-baseline.json .
 ah architecture detect .
 ah architecture analyze .
 ah architecture analyze . --profile pattern/feature-first/1
@@ -153,6 +157,8 @@ The first Code Quality Intelligence slice is offline and read-only:
 ```bash
 ah quality detect ./my-app
 ah quality analyze ./my-app
+ah quality baseline ./my-app --output quality-baseline.json
+ah quality diff quality-baseline.json ./my-app
 ```
 
 `quality detect` inventories supported languages plus project quality configuration and quality-related package scripts. Detected scripts and tools are reported with `executed: false`; no tool is installed or invoked.
@@ -161,7 +167,9 @@ ah quality analyze ./my-app
 
 `ah audit` includes this report as nested `quality` evidence and retains `code_quality: null`; static tool/config evidence is not converted into an opaque quality score.
 
-Execution adapters, baselines/ratchets, changed-code diffing, safe autofix and additional language support remain tracked follow-up work.
+`quality baseline` snapshots the complete currently measured finding inventory plus detected tool/config identity. `quality diff` compares current static findings with that baseline and marks the comparison stale when the project quality contract or detected tool configuration changes. A baseline does not turn historical findings into a pass.
+
+Execution adapters, changed-file/Git-range ratcheting, safe autofix, complexity/duplication/dead-code measurement and additional language execution support remain tracked follow-up work.
 
 ## Experimental design intelligence
 
