@@ -535,7 +535,10 @@ pub fn diff(root: &Path, baseline_path: &str, previous: &Value) -> Result<Value,
         .filter(|(fingerprint, _)| !new.contains_key(*fingerprint))
         .map(|(_, finding)| finding.clone())
         .collect::<Vec<_>>();
-    let unchanged = new.keys().filter(|fingerprint| old.contains_key(*fingerprint)).count();
+    let unchanged = new
+        .keys()
+        .filter(|fingerprint| old.contains_key(*fingerprint))
+        .count();
 
     Ok(json!({
         "format_version": 1,
@@ -671,6 +674,4 @@ mod tests {
         let error = baseline(temp.path()).unwrap_err();
         assert!(error.contains("Quality Contract v1"));
     }
-
-
 }
