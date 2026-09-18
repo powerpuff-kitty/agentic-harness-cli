@@ -146,6 +146,23 @@ The report lists unsupported coverage, including non-JS language graphs, JSONC/e
 
 `architecture enforce` previews or writes the normalized project-local contract. General registry rule compilation, ESLint/Nx/dependency-cruiser adapters and additional languages remain follow-up work. Architecture coverage and deterministic error counts feed audit gates; an unavailable graph score stays null.
 
+## Experimental code quality intelligence
+
+The first Code Quality Intelligence slice is offline and read-only:
+
+```bash
+ah quality detect ./my-app
+ah quality analyze ./my-app
+```
+
+`quality detect` inventories supported languages plus project quality configuration and quality-related package scripts. Detected scripts and tools are reported with `executed: false`; no tool is installed or invoked.
+
+`quality analyze` currently adds deterministic plain-JSON TypeScript strict-mode inspection and emits normalized findings plus explicit `performed`, `not_checked` and `unsupported` coverage. JSONC/invalid tsconfig input, inherited/decomposed effective strictness, formatter/linter/typecheck execution, complexity, duplication, dead-code analysis and autofix remain unverified in this slice.
+
+`ah audit` includes this report as nested `quality` evidence and retains `code_quality: null`; static tool/config evidence is not converted into an opaque quality score.
+
+Execution adapters, baselines/ratchets, changed-code diffing, safe autofix and additional language support remain tracked follow-up work.
+
 ## Experimental design intelligence
 
 The first closed-loop design workflow is deterministic and does not require an LLM:
