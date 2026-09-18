@@ -400,6 +400,34 @@ fn documented_command_options_fail_with_structured_diagnostics() {
             ],
         ),
         (
+            &["decisions", "calibration-report", "dataset.json"],
+            &[
+                "--bins",
+                "--target-accuracy",
+                "--min-coverage",
+                "--min-samples",
+                "--generated-at",
+            ],
+        ),
+        (
+            &[
+                "decisions",
+                "calibration-compare",
+                "baseline.json",
+                "candidate.json",
+            ],
+            &[
+                "--max-accuracy-drop",
+                "--max-coverage-drop",
+                "--max-brier-increase",
+                "--max-ece-increase",
+                "--max-ordinal-mae-increase",
+                "--max-latency-increase-ms",
+                "--max-cost-increase-usd",
+                "--generated-at",
+            ],
+        ),
+        (
             &["decisions", "jev-payload", "request.json", "specs.json"],
             &["--model"],
         ),
@@ -1121,6 +1149,150 @@ fn decision_outcome_and_receipt_comparison_close_the_feedback_loop_without_side_
     assert_eq!(invalid.status.code(), Some(2));
     assert!(invalid.stdout.is_empty());
 }
+
+#[test]
+fn decision_calibration_is_offline_split_aware_and_regression_gateable() {
+    let f = Fixture::new();
+    let receipt = |id: &str, provider: &str, value: bool, p_true: f64, confidence: Option<f64>| {
+        json!({
+            "format_version":1,
+            "kind":"decision-receipt",
+            "id":id,
+            "spec":{"id":"task.risk","revision":1},
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":format!("sha256:{id}")},
+            "status":"produced",
+            "result":{"value":value,"distribution":{"false":1.0-p_true,"true":p_true}},
+            "provider":{"type":"custom","id":provider,"model":"model-1","version":"1"},
+            "uncertainty":{
+                "provider_confidence":confidence,
+                "calibration":{"status":"unknown"},
+                "evidence_coverage":{"value":1.0,"required_present":0,"required_total":0,"missing":[]},
+                "evidence_reliability":null,
+                "decision_certainty":null
+            },
+            "evidence":{"used":[],"missing":[]},
+            "policy":{"id":"policy:test","revision":1,"disposition":"review","reasons":[]},
+            "timing":{"decided_at":"2026-09-18T20:00:00Z","latency_ms":10}
+        })
+    };
+    let make_dataset = |provider: &str, first_value: bool, first_p: f64| {
+        json!({
+            "format_version":1,
+            "kind":"decision-eval-dataset",
+            "id":"task-risk-heldout",
+            "revision":1,
+            "split":"calibration",
+            "decision":{"spec_id":"task.risk","spec_revision":1,"decision_kind":"boolean"},
+            "state_schema":{"id":"task-state","version":1},
+            "cases":[
+                {
+                    "id":"case-a",
+                    "receipt":receipt("receipt-a",provider,first_value,first_p,Some(0.9)),
+                    "expected":{"value":true},
+                    "truth":{"verification_type":"human","observed_at":"2026-09-19T00:00:00Z"},
+                    "cost_usd":0.01
+                },
+                {
+                    "id":"case-b",
+                    "receipt":receipt("receipt-b",provider,false,0.2,Some(0.8)),
+                    "expected":{"value":false},
+                    "truth":{"verification_type":"human","observed_at":"2026-09-19T00:00:00Z"},
+                    "cost_usd":0.01
+                }
+            ],
+            "created_at":"2026-09-19T01:00:00Z"
+        })
+    };
+
+    f.put(
+        "baseline-dataset.json",
+        make_dataset("provider-a", true, 0.9).to_string(),
+    );
+    let baseline = f.json(
+        &[
+            "decisions",
+            "calibration-report",
+            "baseline-dataset.json",
+            "--generated-at",
+            "2026-09-19T02:00:00Z",
+            "--target-accuracy",
+            "1",
+            "--min-coverage",
+            "1",
+            "--min-samples",
+            "2",
+        ],
+        0,
+    );
+    assert_eq!(baseline["kind"], "decision-calibration");
+    assert_eq!(baseline["metrics"]["accuracy"], 1.0);
+    assert_eq!(
+        baseline["threshold"]["selected"]["minimum_provider_confidence"],
+        0.8
+    );
+    assert_eq!(baseline["side_effects"], false);
+    assert_eq!(baseline["consequence_authorized"], false);
+    f.put("baseline-report.json", baseline.to_string());
+    assert_eq!(
+        f.json(&["decisions", "validate", "baseline-report.json"], 0)["artifact_kind"],
+        "decision-calibration"
+    );
+
+    f.put(
+        "candidate-dataset.json",
+        make_dataset("provider-b", false, 0.1).to_string(),
+    );
+    let candidate = f.json(
+        &[
+            "decisions",
+            "calibration-report",
+            "candidate-dataset.json",
+            "--generated-at",
+            "2026-09-19T02:01:00Z",
+        ],
+        0,
+    );
+    assert_eq!(candidate["metrics"]["accuracy"], 0.5);
+    f.put("candidate-report.json", candidate.to_string());
+
+    let regression = f.json(
+        &[
+            "decisions",
+            "calibration-compare",
+            "baseline-report.json",
+            "candidate-report.json",
+            "--generated-at",
+            "2026-09-19T03:00:00Z",
+            "--max-accuracy-drop",
+            "0",
+            "--max-brier-increase",
+            "0",
+        ],
+        1,
+    );
+    assert_eq!(regression["kind"], "decision-regression");
+    assert_eq!(regression["passed"], false);
+    assert!(!regression["failures"].as_array().unwrap().is_empty());
+    assert_eq!(regression["side_effects"], false);
+
+    let mut test_split = make_dataset("provider-a", true, 0.9);
+    test_split["split"] = json!("test");
+    f.put("test-dataset.json", test_split.to_string());
+    let invalid = f.run(&[
+        "decisions",
+        "calibration-report",
+        "test-dataset.json",
+        "--generated-at",
+        "2026-09-19T02:00:00Z",
+        "--target-accuracy",
+        "0.9",
+        "--min-coverage",
+        "0.5",
+    ]);
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(invalid.stdout.is_empty());
+}
+
 
 #[test]
 fn hosted_jev_evaluation_is_explicit_and_fails_closed_without_credentials() {
