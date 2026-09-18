@@ -205,8 +205,7 @@ fn transport_error(error: &ureq::Error, attempts: u32) -> ProviderError {
         ureq::Error::Tls(_)
         | ureq::Error::TlsRequired
         | ureq::Error::Rustls(_)
-        | ureq::Error::Pem(_)
-        | ureq::Error::Der(_) => (
+        | ureq::Error::Pem(_) => (
             "provider-tls",
             "TLS validation or negotiation with TypeSafe failed",
         ),
