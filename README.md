@@ -108,7 +108,12 @@ ah compare before.json after.json
 ah gate audit.json --max-architecture-errors 0
 ah decisions validate decision.json
 ah decisions fingerprint state.json
+ah decisions plan graph.json specs.json state.json --provider typesafe-jev --mode shadow
+ah decisions replay graph.json receipts.json
+ah decisions outcome receipt.json --id outcome-1 --observed-at 2026-09-19T10:00:00Z --label confirmed --verification human
+ah decisions compare-receipts champion.json candidate.json --mode shadow --dataset decisions-v1 --revision 1 --generated-at 2026-09-19T10:05:00Z --changed provider
 ah decisions jev-payload request.json specs.json --model jev-latest
+ah decisions jev-receipts request.json specs.json response.json --decided-at 2026-09-18T19:30:00Z
 ```
 
 `--boilerplate` is the preferred project-shape flag. `--template` remains a backward-compatible alias for existing automation.
@@ -123,7 +128,7 @@ ah decisions fingerprint state.json
 ah decisions jev-payload request.json specs.json --model jev-latest
 ```
 
-It validates versioned decision artifacts and semantic invariants, fingerprints only explicitly supplied JSON state, and can construct a TypeSafe Jev payload for boolean/choice/ordinal decisions. This slice makes **no provider network call**, reads no API key, grants no action authorization and does not claim calibration. See [Decision Kernel runtime](docs/decisions.md).
+It validates versioned decision artifacts and semantic invariants, fingerprints only explicitly supplied JSON state, stages DecisionGraphs into parallel fan-out batches with stable cache identities, reconstructs replay inputs from recorded receipts, appends observed outcomes, produces side-effect-free shadow/challenger/counterfactual evaluation artifacts, constructs TypeSafe Jev payloads for boolean/choice/ordinal decisions, and normalizes recorded Jev responses into canonical review-required receipts. These commands make **no provider network call**, read no API key, grant no action authorization and do not claim calibration. See [Decision Kernel runtime](docs/decisions.md).
 
 ## Experimental architecture intelligence
 

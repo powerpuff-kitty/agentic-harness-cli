@@ -358,8 +358,57 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         (&["decisions", "validate", "artifact.json"], &[]),
         (&["decisions", "fingerprint", "state.json"], &[]),
         (
+            &[
+                "decisions",
+                "plan",
+                "graph.json",
+                "specs.json",
+                "state.json",
+            ],
+            &["--provider", "--mode"],
+        ),
+        (&["decisions", "replay", "graph.json", "receipts.json"], &[]),
+        (
+            &["decisions", "outcome", "receipt.json"],
+            &[
+                "--id",
+                "--observed-at",
+                "--label",
+                "--verification",
+                "--verification-ref",
+                "--action-ref",
+                "--usable",
+                "--success",
+            ],
+        ),
+        (
+            &[
+                "decisions",
+                "compare-receipts",
+                "champion.json",
+                "candidate.json",
+            ],
+            &[
+                "--mode",
+                "--dataset",
+                "--revision",
+                "--generated-at",
+                "--changed",
+            ],
+        ),
+        (
             &["decisions", "jev-payload", "request.json", "specs.json"],
             &["--model"],
+        ),
+        (
+            &[
+                "decisions",
+                "jev-receipts",
+                "request.json",
+                "specs.json",
+                "response.json",
+            ],
+            &["--decided-at", "--evidence"],
         ),
     ];
     for (command, flags) in commands {
@@ -959,6 +1008,219 @@ fn mit_attribution_is_retained_without_setting_application_licensing() {
             "Application owner's separate terms\n"
         );
     }
+}
+
+#[test]
+fn decision_outcome_and_receipt_comparison_close_the_feedback_loop_without_side_effects() {
+    let f = Fixture::new();
+    let receipt = |id: &str, provider: &str, value: bool, confidence: f64| {
+        json!({
+            "format_version":1,"kind":"decision-receipt","id":id,
+            "spec":{"id":"task.risk","revision":1},
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":"sha256:12345678"},
+            "status":"produced",
+            "result":{"value":value,"distribution":{"false":1.0-confidence,"true":confidence}},
+            "provider":{"type":"custom","id":provider},
+            "uncertainty":{
+                "provider_confidence":confidence,"calibration":{"status":"unknown"},
+                "evidence_coverage":{"value":1.0,"required_present":0,"required_total":0,"missing":[]},
+                "evidence_reliability":null,"decision_certainty":null
+            },
+            "evidence":{"used":[],"missing":[]},
+            "policy":{"id":"policy:test","revision":1,"disposition":"review","reasons":[]},
+            "timing":{"decided_at":"2026-09-18T20:00:00Z"}
+        })
+    };
+    f.put(
+        "champion.json",
+        receipt("decision-a", "provider-a", false, 0.8).to_string(),
+    );
+    f.put(
+        "candidate.json",
+        receipt("decision-b", "provider-b", true, 0.7).to_string(),
+    );
+
+    let outcome = f.json(
+        &[
+            "decisions",
+            "outcome",
+            "champion.json",
+            "--id",
+            "outcome-a",
+            "--observed-at",
+            "2026-09-19T10:00:00Z",
+            "--label",
+            "confirmed-regression",
+            "--verification",
+            "human",
+            "--verification-ref",
+            "review:42",
+            "--usable",
+            "true",
+            "--success",
+            "true",
+        ],
+        0,
+    );
+    assert_eq!(outcome["kind"], "decision-outcome");
+    assert_eq!(outcome["receipt_id"], "decision-a");
+    assert_eq!(outcome["feedback"]["usable_for_evaluation"], true);
+
+    let evaluation = f.json(
+        &[
+            "decisions",
+            "compare-receipts",
+            "champion.json",
+            "candidate.json",
+            "--mode",
+            "shadow",
+            "--dataset",
+            "dataset:test",
+            "--revision",
+            "1",
+            "--generated-at",
+            "2026-09-18T20:30:00Z",
+            "--changed",
+            "provider",
+        ],
+        0,
+    );
+    assert_eq!(evaluation["kind"], "decision-evaluation");
+    assert_eq!(evaluation["mode"], "shadow");
+    assert_eq!(evaluation["side_effects"], false);
+    assert_eq!(evaluation["metrics"][0]["name"], "result_match");
+    assert_eq!(evaluation["metrics"][0]["value"], 0.0);
+
+    let invalid = f.run(&[
+        "decisions",
+        "compare-receipts",
+        "champion.json",
+        "candidate.json",
+        "--mode",
+        "counterfactual",
+        "--dataset",
+        "dataset:test",
+        "--revision",
+        "1",
+        "--generated-at",
+        "2026-09-18T20:30:00Z",
+    ]);
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(invalid.stdout.is_empty());
+}
+
+#[test]
+fn decision_kernel_plans_normalizes_and_replays_without_side_effects() {
+    let f = Fixture::new();
+    let boolean = json!({
+        "format_version":1,"kind":"decision-spec","id":"task.risk","revision":1,
+        "decision_kind":"boolean","description":"Is the task risky?",
+        "input":{"schema_id":"task-state","schema_version":1,"immutable_snapshot_required":true},
+        "evidence":{"requirements":[
+            {"id":"task","required":true,"description":"Original task"}
+        ]},
+        "policy":{"risk":"medium","consequential_action":"review-required"}
+    });
+    let choice = json!({
+        "format_version":1,"kind":"decision-spec","id":"task.route","revision":1,
+        "decision_kind":"choice","description":"Which route fits?",
+        "input":{"schema_id":"task-state","schema_version":1,"immutable_snapshot_required":true},
+        "options":["code","docs"],
+        "evidence":{"requirements":[]},
+        "policy":{"risk":"low","consequential_action":"forbidden"}
+    });
+    f.put("specs2.json", json!([boolean, choice]).to_string());
+    f.put(
+        "graph2.json",
+        json!({
+            "format_version":1,"kind":"decision-graph","id":"task.graph","revision":1,
+            "nodes":[
+                {"id":"risk","spec_id":"task.risk","spec_revision":1,"depends_on":[]},
+                {"id":"route","spec_id":"task.route","spec_revision":1,"depends_on":["risk"]}
+            ],
+            "reducers":[{"id":"summary","type":"deterministic","inputs":["risk","route"],"output":"task.summary"}]
+        })
+        .to_string(),
+    );
+    f.put(
+        "state2.json",
+        json!({"task":"review this change"}).to_string(),
+    );
+    let plan = f.json(
+        &[
+            "decisions",
+            "plan",
+            "graph2.json",
+            "specs2.json",
+            "state2.json",
+            "--provider",
+            "typesafe-jev",
+            "--mode",
+            "shadow",
+        ],
+        0,
+    );
+    assert_eq!(plan["kind"], "decision-plan");
+    assert_eq!(plan["stages"].as_array().unwrap().len(), 2);
+    assert_eq!(plan["provider_calls_performed"], false);
+    assert_eq!(plan["side_effects"], false);
+
+    let state_fingerprint = plan["state"]["fingerprint"].clone();
+    f.put(
+        "request2.json",
+        json!({
+            "format_version":1,"kind":"decision-request","request_id":"request-2",
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":state_fingerprint,"payload":{"task":"review this change"}},
+            "questions":[
+                {"spec_id":"task.risk","spec_revision":1},
+                {"spec_id":"task.route","spec_revision":1}
+            ],
+            "mode":"shadow"
+        })
+        .to_string(),
+    );
+    f.put(
+        "response2.json",
+        json!({
+            "model":"jev-1.13.0",
+            "answers":{
+                "task.risk":{"type":"noul","noul":0.91},
+                "task.route":{"type":"choice","choice":"code","probabilities":{"code":0.8,"docs":0.2},"confidence":0.7}
+            },
+            "usage":{"input_tokens":100,"output_tokens":10}
+        })
+        .to_string(),
+    );
+    f.put(
+        "evidence2.json",
+        json!({"task.risk":{"used":["evidence:task:1"],"satisfied_requirements":["task"]}})
+            .to_string(),
+    );
+    let receipts = f.json(
+        &[
+            "decisions",
+            "jev-receipts",
+            "request2.json",
+            "specs2.json",
+            "response2.json",
+            "--decided-at",
+            "2026-09-18T19:30:00Z",
+            "--evidence",
+            "evidence2.json",
+        ],
+        0,
+    );
+    assert_eq!(receipts["kind"], "decision-receipt-set");
+    assert_eq!(receipts["policy_applied"], false);
+    assert_eq!(receipts["consequence_authorized"], false);
+    assert_eq!(receipts["receipts"][0]["policy"]["disposition"], "review");
+    f.put("receipts2.json", receipts.to_string());
+
+    let replay = f.json(&["decisions", "replay", "graph2.json", "receipts2.json"], 0);
+    assert_eq!(replay["kind"], "decision-replay");
+    assert_eq!(replay["complete"], true);
+    assert_eq!(replay["provider_calls_performed"], false);
+    assert_eq!(replay["reducers"][0]["executed"], false);
 }
 
 #[test]

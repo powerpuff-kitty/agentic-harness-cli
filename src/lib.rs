@@ -178,7 +178,41 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 true,
             ),
             (Some("decisions"), "validate" | "fingerprint") => (&[], &[], 1, 1, false),
+            (Some("decisions"), "plan") => (&["--provider", "--mode"], &[], 3, 3, false),
+            (Some("decisions"), "replay") => (&[], &[], 2, 2, false),
+            (Some("decisions"), "outcome") => (
+                &[
+                    "--id",
+                    "--observed-at",
+                    "--label",
+                    "--verification",
+                    "--verification-ref",
+                    "--action-ref",
+                    "--usable",
+                    "--success",
+                ],
+                &[],
+                1,
+                1,
+                false,
+            ),
+            (Some("decisions"), "compare-receipts") => (
+                &[
+                    "--mode",
+                    "--dataset",
+                    "--revision",
+                    "--generated-at",
+                    "--changed",
+                ],
+                &[],
+                2,
+                2,
+                false,
+            ),
             (Some("decisions"), "jev-payload") => (&["--model"], &[], 2, 2, false),
+            (Some("decisions"), "jev-receipts") => {
+                (&["--decided-at", "--evidence"], &[], 3, 3, false)
+            }
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {

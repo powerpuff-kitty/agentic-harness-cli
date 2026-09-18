@@ -9,7 +9,12 @@ The current slice intentionally does **not** call TypeSafe or any other hosted p
 ```bash
 ah decisions validate decision.json
 ah decisions fingerprint state.json
+ah decisions plan graph.json specs.json state.json --provider typesafe-jev --mode shadow
+ah decisions replay graph.json receipts.json
+ah decisions outcome receipt.json --id outcome-1 --observed-at 2026-09-19T10:00:00Z --label confirmed --verification human
+ah decisions compare-receipts champion.json candidate.json --mode shadow --dataset triage-v1 --revision 1 --generated-at 2026-09-19T10:05:00Z --changed provider
 ah decisions jev-payload request.json specs.json --model jev-latest
+ah decisions jev-receipts request.json specs.json response.json --decided-at 2026-09-18T19:30:00Z --evidence evidence.json
 ```
 
 ### Validate
@@ -39,6 +44,42 @@ The command reads only the file named by the user. It does not inspect repositor
 
 This first fingerprint profile is identified as `ah-json-sha256-v1`. Consumers should persist the algorithm identifier with the fingerprint so future canonicalization changes do not silently alter identity semantics.
 
+### Plan and fan-out
+
+`decisions plan` validates a DecisionGraph and registry of DecisionSpecs against one explicit state snapshot, then emits topological stages. Nodes in the same stage are independent and may fan out in parallel; dependent nodes appear in later stages.
+
+Every node also receives a stable cache identity derived from the state fingerprint, spec ID/revision, provider hint and execution mode. Changing any of those inputs invalidates the identity rather than silently reusing stale inference.
+
+Planning performs no provider call and no side effect.
+
+### Replay
+
+`decisions replay` consumes recorded DecisionReceipts and a DecisionGraph. It rebuilds node inputs and deterministic reducer input references without re-inference.
+
+Replay refuses receipts that mix state fingerprints and reports unresolved nodes explicitly. It does not execute application/domain reducers because their implementation belongs to the consuming project.
+
+### Outcomes
+
+`decisions outcome` creates an immutable `DecisionOutcome v1` linked to a prior receipt. It records an observed label, verification type, optional verification/action references and whether the observation is usable for evaluation.
+
+The original DecisionReceipt is read and validated but never modified. Outcomes therefore append later knowledge instead of rewriting what the system knew at decision time.
+
+### Shadow, champion/challenger and counterfactual comparison
+
+`decisions compare-receipts` compares two valid receipts and emits a canonical `DecisionEvaluation v1` artifact.
+
+Supported modes:
+
+- `shadow`
+- `champion-challenger`
+- `counterfactual`
+
+The comparison records result/disposition agreement and provider-confidence delta when both receipts expose confidence. It always emits `side_effects: false` and performs no provider call or authorization.
+
+Counterfactual comparison requires explicit `--changed` dimensions such as `provider`, `model`, `policy`, `threshold`, `evidence`, `spec`, or `state`. Different state/spec identities are rejected unless the corresponding change dimension is declared.
+
+These artifacts are engineering evidence, not model-quality proof by themselves. Representative datasets, outcome labels and calibration remain separate evaluation work.
+
 ### Jev payload
 
 `decisions jev-payload` maps canonical atomic decision specs into the current TypeSafe Jev request shape:
@@ -55,6 +96,22 @@ The payload contains only the explicit `decision-request.state.payload`, selecte
 
 The default model name for payload construction is `jev-latest`; an explicit `--model` value can be supplied. This is payload construction only and does not establish that the model alias is reachable, billable, calibrated or suitable for a decision class.
 
+
+### Jev response normalization
+
+`decisions jev-receipts` converts an already-recorded TypeSafe response into canonical DecisionReceipts.
+
+It validates answer variants against their DecisionSpecs:
+
+- Noul becomes a boolean result plus the explicit yes/no distribution; two-sided certainty is `max(p, 1-p)`.
+- Choice must select one declared option and return exactly the declared option distribution.
+- Score must return a legend matching the declared ordered levels.
+
+The command never interprets vendor confidence as domain outcome probability. Calibration remains `unknown` until the project has representative empirical evidence. New receipts are review-required with the `unapplied` policy marker: normalization is not policy acceptance.
+
+Required evidence is resolved only from the explicit optional evidence manifest supplied by the caller. Missing requirements lower evidence coverage rather than being inferred from arbitrary state fields.
+
+
 ## Security and authorization
 
 - Decision providers have no consequence authority.
@@ -67,6 +124,8 @@ The default model name for payload construction is `jev-latest`; an explicit `--
 ## Runtime roadmap
 
 This offline slice establishes the safe boundary required before live inference.
+
+The merged runtime now also covers fan-out planning, stable cache identities, response normalization and replay without re-inference.
 
 Follow-up under issue #77 adds opt-in hosted TypeSafe transport with:
 
