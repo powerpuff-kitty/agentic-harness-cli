@@ -343,7 +343,13 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         (&["decisions", "validate", "artifact.json"], &[]),
         (&["decisions", "fingerprint", "state.json"], &[]),
         (
-            &["decisions", "plan", "graph.json", "specs.json", "state.json"],
+            &[
+                "decisions",
+                "plan",
+                "graph.json",
+                "specs.json",
+                "state.json",
+            ],
             &["--provider", "--mode"],
         ),
         (&["decisions", "replay", "graph.json", "receipts.json"], &[]),
@@ -994,11 +1000,21 @@ fn decision_kernel_plans_normalizes_and_replays_without_side_effects() {
         })
         .to_string(),
     );
-    f.put("state2.json", json!({"task":"review this change"}).to_string());
+    f.put(
+        "state2.json",
+        json!({"task":"review this change"}).to_string(),
+    );
     let plan = f.json(
         &[
-            "decisions","plan","graph2.json","specs2.json","state2.json",
-            "--provider","typesafe-jev","--mode","shadow"
+            "decisions",
+            "plan",
+            "graph2.json",
+            "specs2.json",
+            "state2.json",
+            "--provider",
+            "typesafe-jev",
+            "--mode",
+            "shadow",
         ],
         0,
     );
@@ -1040,8 +1056,15 @@ fn decision_kernel_plans_normalizes_and_replays_without_side_effects() {
     );
     let receipts = f.json(
         &[
-            "decisions","jev-receipts","request2.json","specs2.json","response2.json",
-            "--decided-at","2026-09-18T19:30:00Z","--evidence","evidence2.json"
+            "decisions",
+            "jev-receipts",
+            "request2.json",
+            "specs2.json",
+            "response2.json",
+            "--decided-at",
+            "2026-09-18T19:30:00Z",
+            "--evidence",
+            "evidence2.json",
         ],
         0,
     );
@@ -1051,10 +1074,7 @@ fn decision_kernel_plans_normalizes_and_replays_without_side_effects() {
     assert_eq!(receipts["receipts"][0]["policy"]["disposition"], "review");
     f.put("receipts2.json", receipts.to_string());
 
-    let replay = f.json(
-        &["decisions","replay","graph2.json","receipts2.json"],
-        0,
-    );
+    let replay = f.json(&["decisions", "replay", "graph2.json", "receipts2.json"], 0);
     assert_eq!(replay["kind"], "decision-replay");
     assert_eq!(replay["complete"], true);
     assert_eq!(replay["provider_calls_performed"], false);
