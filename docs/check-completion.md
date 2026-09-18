@@ -36,3 +36,11 @@ Exit 0 emits `check-completion`, `completion_verified:true`, `scope:declared-che
 This gate verifies integrity and semantic consistency under caller trust. It cannot prove that approved producers told the truth, that reference contents substantiate claims, or that a host actually enforced them. Clock trust, undeclared/transitive inputs, reverted mutations and changes after evaluation remain explicit limits. No imported command is executed and no artifact is implicitly written.
 
 Validation: `scripts/validate-completion.py` runs authored synthetic positive/negative cases and validates actual output against pinned schemas. Candidate verification repeats these with a copied binary. Governance library tests cover semantic matrices; existing full Rust checks remain required. Windows lacks a verified executor and cannot produce a locally matching successful run; positive completion is not claimed there.
+
+## Local verification — 2026-09-18
+
+Implementation commit `1f08b82`; canonical contract pin `eac2d48`; agent-procedure pin `7e7d44e`. Tested debug binary SHA-256: `a5ab1faca2e0741496eb47049eefad5328c6d23c271f2d3496b70a01ea44f68c`.
+
+On macOS x86_64, Rust 1.94.1: 190 Rust tests, Clippy with warnings denied and formatting passed. Actual contract/schema validation passed. Copied-binary candidate verification passed 25 completion cases covering required governance, explicit approval, altered metadata, cleanup integrity, stale/future/mismatched evidence, duplicate claims, changed references, path traversal, missing approval, producer mismatch and symlinks. Canonical contract/catalog and agent procedure validation passed. An old adapter test pin was corrected to assert the current lock; the skill-delivery evidence fixture was repinned without changing its file hashes.
+
+The #86 reading-list trial passed unit/types/build/browser, accepted a saved run under the declared scope, then rejected it after a source change. That app trial has no required governance controls; the separate synthetic completion probes cover required governance. No actual producer signature or native coding-host/model execution is claimed. Source commits remain local/unpublished and remote platform CI is unobserved.
