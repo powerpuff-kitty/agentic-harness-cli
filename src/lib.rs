@@ -11,13 +11,13 @@ pub mod check_verdict;
 mod checks;
 mod cli;
 mod date;
+mod decisions;
 mod design_analysis;
 mod design_cli;
 mod design_diff;
 mod design_genome;
 mod design_prompt;
 mod design_system;
-mod decisions;
 mod project;
 mod scan;
 mod syntax;
@@ -57,7 +57,15 @@ pub fn entry(family: Option<&str>) {
     }
     let family = family.map(str::to_owned).or_else(|| {
         if args.get(1).is_some_and(|x| {
-            ["agentic", "architecture", "design", "checks", "adapters", "decisions"].contains(&x.as_str())
+            [
+                "agentic",
+                "architecture",
+                "design",
+                "checks",
+                "adapters",
+                "decisions",
+            ]
+            .contains(&x.as_str())
         }) {
             Some(args.remove(1))
         } else {
