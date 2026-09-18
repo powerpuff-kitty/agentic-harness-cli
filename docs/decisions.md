@@ -11,6 +11,8 @@ ah decisions validate decision.json
 ah decisions fingerprint state.json
 ah decisions plan graph.json specs.json state.json --provider typesafe-jev --mode shadow
 ah decisions replay graph.json receipts.json
+ah decisions outcome receipt.json --id outcome-1 --observed-at 2026-09-19T10:00:00Z --label confirmed --verification human
+ah decisions compare-receipts champion.json candidate.json --mode shadow --dataset triage-v1 --revision 1 --generated-at 2026-09-19T10:05:00Z --changed provider
 ah decisions jev-payload request.json specs.json --model jev-latest
 ah decisions jev-receipts request.json specs.json response.json --decided-at 2026-09-18T19:30:00Z --evidence evidence.json
 ```
@@ -55,6 +57,28 @@ Planning performs no provider call and no side effect.
 `decisions replay` consumes recorded DecisionReceipts and a DecisionGraph. It rebuilds node inputs and deterministic reducer input references without re-inference.
 
 Replay refuses receipts that mix state fingerprints and reports unresolved nodes explicitly. It does not execute application/domain reducers because their implementation belongs to the consuming project.
+
+### Outcomes
+
+`decisions outcome` creates an immutable `DecisionOutcome v1` linked to a prior receipt. It records an observed label, verification type, optional verification/action references and whether the observation is usable for evaluation.
+
+The original DecisionReceipt is read and validated but never modified. Outcomes therefore append later knowledge instead of rewriting what the system knew at decision time.
+
+### Shadow, champion/challenger and counterfactual comparison
+
+`decisions compare-receipts` compares two valid receipts and emits a canonical `DecisionEvaluation v1` artifact.
+
+Supported modes:
+
+- `shadow`
+- `champion-challenger`
+- `counterfactual`
+
+The comparison records result/disposition agreement and provider-confidence delta when both receipts expose confidence. It always emits `side_effects: false` and performs no provider call or authorization.
+
+Counterfactual comparison requires explicit `--changed` dimensions such as `provider`, `model`, `policy`, `threshold`, `evidence`, `spec`, or `state`. Different state/spec identities are rejected unless the corresponding change dimension is declared.
+
+These artifacts are engineering evidence, not model-quality proof by themselves. Representative datasets, outcome labels and calibration remain separate evaluation work.
 
 ### Jev payload
 
