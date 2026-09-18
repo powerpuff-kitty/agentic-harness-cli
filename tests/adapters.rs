@@ -369,7 +369,7 @@ fn successful_copy_never_claims_host_delivery_or_enforcement() {
     );
     assert_eq!(
         result["source"]["commit"],
-        "65c1e2706db353ba9e96368a8be6a6634385f917"
+        "5fceb09a50222a29ef0c9a52338ba9be9a82e995"
     );
 }
 

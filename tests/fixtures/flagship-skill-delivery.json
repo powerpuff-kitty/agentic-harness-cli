@@ -3,12 +3,13 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/agentic-harness-agents",
-    "commit": "65c1e2706db353ba9e96368a8be6a6634385f917"
+    "commit": "5fceb09a50222a29ef0c9a52338ba9be9a82e995"
   },
   "skills": {
     "codebase-audit": {
-      "SKILL.md": "4e6e580913749b40f8f0fc858c50de5e3945d1bab9717e88cd73392140f0682c",
-      "bundle.json": "685b5bed93708dda657a9efbc84e8abf7e1206f493c5b2a59e3007ce7c2ce07a",
+      "SKILL.md": "c3c1981ae476339df34c0c61b95d7bce41bf8691bc0d2e93e5e435108599eddc",
+      "bundle.json": "c912b6c1c3a6e0b50d3ae3074b2a0df6cedecff9b80b31ea368bf72ed248db4b",
+      "references/language-review-packs.md": "3d731cff199bc18114a96a6464bd105363ef60aa83fd29517734a06968b46b3f",
       "references/report-template.md": "72eebf31219e73ef7fc7f00fd21b66069bc0a33a8de65b5cdea1e706f7181e82",
       "references/review-guide.md": "cedbc8b26c3f2d96987403756f43028fe3770a1d1939457f4583d5e3ec6f5a92"
     },

@@ -51,6 +51,7 @@ pub fn load(root: &Path) -> Result<Project, String> {
         return Err("project.type must be a nonempty string or array of strings".into());
     }
     if modern {
+        crate::context_selection::Profile::from_manifest(&manifest)?;
         for key in ["context", "modules", "permissions", "adapters"] {
             if !manifest[key].is_object() {
                 return Err(format!("{key} must be a mapping"));

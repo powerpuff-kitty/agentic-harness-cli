@@ -10,6 +10,7 @@ mod check_inputs;
 pub mod check_verdict;
 mod checks;
 mod cli;
+mod context_selection;
 mod date;
 mod design_analysis;
 mod design_cli;
@@ -107,6 +108,7 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                     "--template",
                     "--preset",
                     "--profile",
+                    "--context-profile",
                     "--pack",
                     "--skill",
                     "--policy",

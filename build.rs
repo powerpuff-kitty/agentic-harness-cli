@@ -2,6 +2,8 @@ use std::path::Path;
 
 fn main() {
     let required = [
+        "upstream/agentic-harness/catalog/context/profiles.v1.json",
+        "upstream/agentic-harness/catalog/context/minimal-map.md",
         "upstream/agentic-harness-registry/registry/models",
         "upstream/agentic-harness/catalog/variants/base/variant.json",
         "upstream/agentic-harness/catalog/variants/web-app/variant.json",

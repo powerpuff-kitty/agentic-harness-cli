@@ -1,5 +1,7 @@
 # CLI architecture
 
+`context_selection.rs` consumes the pinned canonical context profile and map template. It stages minimal context without changing complete materialized source variants; `compose` handles preservation and managed selection metadata. Full remains the compatibility default. The manifest persists selection; lock checksums retain its provenance without a lockfile format change. Existing context maps/routes stay project-owned across mode changes.
+
 The shared Rust library owns command parsing, composition, project validation, scoped inventory, and analyzers. `ah` dispatches every family directly; the `ah-agentic`, `ah-architecture`, and `ah-design` binaries are compatibility entry points into the same library.
 
 Build inputs are pinned in `upstream.lock.json`: canonical `catalog/variants/*/files`, packs, policies, profiles, presets and schemas; agent procedures/skills; and model-registry profiles. `include_dir` embeds these inputs. Runtime operation requires no source checkout, Rust, registry directory, network or sibling binaries. `scripts/sync-upstream.py` preserves existing source edits and fetches exact revisions; `Cargo.lock` fixes Rust dependencies.

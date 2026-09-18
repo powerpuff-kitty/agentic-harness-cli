@@ -154,9 +154,11 @@ fn boilerplate_meta(name: &str) -> Value {
         .unwrap_or_else(|e| die(format!("invalid {name}/boilerplate.json: {e}")))
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct ComposeOpts {
     boilerplate: String,
+    boilerplate_explicit: bool,
+    context_profile: Option<crate::context_selection::Profile>,
     preset: Option<String>,
     profile: Option<String>,
     packs: Vec<String>,
@@ -287,7 +289,49 @@ fn install_modules(
     Ok(())
 }
 
-fn compose(target: &Path, o: ComposeOpts, preserve: bool) -> io::Result<Value> {
+fn compose(target: &Path, mut o: ComposeOpts, preserve: bool) -> io::Result<Value> {
+    use crate::context_selection::{self, Profile};
+    // Read existing selection before resolving defaults. No target writes occur here.
+    let existing_project = if target.join(".agentic/manifest.yaml").exists() {
+        Some(crate::project::load(target).map_err(io::Error::other)?)
+    } else {
+        None
+    };
+    let context_profile = o.context_profile.unwrap_or(
+        existing_project
+            .as_ref()
+            .map(|p| Profile::from_manifest(&p.manifest))
+            .transpose()
+            .map_err(io::Error::other)?
+            .unwrap_or(Profile::Full),
+    );
+    if let Some(project) = &existing_project
+        && !o.boilerplate_explicit
+        && o.preset.is_none()
+    {
+        let lock = target.join(".agentic/lock.json");
+        let variant = if lock.exists() {
+            let text = crate::scan::read(target, &lock, 4_000_000).map_err(io::Error::other)?;
+            let lock: Value = serde_json::from_str(&text).map_err(io::Error::other)?;
+            lock["variant"].as_str().map(str::to_string)
+        } else {
+            project.manifest["project"]["type"]
+                .as_str()
+                .map(str::to_string)
+        };
+        if let Some(variant) = variant {
+            if VARIANTS
+                .get_file(format!("{variant}/variant.json"))
+                .is_some()
+            {
+                o.boilerplate = variant;
+            } else if lock.exists() {
+                return Err(io::Error::other(
+                    "unknown installed variant; select --boilerplate explicitly",
+                ));
+            }
+        }
+    }
     let explicit_modules = !o.packs.is_empty()
         || !o.skills.is_empty()
         || !o.policies.is_empty()
@@ -342,7 +386,33 @@ fn compose(target: &Path, o: ComposeOpts, preserve: bool) -> io::Result<Value> {
     let staging = tempfile::Builder::new()
         .prefix(".ah-stage-")
         .tempdir_in(parent)?;
-    copy_embedded(boilerplate_dir(&o.boilerplate), staging.path(), false)?;
+    if context_profile == Profile::Minimal {
+        let mut selected = [
+            ("packs", o.packs.clone()),
+            ("policies", o.policies.clone()),
+            ("skills", o.skills.clone()),
+        ];
+        if let Some(project) = &existing_project {
+            for (kind, names) in &mut selected {
+                let existing = if *kind == "skills" {
+                    &project.manifest["skills"]
+                } else {
+                    &project.manifest["modules"][*kind]
+                };
+                names.extend(strings(Some(existing)));
+                dedupe(names);
+            }
+        }
+        context_selection::stage_minimal(
+            boilerplate_dir(&o.boilerplate),
+            &o.boilerplate,
+            staging.path(),
+            &selected,
+            boilerplate_dir,
+        )?;
+    } else {
+        copy_embedded(boilerplate_dir(&o.boilerplate), staging.path(), false)?;
+    }
     install_modules(staging.path(), &o.packs, &o.skills, &o.policies)?;
     patch_manifest(
         &staging.path().join(".agentic/manifest.yaml"),
@@ -352,6 +422,7 @@ fn compose(target: &Path, o: ComposeOpts, preserve: bool) -> io::Result<Value> {
         &o.skills,
         &o.policies,
     )?;
+    context_selection::configure_staged(staging.path(), context_profile)?;
     if current || legacy {
         let project = crate::project::load(target).map_err(io::Error::other)?;
         for (key, name) in [
@@ -392,6 +463,9 @@ fn compose(target: &Path, o: ComposeOpts, preserve: bool) -> io::Result<Value> {
         let project = crate::project::load(target).map_err(io::Error::other)?;
         let original = project.manifest.clone();
         let mut value = original.clone();
+        if o.context_profile.is_some() {
+            value["composition"] = json!({"context_profile": context_profile.name()});
+        }
         if let Some(name) = requested_name {
             value["project"]["name"] = json!(name);
         }
@@ -603,7 +677,7 @@ fn compose(target: &Path, o: ComposeOpts, preserve: bool) -> io::Result<Value> {
         }
     }
     Ok(
-        json!({"format_version":1,"kind":"composition","boilerplate":o.boilerplate,"preset":o.preset,"profile":o.profile,"created":created,"preserved":retained,"conflicts":conflicts,"removed":[],"updated":managed.keys().collect::<Vec<_>>(),"packs":o.packs,"skills":o.skills,"policies":o.policies,"maturity":o.maturity,"preserve_requested":preserve,"conflict_policy":"existing content retained; reconcile conflicts explicitly"}),
+        json!({"format_version":1,"kind":"composition","boilerplate":o.boilerplate,"preset":o.preset,"profile":o.profile,"context_profile":context_profile.name(),"created":created,"preserved":retained,"conflicts":conflicts,"removed":[],"updated":managed.keys().collect::<Vec<_>>(),"packs":o.packs,"skills":o.skills,"policies":o.policies,"maturity":o.maturity,"preserve_requested":preserve,"conflict_policy":"existing content retained; reconcile conflicts explicitly"}),
     )
 }
 fn collect_staged(root: &Path, dir: &Path, out: &mut Vec<String>) -> io::Result<()> {
@@ -936,7 +1010,7 @@ fn harness_audit(root: &Path) -> Value {
 
 fn usage(prog: &str) {
     println!(
-        "Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  architecture <detect|analyze|enforce> [TARGET]\n  design <analyze|preserve|diff|prompt> [options]\n  agentic <audit|context|skills|models|compare|improve|migrate> [options] (experimental)\n  catalog-check\n  init TARGET [--boilerplate NAME] [--preset NAME] [--profile NAME] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N] [--max-architecture-errors N] [--fail-on-architecture-error]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]\n\ncompatibility:\n  --version prints build/catalog identity. Audit v2 uses null for unmeasured scores.\n  --template NAME is retained as an alias for --boilerplate NAME"
+        "Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  architecture <detect|analyze|enforce> [TARGET]\n  design <analyze|preserve|diff|prompt> [options]\n  agentic <audit|context|skills|models|compare|improve|migrate> [options] (experimental)\n  catalog-check\n  init TARGET [--boilerplate NAME] [--preset NAME] [--profile NAME] [--context-profile full|minimal] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N] [--max-architecture-errors N] [--fail-on-architecture-error]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]\n\ncompatibility:\n  --version prints build/catalog identity. Audit v2 uses null for unmeasured scores.\n  --template NAME is retained as an alias for --boilerplate NAME"
     );
 }
 
@@ -960,6 +1034,7 @@ fn parse_compose(args: &[String]) -> (PathBuf, ComposeOpts, bool) {
     while i < args.len() {
         match args[i].as_str() {
             "--boilerplate" | "--template" => {
+                o.boilerplate_explicit = true;
                 let flag = args[i].clone();
                 i += 1;
                 o.boilerplate = required_value(args, i, &flag);
@@ -971,6 +1046,17 @@ fn parse_compose(args: &[String]) -> (PathBuf, ComposeOpts, bool) {
             "--profile" => {
                 i += 1;
                 o.profile = Some(required_value(args, i, "--profile"));
+            }
+            "--context-profile" => {
+                i += 1;
+                o.context_profile = Some(
+                    crate::context_selection::Profile::parse(&required_value(
+                        args,
+                        i,
+                        "--context-profile",
+                    ))
+                    .unwrap_or_else(|e| die(e)),
+                );
             }
             "--pack" => {
                 i += 1;
@@ -1240,6 +1326,45 @@ mod tests {
     use super::*;
 
     #[test]
+    fn failed_context_expansion_restores_every_file_and_selection() {
+        use crate::context_selection::Profile;
+        fn snapshot(root: &Path) -> BTreeMap<String, Vec<u8>> {
+            let mut paths = Vec::new();
+            collect_staged(root, root, &mut paths).unwrap();
+            paths
+                .into_iter()
+                .map(|path| {
+                    let bytes = fs::read(root.join(&path)).unwrap();
+                    (path, bytes)
+                })
+                .collect()
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let options = |profile| ComposeOpts {
+            boilerplate: "base".into(),
+            context_profile: Some(profile),
+            ..Default::default()
+        };
+        let probe = temp.path().join("probe");
+        compose(&probe, options(Profile::Minimal), false).unwrap();
+        let report = compose(&probe, options(Profile::Full), true).unwrap();
+        let writes = report["created"].as_array().unwrap().len()
+            + report["updated"].as_array().unwrap().len();
+        assert!(writes > 2);
+        for fail_at in 0..writes {
+            let root = temp.path().join(format!("failure-{fail_at}"));
+            compose(&root, options(Profile::Minimal), false).unwrap();
+            let before = snapshot(&root);
+            let mut change = options(Profile::Full);
+            change.fail_after_writes = Some(fail_at);
+            let error = compose(&root, change, true).unwrap_err();
+            assert!(error.to_string().contains("injected"), "{error}");
+            assert_eq!(snapshot(&root), before, "failure at write {fail_at}");
+            assert_eq!(crate::project::validate(&root)["valid"], true);
+        }
+    }
+
+    #[test]
     fn failed_metadata_upgrade_restores_original_bytes() {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().join("project");
@@ -1305,10 +1430,17 @@ mod tests {
         }
         for (i, mut option) in options.into_iter().enumerate() {
             option.boilerplate = "base".into();
-            let root = temp.path().join(i.to_string());
-            compose(&root, option, false).unwrap();
-            let result = crate::project::validate(&root);
-            assert_eq!(result["valid"], true, "{result}");
+            for profile in [
+                crate::context_selection::Profile::Full,
+                crate::context_selection::Profile::Minimal,
+            ] {
+                let mut selected = option.clone();
+                selected.context_profile = Some(profile);
+                let root = temp.path().join(format!("{i}-{}", profile.name()));
+                compose(&root, selected, false).unwrap();
+                let result = crate::project::validate(&root);
+                assert_eq!(result["valid"], true, "{result}");
+            }
         }
     }
 
