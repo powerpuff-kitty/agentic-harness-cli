@@ -2179,8 +2179,7 @@ pub(crate) fn run(args: Vec<String>) {
             println!("{}", serde_json::to_string_pretty(&evaluation).unwrap());
         }
         "calibration-report" => {
-            let dataset =
-                read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
+            let dataset = read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
             let mut bins = 10_usize;
             let mut target_accuracy: Option<f64> = None;
             let mut minimum_coverage: Option<f64> = None;
@@ -2196,9 +2195,9 @@ pub(crate) fn run(args: Vec<String>) {
                     .unwrap_or_else(|| crate::fail(format!("decisions: {flag} requires a value")));
                 match flag {
                     "--bins" => {
-                        bins = value
-                            .parse::<usize>()
-                            .unwrap_or_else(|_| crate::fail("decisions: --bins must be an integer"));
+                        bins = value.parse::<usize>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --bins must be an integer")
+                        });
                     }
                     "--target-accuracy" => {
                         target_accuracy = Some(value.parse::<f64>().unwrap_or_else(|_| {
@@ -2229,9 +2228,8 @@ pub(crate) fn run(args: Vec<String>) {
                     target_accuracy,
                     minimum_coverage,
                     minimum_samples,
-                    generated_at: generated_at.unwrap_or_else(|| {
-                        crate::fail("decisions: --generated-at is required")
-                    }),
+                    generated_at: generated_at
+                        .unwrap_or_else(|| crate::fail("decisions: --generated-at is required")),
                 },
             )
             .unwrap_or_else(|error| crate::fail(error));
@@ -2259,9 +2257,9 @@ pub(crate) fn run(args: Vec<String>) {
                     .cloned()
                     .unwrap_or_else(|| crate::fail(format!("decisions: {flag} requires a value")));
                 let numeric = || {
-                    value
-                        .parse::<f64>()
-                        .unwrap_or_else(|_| crate::fail(format!("decisions: {flag} must be numeric")))
+                    value.parse::<f64>().unwrap_or_else(|_| {
+                        crate::fail(format!("decisions: {flag} must be numeric"))
+                    })
                 };
                 match flag {
                     "--max-accuracy-drop" => max_accuracy_drop = numeric(),
@@ -2269,12 +2267,8 @@ pub(crate) fn run(args: Vec<String>) {
                     "--max-brier-increase" => max_brier_increase = numeric(),
                     "--max-ece-increase" => max_ece_increase = numeric(),
                     "--max-ordinal-mae-increase" => max_ordinal_mae_increase = numeric(),
-                    "--max-latency-increase-ms" => {
-                        max_mean_latency_increase_ms = Some(numeric())
-                    }
-                    "--max-cost-increase-usd" => {
-                        max_total_cost_increase_usd = Some(numeric())
-                    }
+                    "--max-latency-increase-ms" => max_mean_latency_increase_ms = Some(numeric()),
+                    "--max-cost-increase-usd" => max_total_cost_increase_usd = Some(numeric()),
                     "--generated-at" => generated_at = Some(value),
                     option => crate::fail(format!(
                         "decisions: unknown calibration-compare option: {option}"
