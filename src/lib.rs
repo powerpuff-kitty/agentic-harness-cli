@@ -151,6 +151,8 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
             (Some("quality"), "detect" | "analyze") => (&[], &[], 0, 1, true),
+            (Some("quality"), "baseline") => (&["--output"], &[], 0, 1, true),
+            (Some("quality"), "diff") => (&["--output"], &[], 1, 2, false),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {
