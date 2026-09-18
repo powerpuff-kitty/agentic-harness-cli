@@ -149,21 +149,14 @@ mod native {
                 // direct child. Negative PID addresses only its original group.
                 let result = unsafe { libc::kill(-self.group, libc::SIGKILL) };
                 let error = io::Error::last_os_error().raw_os_error();
-                if result == 0 || error == Some(libc::ESRCH) {
-                    true
-                } else {
-                    #[cfg(target_os = "macos")]
-                    {
-                        self.no_live_members = error == Some(libc::EPERM)
-                            && matches!(observed, Ok(true))
-                            && no_live_group_members(self.group);
-                        self.no_live_members
-                    }
-                    #[cfg(not(target_os = "macos"))]
-                    {
-                        false
-                    }
+                let signalled = result == 0 || error == Some(libc::ESRCH);
+                #[cfg(target_os = "macos")]
+                if !signalled {
+                    self.no_live_members = error == Some(libc::EPERM)
+                        && matches!(observed, Ok(true))
+                        && no_live_group_members(self.group);
                 }
+                signalled || self.no_live_members
             } else {
                 false
             };
