@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-regression.v1.schema.json",
+  "title": "Agentic Harness DecisionRegression v1",
+  "description": "Deterministic comparison of baseline/candidate calibration reports against explicit quality budgets.",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "baseline",
+    "candidate",
+    "budgets",
+    "deltas",
+    "passed",
+    "generated_at",
+    "side_effects",
+    "consequence_authorized"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-regression"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline": {
+      "type": "object",
+      "required": [
+        "calibration_id",
+        "dataset_id",
+        "dataset_revision"
+      ],
+      "additionalProperties": true
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "calibration_id",
+        "dataset_id",
+        "dataset_revision"
+      ],
+      "additionalProperties": true
+    },
+    "budgets": {
+      "type": "object",
+      "required": [
+        "max_accuracy_drop",
+        "max_coverage_drop",
+        "max_brier_increase",
+        "max_ece_increase",
+        "max_ordinal_mae_increase"
+      ],
+      "properties": {
+        "max_accuracy_drop": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_coverage_drop": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_brier_increase": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_ece_increase": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_ordinal_mae_increase": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_mean_latency_increase_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max_total_cost_increase_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "deltas": {
+      "type": "object",
+      "required": [
+        "accuracy",
+        "coverage",
+        "brier_score",
+        "expected_calibration_error",
+        "ordinal_mae",
+        "mean_latency_ms",
+        "total_cost_usd"
+      ],
+      "properties": {
+        "accuracy": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "coverage": {
+          "type": "number"
+        },
+        "brier_score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "expected_calibration_error": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ordinal_mae": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "mean_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "total_cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "failures": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "side_effects": {
+      "const": false
+    },
+    "consequence_authorized": {
+      "const": false
+    }
+  },
+  "additionalProperties": true
+}
