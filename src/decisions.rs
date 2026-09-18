@@ -677,7 +677,7 @@ fn validate_distribution(value: &Value, context: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_receipt(value: &Value) -> Result<(), String> {
+pub(crate) fn validate_receipt(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-receipt")?;
     if root.contains_key("outcome_probability") {
         return Err("decisions: outcome_probability is not a DecisionReceipt field".into());
@@ -1006,6 +1006,9 @@ fn schema_name(kind: &str) -> Option<&'static str> {
         "decision-receipt" => Some("decision-receipt.v1.schema.json"),
         "decision-outcome" => Some("decision-outcome.v1.schema.json"),
         "decision-evaluation" => Some("decision-evaluation.v1.schema.json"),
+        "decision-eval-dataset" => Some("decision-eval-dataset.v1.schema.json"),
+        "decision-calibration" => Some("decision-calibration.v1.schema.json"),
+        "decision-regression" => Some("decision-regression.v1.schema.json"),
         _ => None,
     }
 }
@@ -1024,6 +1027,9 @@ fn validate_artifact(value: &Value) -> Result<&str, String> {
         "decision-receipt" => validate_receipt(value)?,
         "decision-outcome" => validate_outcome(value)?,
         "decision-evaluation" => validate_evaluation(value)?,
+        "decision-eval-dataset" => crate::decision_calibration::validate_dataset(value)?,
+        "decision-calibration" => crate::decision_calibration::validate_calibration(value)?,
+        "decision-regression" => crate::decision_calibration::validate_regression(value)?,
         _ => return Err(format!("decisions: unsupported artifact kind: {kind}")),
     }
     Ok(kind)
@@ -1948,7 +1954,7 @@ fn compare_receipts(
 
 fn usage(program: &str) {
     println!(
-        "Agentic Harness Decisions\n\nusage:\n  {program} validate ARTIFACT.json\n  {program} fingerprint STATE.json\n  {program} plan GRAPH.json SPECS.json STATE.json [--provider ID] [--mode MODE]\n  {program} replay GRAPH.json RECEIPTS.json\n  {program} outcome RECEIPT.json --id ID --observed-at RFC3339 --label LABEL --verification TYPE [--verification-ref REF] [--action-ref REF] [--usable true|false] [--success true|false]\n  {program} compare-receipts CHAMPION.json CANDIDATE.json --mode shadow|champion-challenger|counterfactual --dataset ID --revision REV --generated-at RFC3339 [--changed provider,model,...]\n  {program} jev-payload REQUEST.json SPECS.json [--model MODEL]\n  {program} jev-evaluate REQUEST.json SPECS.json --allow-network --decided-at RFC3339 [--evidence EVIDENCE.json] [--model MODEL] [--timeout-ms 10000] [--max-retries 2]\n  {program} jev-receipts REQUEST.json SPECS.json RESPONSE.json --decided-at RFC3339 [--evidence EVIDENCE.json]\n\ncommands:\n  validate      Validate a Decision Kernel v1 artifact plus semantic invariants\n  fingerprint   Canonicalize explicit JSON state and emit its SHA-256 identity\n  plan          Topologically stage a DecisionGraph into parallel fan-out batches and cache identities\n  replay        Reconstruct graph inputs from recorded receipts without provider calls\n  outcome       Append an observed outcome/verification artifact without rewriting its receipt\n  compare-receipts  Build side-effect-free shadow/challenger/counterfactual evaluation evidence\n  jev-payload   Construct the documented TypeSafe Jev request without making a network call\n  jev-evaluate  Opt in to hosted TypeSafe evaluation and normalize the live response into review-required receipts\n  jev-receipts  Normalize a recorded Jev response into canonical review-required DecisionReceipts"
+        "Agentic Harness Decisions\n\nusage:\n  {program} validate ARTIFACT.json\n  {program} fingerprint STATE.json\n  {program} plan GRAPH.json SPECS.json STATE.json [--provider ID] [--mode MODE]\n  {program} replay GRAPH.json RECEIPTS.json\n  {program} outcome RECEIPT.json --id ID --observed-at RFC3339 --label LABEL --verification TYPE [--verification-ref REF] [--action-ref REF] [--usable true|false] [--success true|false]\n  {program} compare-receipts CHAMPION.json CANDIDATE.json --mode shadow|champion-challenger|counterfactual --dataset ID --revision REV --generated-at RFC3339 [--changed provider,model,...]\n  {program} calibration-report DATASET.json --generated-at RFC3339 [--bins 10] [--target-accuracy N --min-coverage N --min-samples N]\n  {program} calibration-compare BASELINE.json CANDIDATE.json --generated-at RFC3339 [--max-accuracy-drop N] [--max-coverage-drop N] [--max-brier-increase N] [--max-ece-increase N] [--max-ordinal-mae-increase N] [--max-latency-increase-ms N] [--max-cost-increase-usd N]\n  {program} jev-payload REQUEST.json SPECS.json [--model MODEL]\n  {program} jev-evaluate REQUEST.json SPECS.json --allow-network --decided-at RFC3339 [--evidence EVIDENCE.json] [--model MODEL] [--timeout-ms 10000] [--max-retries 2]\n  {program} jev-receipts REQUEST.json SPECS.json RESPONSE.json --decided-at RFC3339 [--evidence EVIDENCE.json]\n\ncommands:\n  validate      Validate a Decision Kernel v1 artifact plus semantic invariants\n  fingerprint   Canonicalize explicit JSON state and emit its SHA-256 identity\n  plan          Topologically stage a DecisionGraph into parallel fan-out batches and cache identities\n  replay        Reconstruct graph inputs from recorded receipts without provider calls\n  outcome       Append an observed outcome/verification artifact without rewriting its receipt\n  compare-receipts  Build side-effect-free shadow/challenger/counterfactual evaluation evidence\n  calibration-report  Compute offline quality/calibration metrics and optionally tune a threshold on calibration split\n  calibration-compare  Apply deterministic regression budgets to two calibration reports\n  jev-payload   Construct the documented TypeSafe Jev request without making a network call\n  jev-evaluate  Opt in to hosted TypeSafe evaluation and normalize the live response into review-required receipts\n  jev-receipts  Normalize a recorded Jev response into canonical review-required DecisionReceipts"
     );
 }
 
@@ -1988,6 +1994,9 @@ pub(crate) fn run(args: Vec<String>) {
                         "probability distribution normalization where applicable",
                         "provider consequence authority is forbidden",
                         "evaluation side effects are forbidden",
+                        "calibration datasets preserve one exact spec/state-schema/provider identity",
+                        "threshold tuning is calibration-split only",
+                        "regression pass/fail matches explicit failure evidence",
                         "semantic confidence is not domain outcome probability"
                     ],
                     "not_checked":[
@@ -2168,6 +2177,133 @@ pub(crate) fn run(args: Vec<String>) {
             )
             .unwrap_or_else(|error| crate::fail(error));
             println!("{}", serde_json::to_string_pretty(&evaluation).unwrap());
+        }
+        "calibration-report" => {
+            let dataset =
+                read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
+            let mut bins = 10_usize;
+            let mut target_accuracy: Option<f64> = None;
+            let mut minimum_coverage: Option<f64> = None;
+            let mut minimum_samples = 30_usize;
+            let mut generated_at: Option<String> = None;
+            let mut index = 3;
+            while index < args.len() {
+                let flag = args[index].as_str();
+                index += 1;
+                let value = args
+                    .get(index)
+                    .cloned()
+                    .unwrap_or_else(|| crate::fail(format!("decisions: {flag} requires a value")));
+                match flag {
+                    "--bins" => {
+                        bins = value
+                            .parse::<usize>()
+                            .unwrap_or_else(|_| crate::fail("decisions: --bins must be an integer"));
+                    }
+                    "--target-accuracy" => {
+                        target_accuracy = Some(value.parse::<f64>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --target-accuracy must be numeric")
+                        }));
+                    }
+                    "--min-coverage" => {
+                        minimum_coverage = Some(value.parse::<f64>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --min-coverage must be numeric")
+                        }));
+                    }
+                    "--min-samples" => {
+                        minimum_samples = value.parse::<usize>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --min-samples must be an integer")
+                        });
+                    }
+                    "--generated-at" => generated_at = Some(value),
+                    option => crate::fail(format!(
+                        "decisions: unknown calibration-report option: {option}"
+                    )),
+                }
+                index += 1;
+            }
+            let report = crate::decision_calibration::calibrate_dataset(
+                &dataset,
+                &crate::decision_calibration::CalibrationOptions {
+                    bins,
+                    target_accuracy,
+                    minimum_coverage,
+                    minimum_samples,
+                    generated_at: generated_at.unwrap_or_else(|| {
+                        crate::fail("decisions: --generated-at is required")
+                    }),
+                },
+            )
+            .unwrap_or_else(|error| crate::fail(error));
+            println!("{}", serde_json::to_string_pretty(&report).unwrap());
+        }
+        "calibration-compare" => {
+            let baseline =
+                read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
+            let candidate =
+                read_json(Path::new(&args[3])).unwrap_or_else(|error| crate::fail(error));
+            let mut max_accuracy_drop = 0.0_f64;
+            let mut max_coverage_drop = 0.0_f64;
+            let mut max_brier_increase = 0.0_f64;
+            let mut max_ece_increase = 0.0_f64;
+            let mut max_ordinal_mae_increase = 0.0_f64;
+            let mut max_mean_latency_increase_ms: Option<f64> = None;
+            let mut max_total_cost_increase_usd: Option<f64> = None;
+            let mut generated_at: Option<String> = None;
+            let mut index = 4;
+            while index < args.len() {
+                let flag = args[index].as_str();
+                index += 1;
+                let value = args
+                    .get(index)
+                    .cloned()
+                    .unwrap_or_else(|| crate::fail(format!("decisions: {flag} requires a value")));
+                let numeric = || {
+                    value
+                        .parse::<f64>()
+                        .unwrap_or_else(|_| crate::fail(format!("decisions: {flag} must be numeric")))
+                };
+                match flag {
+                    "--max-accuracy-drop" => max_accuracy_drop = numeric(),
+                    "--max-coverage-drop" => max_coverage_drop = numeric(),
+                    "--max-brier-increase" => max_brier_increase = numeric(),
+                    "--max-ece-increase" => max_ece_increase = numeric(),
+                    "--max-ordinal-mae-increase" => max_ordinal_mae_increase = numeric(),
+                    "--max-latency-increase-ms" => {
+                        max_mean_latency_increase_ms = Some(numeric())
+                    }
+                    "--max-cost-increase-usd" => {
+                        max_total_cost_increase_usd = Some(numeric())
+                    }
+                    "--generated-at" => generated_at = Some(value),
+                    option => crate::fail(format!(
+                        "decisions: unknown calibration-compare option: {option}"
+                    )),
+                }
+                index += 1;
+            }
+            let report = crate::decision_calibration::compare_calibrations(
+                &baseline,
+                &candidate,
+                &crate::decision_calibration::RegressionBudgets {
+                    max_accuracy_drop,
+                    max_coverage_drop,
+                    max_brier_increase,
+                    max_ece_increase,
+                    max_ordinal_mae_increase,
+                    max_mean_latency_increase_ms,
+                    max_total_cost_increase_usd,
+                    generated_at: generated_at.unwrap_or_else(|| {
+                        crate::fail("decisions: --generated-at is required")
+                    }),
+                },
+            )
+            .unwrap_or_else(|error| crate::fail(error));
+            let passed = report["passed"].as_bool().unwrap_or(false);
+            println!("{}", serde_json::to_string_pretty(&report).unwrap());
+            if !passed {
+                crate::finish(1);
+            }
         }
         "jev-payload" => {
             let request_path = PathBuf::from(&args[2]);
