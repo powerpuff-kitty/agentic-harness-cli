@@ -45,8 +45,9 @@ fn emit(root: &Path, output: Option<&str>, value: Value) {
 
 fn read_baseline(root: &Path, relative: &str) -> Value {
     let path = root.join(relative);
-    let text = crate::scan::read(root, &path, 5_000_000)
-        .unwrap_or_else(|error| crate::fail(format!("could not read baseline {relative}: {error}")));
+    let text = crate::scan::read(root, &path, 5_000_000).unwrap_or_else(|error| {
+        crate::fail(format!("could not read baseline {relative}: {error}"))
+    });
     serde_json::from_str(&text)
         .unwrap_or_else(|error| crate::fail(format!("invalid baseline JSON {relative}: {error}")))
 }
