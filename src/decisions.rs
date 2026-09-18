@@ -2259,11 +2259,11 @@ pub(crate) fn run(args: Vec<String>) {
             .unwrap_or_else(|error| provider_fail(error));
             let payload =
                 jev_payload(&request, &specs, &model).unwrap_or_else(|error| crate::fail(error));
-            let provider_request = payload
-                .get("request")
-                .cloned()
-                .unwrap_or_else(|| crate::fail("decisions: Jev provider payload is missing request"));
-            let api_key = jev_transport::api_key_from_env().unwrap_or_else(|error| provider_fail(error));
+            let provider_request = payload.get("request").cloned().unwrap_or_else(|| {
+                crate::fail("decisions: Jev provider payload is missing request")
+            });
+            let api_key =
+                jev_transport::api_key_from_env().unwrap_or_else(|error| provider_fail(error));
             let run = jev_transport::execute(&provider_request, &api_key, transport)
                 .unwrap_or_else(|error| provider_fail(error));
 
@@ -2305,11 +2305,7 @@ pub(crate) fn run(args: Vec<String>) {
                 "authorization_header": "Bearer <redacted>",
                 "cost_usd": Value::Null
             });
-            receipts["usage"] = run
-                .response
-                .get("usage")
-                .cloned()
-                .unwrap_or(Value::Null);
+            receipts["usage"] = run.response.get("usage").cloned().unwrap_or(Value::Null);
             receipts["not_checked"] = json!([
                 "provider calibration on this decision class",
                 "billing cost when the provider does not return cost",
