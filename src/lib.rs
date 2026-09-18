@@ -58,7 +58,15 @@ pub fn entry(family: Option<&str>) {
     }
     let family = family.map(str::to_owned).or_else(|| {
         if args.get(1).is_some_and(|x| {
-            ["agentic", "architecture", "design", "quality", "checks", "adapters"].contains(&x.as_str())
+            [
+                "agentic",
+                "architecture",
+                "design",
+                "quality",
+                "checks",
+                "adapters",
+            ]
+            .contains(&x.as_str())
         }) {
             Some(args.remove(1))
         } else {
