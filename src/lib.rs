@@ -25,6 +25,7 @@ mod execution_budget;
 mod execution_cancel;
 mod execution_review;
 pub mod governance_verdict;
+mod jev_transport;
 mod process_check;
 mod project;
 mod scan;
@@ -95,7 +96,9 @@ pub fn entry(family: Option<&str>) {
             "Experimental family: checks <plan|prepare|run|complete> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n"
         );
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
-        println!("Decision Kernel: decisions validate|fingerprint|jev-payload (offline)\n");
+        println!(
+            "Decision Kernel: offline contracts plus opt-in decisions jev-evaluate --allow-network\n"
+        );
     }
     crate::scan::begin();
     match family.as_deref() {
@@ -210,6 +213,19 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 false,
             ),
             (Some("decisions"), "jev-payload") => (&["--model"], &[], 2, 2, false),
+            (Some("decisions"), "jev-evaluate") => (
+                &[
+                    "--model",
+                    "--timeout-ms",
+                    "--max-retries",
+                    "--decided-at",
+                    "--evidence",
+                ],
+                &["--allow-network"],
+                2,
+                2,
+                false,
+            ),
             (Some("decisions"), "jev-receipts") => {
                 (&["--decided-at", "--evidence"], &[], 3, 3, false)
             }
