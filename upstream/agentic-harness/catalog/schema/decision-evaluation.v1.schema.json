@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-evaluation.v1.schema.json",
+  "title": "Agentic Harness DecisionEvaluation v1",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "mode",
+    "dataset",
+    "candidate",
+    "side_effects",
+    "metrics",
+    "coverage",
+    "generated_at"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-evaluation"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "enum": [
+        "offline",
+        "replay",
+        "shadow",
+        "champion-challenger",
+        "counterfactual"
+      ]
+    },
+    "dataset": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        },
+        "point_in_time": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "champion": {
+      "type": "object",
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "provider_id"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "side_effects": {
+      "const": false
+    },
+    "changed_dimensions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "provider",
+          "model",
+          "spec",
+          "policy",
+          "evidence",
+          "threshold",
+          "state"
+        ]
+      }
+    },
+    "source_receipts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "total",
+        "evaluated",
+        "abstained",
+        "failed"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evaluated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstained": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
