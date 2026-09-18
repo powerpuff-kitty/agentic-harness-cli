@@ -73,6 +73,18 @@ fn text<'a>(value: &'a Value, context: &str) -> Result<&'a str, String> {
     Ok(value)
 }
 
+fn bounded_text<'a>(
+    value: &'a Value,
+    context: &str,
+    max: usize,
+) -> Result<&'a str, String> {
+    let value = text(value, context)?;
+    if value.len() > max {
+        return Err(format!("decisions: {context} exceeds {max} bytes"));
+    }
+    Ok(value)
+}
+
 fn positive_revision(value: &Value, context: &str) -> Result<u64, String> {
     let value = value
         .as_u64()
