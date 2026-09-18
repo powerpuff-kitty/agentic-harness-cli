@@ -2026,4 +2026,108 @@ mod tests {
                 .contains("sum to 1")
         );
     }
+
+    #[test]
+    fn graph_plan_batches_independent_nodes_and_stabilizes_cache_keys() {
+        let mut risk = spec("boolean");
+        risk["id"] = json!("task.risk");
+        let mut route = spec("choice");
+        route["id"] = json!("task.route");
+        let mut complexity = spec("ordinal");
+        complexity["id"] = json!("task.complexity");
+        let specs = json!([risk, route, complexity]);
+        let graph = json!({
+            "format_version":1,"kind":"decision-graph","id":"task.plan","revision":1,
+            "nodes":[
+                {"id":"risk","spec_id":"task.risk","spec_revision":1,"depends_on":[]},
+                {"id":"complexity","spec_id":"task.complexity","spec_revision":1,"depends_on":[]},
+                {"id":"route","spec_id":"task.route","spec_revision":1,"depends_on":["risk","complexity"]}
+            ],
+            "reducers":[]
+        });
+        let state = json!({"task":"review this change"});
+        let first = graph_plan(&graph, &specs, &state, Some("typesafe-jev"), "shadow").unwrap();
+        let second = graph_plan(&graph, &specs, &state, Some("typesafe-jev"), "shadow").unwrap();
+        assert_eq!(first["stages"].as_array().unwrap().len(), 2);
+        assert_eq!(first["stages"][0]["nodes"].as_array().unwrap().len(), 2);
+        assert_eq!(first["stages"][1]["nodes"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            first["stages"][0]["nodes"][0]["cache_key"],
+            second["stages"][0]["nodes"][0]["cache_key"]
+        );
+        assert_eq!(first["provider_calls_performed"], false);
+        assert_eq!(first["side_effects"], false);
+    }
+
+    #[test]
+    fn jev_receipts_are_review_required_and_preserve_evidence_coverage() {
+        let mut boolean = spec("boolean");
+        boolean["id"] = json!("task.risk");
+        boolean["evidence"]["requirements"] = json!([
+            {"id":"ticket","required":true,"description":"The original task or ticket"},
+            {"id":"diff","required":true,"description":"The candidate change"}
+        ]);
+        let specs = json!([boolean]);
+        let request = json!({
+            "format_version":1,"kind":"decision-request","request_id":"request-1",
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":"sha256:12345678","payload":{"task":"review"}},
+            "questions":[{"spec_id":"task.risk","spec_revision":1}],
+            "mode":"shadow"
+        });
+        let response = json!({
+            "model":"jev-1.13.0",
+            "answers":{"task.risk":{"type":"noul","noul":0.92}},
+            "usage":{"input_tokens":100,"output_tokens":5}
+        });
+        let evidence = json!({
+            "task.risk":{
+                "used":["evidence:ticket:1"],
+                "satisfied_requirements":["ticket"]
+            }
+        });
+        let set = normalize_jev_receipts(
+            &request,
+            &specs,
+            &response,
+            Some(&evidence),
+            "2026-09-18T19:30:00Z",
+        )
+        .unwrap();
+        let receipt = &set["receipts"][0];
+        assert_eq!(receipt["provider"]["model"], "jev-1.13.0");
+        assert_eq!(receipt["policy"]["disposition"], "review");
+        assert_eq!(receipt["uncertainty"]["evidence_coverage"]["value"], 0.5);
+        assert_eq!(receipt["uncertainty"]["calibration"]["status"], "unknown");
+        assert_eq!(set["consequence_authorized"], false);
+    }
+
+    #[test]
+    fn replay_uses_recorded_receipts_without_provider_calls() {
+        let graph = json!({
+            "format_version":1,"kind":"decision-graph","id":"task.graph","revision":1,
+            "nodes":[{"id":"risk","spec_id":"task.risk","spec_revision":1,"depends_on":[]}],
+            "reducers":[{"id":"summary","type":"deterministic","inputs":["risk"],"output":"task.summary"}]
+        });
+        let receipt = json!({
+            "format_version":1,"kind":"decision-receipt","id":"decision-1",
+            "spec":{"id":"task.risk","revision":1},
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":"sha256:12345678"},
+            "status":"produced","result":{"value":true,"distribution":{"false":0.1,"true":0.9}},
+            "provider":{"type":"jev","id":"typesafe-jev","model":"jev-1.13.0"},
+            "uncertainty":{
+                "provider_confidence":0.9,"calibration":{"status":"unknown"},
+                "evidence_coverage":{"value":1.0,"required_present":0,"required_total":0,"missing":[]},
+                "evidence_reliability":null,"decision_certainty":null
+            },
+            "evidence":{"used":[],"missing":[]},
+            "policy":{"id":"unapplied","revision":1,"disposition":"review","reasons":[]},
+            "timing":{"decided_at":"2026-09-18T19:30:00Z"}
+        });
+        let replay = replay_receipts(&graph, &json!([receipt])).unwrap();
+        assert_eq!(replay["complete"], true);
+        assert_eq!(replay["provider_calls_performed"], false);
+        assert_eq!(replay["reducers"][0]["executed"], false);
+        assert_eq!(replay["reducers"][0]["inputs"][0]["receipt_id"], "decision-1");
+    }
+
 }
