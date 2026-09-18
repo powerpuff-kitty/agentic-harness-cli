@@ -41,6 +41,9 @@ ureq = { version = "=3.4.2", default-features = false, features = ["rustls", "js
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 libc = "=0.2.189"
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading"] }
+
 [profile.release]
 lto = true
 codegen-units = 1
