@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-spec.v1.schema.json",
+  "title": "Agentic Harness DecisionSpec v1",
+  "description": "Versioned provider-neutral definition of one atomic software decision.",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "revision",
+    "decision_kind",
+    "description",
+    "input",
+    "evidence",
+    "policy"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-spec"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+      "minLength": 3
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "decision_kind": {
+      "enum": [
+        "boolean",
+        "choice",
+        "ordinal",
+        "ranking",
+        "estimate",
+        "distribution",
+        "extraction",
+        "constraint",
+        "optimization"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "schema_id",
+        "schema_version"
+      ],
+      "properties": {
+        "schema_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        },
+        "immutable_snapshot_required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "levels": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provider_capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "deterministic",
+          "semantic",
+          "statistical",
+          "ranking",
+          "extraction",
+          "human"
+        ]
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "requirements"
+      ],
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "required",
+              "description"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "min_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_age_seconds": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "uncertainty": {
+      "type": "object",
+      "properties": {
+        "allow_abstain": {
+          "type": "boolean"
+        },
+        "minimum_evidence_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "require_calibrated_confidence": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "risk",
+        "consequential_action"
+      ],
+      "properties": {
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "consequential_action": {
+          "enum": [
+            "forbidden",
+            "review-required",
+            "policy-gated"
+          ]
+        },
+        "human_review_required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataset_revision": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision_kind": {
+            "const": "choice"
+          }
+        },
+        "required": [
+          "decision_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "options"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision_kind": {
+            "const": "ordinal"
+          }
+        },
+        "required": [
+          "decision_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "levels"
+        ]
+      }
+    }
+  ],
+  "additionalProperties": true
+}
