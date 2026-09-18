@@ -17,6 +17,10 @@ jobs:
         run: ./scripts/sync-upstream.sh
       - name: Resolve only the newly declared dependency into Cargo.lock
         run: cargo check --all-targets
+      - name: Emit generated lockfile for branch update
+        shell: bash
+        run: |
+          echo "CARGO_LOCK_BASE64=$(base64 -w0 Cargo.lock)"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: jev-cargo-lock
