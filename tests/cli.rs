@@ -942,7 +942,6 @@ fn mit_attribution_is_retained_without_setting_application_licensing() {
     }
 }
 
-
 #[test]
 fn quality_analysis_is_read_only_and_preserves_unchecked_coverage() {
     let f = Fixture::new();
