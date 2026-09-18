@@ -44,7 +44,9 @@ fn array<'a>(value: &'a Value, context: &str, min: usize) -> Result<&'a Vec<Valu
         .as_array()
         .ok_or_else(|| format!("decisions: {context} must be an array"))?;
     if values.len() < min {
-        return Err(format!("decisions: {context} must contain at least {min} item(s)"));
+        return Err(format!(
+            "decisions: {context} must contain at least {min} item(s)"
+        ));
     }
     Ok(values)
 }
@@ -64,7 +66,9 @@ fn text<'a>(value: &'a Value, context: &str) -> Result<&'a str, String> {
         .as_str()
         .ok_or_else(|| format!("decisions: {context} must be a string"))?;
     if value.is_empty() || value.len() > 4096 || value.chars().any(char::is_control) {
-        return Err(format!("decisions: {context} is empty, oversized or contains control characters"));
+        return Err(format!(
+            "decisions: {context} is empty, oversized or contains control characters"
+        ));
     }
     Ok(value)
 }
@@ -97,11 +101,7 @@ fn optional_probability(value: &Value, context: &str) -> Result<Option<f64>, Str
     }
 }
 
-fn enum_text<'a>(
-    value: &'a Value,
-    context: &str,
-    allowed: &[&str],
-) -> Result<&'a str, String> {
+fn enum_text<'a>(value: &'a Value, context: &str, allowed: &[&str]) -> Result<&'a str, String> {
     let value = text(value, context)?;
     if !allowed.contains(&value) {
         return Err(format!("decisions: unsupported {context}: {value}"));
@@ -122,7 +122,9 @@ fn version(value: &Value, context: &str) -> Result<(), String> {
 fn base<'a>(value: &'a Value, expected_kind: &str) -> Result<&'a Map<String, Value>, String> {
     let object = object(value, expected_kind)?;
     if required(object, "format_version", expected_kind)?.as_u64() != Some(1) {
-        return Err(format!("decisions: unsupported {expected_kind} format_version"));
+        return Err(format!(
+            "decisions: unsupported {expected_kind} format_version"
+        ));
     }
     if required(object, "kind", expected_kind)?.as_str() != Some(expected_kind) {
         return Err(format!("decisions: expected kind {expected_kind}"));
@@ -146,7 +148,10 @@ fn unique_text_array(value: &Value, context: &str, min: usize) -> Result<Vec<Str
 fn validate_spec(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-spec")?;
     text(required(root, "id", "decision-spec")?, "decision-spec.id")?;
-    positive_revision(required(root, "revision", "decision-spec")?, "decision-spec.revision")?;
+    positive_revision(
+        required(root, "revision", "decision-spec")?,
+        "decision-spec.revision",
+    )?;
     let decision_kind = enum_text(
         required(root, "decision_kind", "decision-spec")?,
         "decision-spec.decision_kind",
@@ -157,8 +162,14 @@ fn validate_spec(value: &Value) -> Result<(), String> {
         "decision-spec.description",
     )?;
 
-    let input = object(required(root, "input", "decision-spec")?, "decision-spec.input")?;
-    text(required(input, "schema_id", "decision-spec.input")?, "decision-spec.input.schema_id")?;
+    let input = object(
+        required(root, "input", "decision-spec")?,
+        "decision-spec.input",
+    )?;
+    text(
+        required(input, "schema_id", "decision-spec.input")?,
+        "decision-spec.input.schema_id",
+    )?;
     version(
         required(input, "schema_version", "decision-spec.input")?,
         "decision-spec.input.schema_version",
@@ -203,13 +214,23 @@ fn validate_spec(value: &Value) -> Result<(), String> {
             "decision-spec.evidence.requirement.id",
         )?;
         if !evidence_ids.insert(id.to_string()) {
-            return Err(format!("decisions: duplicate evidence requirement id: {id}"));
+            return Err(format!(
+                "decisions: duplicate evidence requirement id: {id}"
+            ));
         }
-        required(requirement, "required", "decision-spec.evidence.requirement")?
-            .as_bool()
-            .ok_or("decisions: evidence requirement required must be boolean")?;
+        required(
+            requirement,
+            "required",
+            "decision-spec.evidence.requirement",
+        )?
+        .as_bool()
+        .ok_or("decisions: evidence requirement required must be boolean")?;
         text(
-            required(requirement, "description", "decision-spec.evidence.requirement")?,
+            required(
+                requirement,
+                "description",
+                "decision-spec.evidence.requirement",
+            )?,
             "decision-spec.evidence.requirement.description",
         )?;
     }
@@ -221,14 +242,17 @@ fn validate_spec(value: &Value) -> Result<(), String> {
         }
         for key in ["allow_abstain", "require_calibrated_confidence"] {
             if let Some(value) = uncertainty.get(key) {
-                value
-                    .as_bool()
-                    .ok_or_else(|| format!("decisions: decision-spec.uncertainty.{key} must be boolean"))?;
+                value.as_bool().ok_or_else(|| {
+                    format!("decisions: decision-spec.uncertainty.{key} must be boolean")
+                })?;
             }
         }
     }
 
-    let policy = object(required(root, "policy", "decision-spec")?, "decision-spec.policy")?;
+    let policy = object(
+        required(root, "policy", "decision-spec")?,
+        "decision-spec.policy",
+    )?;
     enum_text(
         required(policy, "risk", "decision-spec.policy")?,
         "decision-spec.policy.risk",
@@ -245,18 +269,31 @@ fn validate_spec(value: &Value) -> Result<(), String> {
 fn validate_graph(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-graph")?;
     text(required(root, "id", "decision-graph")?, "decision-graph.id")?;
-    positive_revision(required(root, "revision", "decision-graph")?, "decision-graph.revision")?;
-    let nodes = array(required(root, "nodes", "decision-graph")?, "decision-graph.nodes", 1)?;
+    positive_revision(
+        required(root, "revision", "decision-graph")?,
+        "decision-graph.revision",
+    )?;
+    let nodes = array(
+        required(root, "nodes", "decision-graph")?,
+        "decision-graph.nodes",
+        1,
+    )?;
     let mut ids = BTreeSet::new();
     let mut dependencies = BTreeMap::<String, Vec<String>>::new();
 
     for node in nodes {
         let node = object(node, "decision-graph.node")?;
-        let id = text(required(node, "id", "decision-graph.node")?, "decision-graph.node.id")?;
+        let id = text(
+            required(node, "id", "decision-graph.node")?,
+            "decision-graph.node.id",
+        )?;
         if !ids.insert(id.to_string()) {
             return Err(format!("decisions: duplicate decision graph node id: {id}"));
         }
-        text(required(node, "spec_id", "decision-graph.node")?, "decision-graph.node.spec_id")?;
+        text(
+            required(node, "spec_id", "decision-graph.node")?,
+            "decision-graph.node.spec_id",
+        )?;
         positive_revision(
             required(node, "spec_revision", "decision-graph.node")?,
             "decision-graph.node.spec_revision",
@@ -277,7 +314,9 @@ fn validate_graph(value: &Value) -> Result<(), String> {
                 return Err(format!("decisions: decision graph self dependency: {node}"));
             }
             if !ids.contains(dep) {
-                return Err(format!("decisions: decision graph dependency is unknown: {dep}"));
+                return Err(format!(
+                    "decisions: decision graph dependency is unknown: {dep}"
+                ));
             }
         }
     }
@@ -289,7 +328,9 @@ fn validate_graph(value: &Value) -> Result<(), String> {
         visited: &mut BTreeSet<String>,
     ) -> Result<(), String> {
         if visiting.contains(node) {
-            return Err(format!("decisions: decision graph cycle detected at {node}"));
+            return Err(format!(
+                "decisions: decision graph cycle detected at {node}"
+            ));
         }
         if visited.contains(node) {
             return Ok(());
@@ -333,7 +374,9 @@ fn validate_graph(value: &Value) -> Result<(), String> {
                 1,
             )? {
                 if !ids.contains(&input) {
-                    return Err(format!("decisions: reducer input is not a decision node: {input}"));
+                    return Err(format!(
+                        "decisions: reducer input is not a decision node: {input}"
+                    ));
                 }
             }
         }
@@ -343,14 +386,23 @@ fn validate_graph(value: &Value) -> Result<(), String> {
 
 fn validate_request(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-request")?;
-    text(required(root, "request_id", "decision-request")?, "decision-request.request_id")?;
+    text(
+        required(root, "request_id", "decision-request")?,
+        "decision-request.request_id",
+    )?;
     enum_text(
         required(root, "mode", "decision-request")?,
         "decision-request.mode",
         &["live", "shadow", "replay", "evaluation"],
     )?;
-    let state = object(required(root, "state", "decision-request")?, "decision-request.state")?;
-    text(required(state, "schema_id", "decision-request.state")?, "decision-request.state.schema_id")?;
+    let state = object(
+        required(root, "state", "decision-request")?,
+        "decision-request.state",
+    )?;
+    text(
+        required(state, "schema_id", "decision-request.state")?,
+        "decision-request.state.schema_id",
+    )?;
     version(
         required(state, "schema_version", "decision-request.state")?,
         "decision-request.state.schema_version",
@@ -387,7 +439,10 @@ fn validate_request(value: &Value) -> Result<(), String> {
 
 fn validate_provider(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-provider-profile")?;
-    text(required(root, "id", "decision-provider-profile")?, "decision-provider-profile.id")?;
+    text(
+        required(root, "id", "decision-provider-profile")?,
+        "decision-provider-profile.id",
+    )?;
     positive_revision(
         required(root, "revision", "decision-provider-profile")?,
         "decision-provider-profile.revision",
@@ -404,7 +459,9 @@ fn validate_provider(value: &Value) -> Result<(), String> {
     )?;
     for kind in kinds {
         if !DECISION_KINDS.contains(&kind.as_str()) {
-            return Err(format!("decisions: unsupported provider decision kind: {kind}"));
+            return Err(format!(
+                "decisions: unsupported provider decision kind: {kind}"
+            ));
         }
     }
     let confidence = object(
@@ -412,7 +469,11 @@ fn validate_provider(value: &Value) -> Result<(), String> {
         "decision-provider-profile.confidence",
     )?;
     enum_text(
-        required(confidence, "semantics", "decision-provider-profile.confidence")?,
+        required(
+            confidence,
+            "semantics",
+            "decision-provider-profile.confidence",
+        )?,
         "decision-provider-profile.confidence.semantics",
         &[
             "calibrated-probability",
@@ -444,8 +505,14 @@ fn validate_provider(value: &Value) -> Result<(), String> {
 
 fn validate_policy(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-policy")?;
-    text(required(root, "id", "decision-policy")?, "decision-policy.id")?;
-    positive_revision(required(root, "revision", "decision-policy")?, "decision-policy.revision")?;
+    text(
+        required(root, "id", "decision-policy")?,
+        "decision-policy.id",
+    )?;
+    positive_revision(
+        required(root, "revision", "decision-policy")?,
+        "decision-policy.revision",
+    )?;
     unique_text_array(
         required(root, "applies_to", "decision-policy")?,
         "decision-policy.applies_to",
@@ -456,7 +523,10 @@ fn validate_policy(value: &Value) -> Result<(), String> {
         "decision-policy.risk",
         &["low", "medium", "high", "critical"],
     )?;
-    let evidence = object(required(root, "evidence", "decision-policy")?, "decision-policy.evidence")?;
+    let evidence = object(
+        required(root, "evidence", "decision-policy")?,
+        "decision-policy.evidence",
+    )?;
     probability(
         required(evidence, "minimum_coverage", "decision-policy.evidence")?,
         "decision-policy.evidence.minimum_coverage",
@@ -471,9 +541,13 @@ fn validate_policy(value: &Value) -> Result<(), String> {
         required(root, "confidence", "decision-policy")?,
         "decision-policy.confidence",
     )?;
-    required(confidence, "calibration_required", "decision-policy.confidence")?
-        .as_bool()
-        .ok_or("decisions: decision-policy.confidence.calibration_required must be boolean")?;
+    required(
+        confidence,
+        "calibration_required",
+        "decision-policy.confidence",
+    )?
+    .as_bool()
+    .ok_or("decisions: decision-policy.confidence.calibration_required must be boolean")?;
     optional_probability(
         required(
             confidence,
@@ -543,7 +617,9 @@ fn validate_policy(value: &Value) -> Result<(), String> {
         if required(invariant, "enforcement", "decision-policy.invariant")?.as_str()
             != Some("deterministic")
         {
-            return Err("decisions: policy invariants must declare deterministic enforcement".into());
+            return Err(
+                "decisions: policy invariants must declare deterministic enforcement".into(),
+            );
         }
     }
     Ok(())
@@ -569,15 +645,30 @@ fn validate_receipt(value: &Value) -> Result<(), String> {
     if root.contains_key("outcome_probability") {
         return Err("decisions: outcome_probability is not a DecisionReceipt field".into());
     }
-    text(required(root, "id", "decision-receipt")?, "decision-receipt.id")?;
-    let spec = object(required(root, "spec", "decision-receipt")?, "decision-receipt.spec")?;
-    text(required(spec, "id", "decision-receipt.spec")?, "decision-receipt.spec.id")?;
+    text(
+        required(root, "id", "decision-receipt")?,
+        "decision-receipt.id",
+    )?;
+    let spec = object(
+        required(root, "spec", "decision-receipt")?,
+        "decision-receipt.spec",
+    )?;
+    text(
+        required(spec, "id", "decision-receipt.spec")?,
+        "decision-receipt.spec.id",
+    )?;
     positive_revision(
         required(spec, "revision", "decision-receipt.spec")?,
         "decision-receipt.spec.revision",
     )?;
-    let state = object(required(root, "state", "decision-receipt")?, "decision-receipt.state")?;
-    text(required(state, "schema_id", "decision-receipt.state")?, "decision-receipt.state.schema_id")?;
+    let state = object(
+        required(root, "state", "decision-receipt")?,
+        "decision-receipt.state",
+    )?;
+    text(
+        required(state, "schema_id", "decision-receipt.state")?,
+        "decision-receipt.state.schema_id",
+    )?;
     version(
         required(state, "schema_version", "decision-receipt.state")?,
         "decision-receipt.state.schema_version",
@@ -621,7 +712,10 @@ fn validate_receipt(value: &Value) -> Result<(), String> {
         "decision-receipt.provider.type",
         &["deterministic", "jev", "llm", "ml", "human", "custom"],
     )?;
-    text(required(provider, "id", "decision-receipt.provider")?, "decision-receipt.provider.id")?;
+    text(
+        required(provider, "id", "decision-receipt.provider")?,
+        "decision-receipt.provider.id",
+    )?;
 
     let uncertainty = object(
         required(root, "uncertainty", "decision-receipt")?,
@@ -631,15 +725,27 @@ fn validate_receipt(value: &Value) -> Result<(), String> {
         return Err("decisions: outcome_probability cannot be stored as uncertainty".into());
     }
     optional_probability(
-        required(uncertainty, "provider_confidence", "decision-receipt.uncertainty")?,
+        required(
+            uncertainty,
+            "provider_confidence",
+            "decision-receipt.uncertainty",
+        )?,
         "decision-receipt.uncertainty.provider_confidence",
     )?;
     optional_probability(
-        required(uncertainty, "evidence_reliability", "decision-receipt.uncertainty")?,
+        required(
+            uncertainty,
+            "evidence_reliability",
+            "decision-receipt.uncertainty",
+        )?,
         "decision-receipt.uncertainty.evidence_reliability",
     )?;
     optional_probability(
-        required(uncertainty, "decision_certainty", "decision-receipt.uncertainty")?,
+        required(
+            uncertainty,
+            "decision_certainty",
+            "decision-receipt.uncertainty",
+        )?,
         "decision-receipt.uncertainty.decision_certainty",
     )?;
     let calibration = object(
@@ -647,7 +753,11 @@ fn validate_receipt(value: &Value) -> Result<(), String> {
         "decision-receipt.uncertainty.calibration",
     )?;
     enum_text(
-        required(calibration, "status", "decision-receipt.uncertainty.calibration")?,
+        required(
+            calibration,
+            "status",
+            "decision-receipt.uncertainty.calibration",
+        )?,
         "decision-receipt.uncertainty.calibration.status",
         &["calibrated", "uncalibrated", "unknown", "not-applicable"],
     )?;
@@ -706,8 +816,14 @@ fn validate_receipt(value: &Value) -> Result<(), String> {
         return Err("decisions: evidence coverage arithmetic mismatch".into());
     }
 
-    let policy = object(required(root, "policy", "decision-receipt")?, "decision-receipt.policy")?;
-    text(required(policy, "id", "decision-receipt.policy")?, "decision-receipt.policy.id")?;
+    let policy = object(
+        required(root, "policy", "decision-receipt")?,
+        "decision-receipt.policy",
+    )?;
+    text(
+        required(policy, "id", "decision-receipt.policy")?,
+        "decision-receipt.policy.id",
+    )?;
     positive_revision(
         required(policy, "revision", "decision-receipt.policy")?,
         "decision-receipt.policy.revision",
@@ -722,7 +838,10 @@ fn validate_receipt(value: &Value) -> Result<(), String> {
 
 fn validate_outcome(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-outcome")?;
-    text(required(root, "id", "decision-outcome")?, "decision-outcome.id")?;
+    text(
+        required(root, "id", "decision-outcome")?,
+        "decision-outcome.id",
+    )?;
     text(
         required(root, "receipt_id", "decision-outcome")?,
         "decision-outcome.receipt_id",
@@ -731,8 +850,14 @@ fn validate_outcome(value: &Value) -> Result<(), String> {
         required(root, "observed_at", "decision-outcome")?,
         "decision-outcome.observed_at",
     )?;
-    let outcome = object(required(root, "outcome", "decision-outcome")?, "decision-outcome.outcome")?;
-    text(required(outcome, "label", "decision-outcome.outcome")?, "decision-outcome.outcome.label")?;
+    let outcome = object(
+        required(root, "outcome", "decision-outcome")?,
+        "decision-outcome.outcome",
+    )?;
+    text(
+        required(outcome, "label", "decision-outcome.outcome")?,
+        "decision-outcome.outcome.label",
+    )?;
     let verification = object(
         required(root, "verification", "decision-outcome")?,
         "decision-outcome.verification",
@@ -740,22 +865,44 @@ fn validate_outcome(value: &Value) -> Result<(), String> {
     enum_text(
         required(verification, "type", "decision-outcome.verification")?,
         "decision-outcome.verification.type",
-        &["human", "deterministic", "external-authority", "measurement", "unknown"],
+        &[
+            "human",
+            "deterministic",
+            "external-authority",
+            "measurement",
+            "unknown",
+        ],
     )?;
-    let feedback = object(required(root, "feedback", "decision-outcome")?, "decision-outcome.feedback")?;
-    required(feedback, "usable_for_evaluation", "decision-outcome.feedback")?
-        .as_bool()
-        .ok_or("decisions: decision-outcome.feedback.usable_for_evaluation must be boolean")?;
+    let feedback = object(
+        required(root, "feedback", "decision-outcome")?,
+        "decision-outcome.feedback",
+    )?;
+    required(
+        feedback,
+        "usable_for_evaluation",
+        "decision-outcome.feedback",
+    )?
+    .as_bool()
+    .ok_or("decisions: decision-outcome.feedback.usable_for_evaluation must be boolean")?;
     Ok(())
 }
 
 fn validate_evaluation(value: &Value) -> Result<(), String> {
     let root = base(value, "decision-evaluation")?;
-    text(required(root, "id", "decision-evaluation")?, "decision-evaluation.id")?;
+    text(
+        required(root, "id", "decision-evaluation")?,
+        "decision-evaluation.id",
+    )?;
     let mode = enum_text(
         required(root, "mode", "decision-evaluation")?,
         "decision-evaluation.mode",
-        &["offline", "replay", "shadow", "champion-challenger", "counterfactual"],
+        &[
+            "offline",
+            "replay",
+            "shadow",
+            "champion-challenger",
+            "counterfactual",
+        ],
     )?;
     if required(root, "side_effects", "decision-evaluation")?.as_bool() != Some(false) {
         return Err("decisions: evaluation side effects are forbidden".into());
@@ -764,7 +911,10 @@ fn validate_evaluation(value: &Value) -> Result<(), String> {
         required(root, "dataset", "decision-evaluation")?,
         "decision-evaluation.dataset",
     )?;
-    text(required(dataset, "id", "decision-evaluation.dataset")?, "decision-evaluation.dataset.id")?;
+    text(
+        required(dataset, "id", "decision-evaluation.dataset")?,
+        "decision-evaluation.dataset.id",
+    )?;
     version(
         required(dataset, "revision", "decision-evaluation.dataset")?,
         "decision-evaluation.dataset.revision",
@@ -788,7 +938,9 @@ fn validate_evaluation(value: &Value) -> Result<(), String> {
     {
         counts[index] = required(coverage, key, "decision-evaluation.coverage")?
             .as_u64()
-            .ok_or_else(|| format!("decisions: decision-evaluation.coverage.{key} must be unsigned"))?;
+            .ok_or_else(|| {
+                format!("decisions: decision-evaluation.coverage.{key} must be unsigned")
+            })?;
     }
     if counts[1] + counts[2] + counts[3] != counts[0] {
         return Err("decisions: evaluation coverage arithmetic mismatch".into());
@@ -849,8 +1001,8 @@ fn schema_digest(kind: &str) -> Result<(String, String), String> {
 }
 
 fn canonical_fingerprint(value: &Value) -> Result<(String, usize), String> {
-    let bytes =
-        serde_json::to_vec(value).map_err(|error| format!("decisions: state serialization failed: {error}"))?;
+    let bytes = serde_json::to_vec(value)
+        .map_err(|error| format!("decisions: state serialization failed: {error}"))?;
     Ok((check_inputs::hash(&bytes), bytes.len()))
 }
 
@@ -867,10 +1019,7 @@ fn jev_question(spec: &Map<String, Value>) -> Result<Value, String> {
                 .as_array()
                 .ok_or("decisions: choice spec options are missing")?
             {
-                criteria.insert(
-                    option.as_str().unwrap().to_string(),
-                    Value::Null,
-                );
+                criteria.insert(option.as_str().unwrap().to_string(), Value::Null);
             }
             Ok(json!({"type":"choice","instructions":instructions,"criteria":criteria}))
         }
@@ -898,7 +1047,9 @@ fn jev_payload(request: &Value, specs: &Value, model: &str) -> Result<Value, Str
         let id = spec["id"].as_str().unwrap().to_string();
         let revision = spec["revision"].as_u64().unwrap();
         if registry.insert((id.clone(), revision), spec).is_some() {
-            return Err(format!("decisions: duplicate spec revision: {id}@{revision}"));
+            return Err(format!(
+                "decisions: duplicate spec revision: {id}@{revision}"
+            ));
         }
     }
 
@@ -990,15 +1141,8 @@ fn validate_jev_response(value: &Value) -> Result<(), String> {
                     &format!("Jev answer {id}.choice"),
                 )?;
                 let probabilities = required(answer, "probabilities", "Jev choice answer")?;
-                validate_distribution(
-                    probabilities,
-                    &format!("Jev answer {id}.probabilities"),
-                )?;
-                if !probabilities
-                    .as_object()
-                    .unwrap()
-                    .contains_key(choice)
-                {
+                validate_distribution(probabilities, &format!("Jev answer {id}.probabilities"))?;
+                if !probabilities.as_object().unwrap().contains_key(choice) {
                     return Err(format!(
                         "decisions: Jev answer {id} choice is absent from probabilities"
                     ));
@@ -1027,7 +1171,10 @@ fn validate_jev_response(value: &Value) -> Result<(), String> {
             _ => unreachable!(),
         }
     }
-    let usage = object(required(root, "usage", "Jev response")?, "Jev response.usage")?;
+    let usage = object(
+        required(root, "usage", "Jev response")?,
+        "Jev response.usage",
+    )?;
     for key in ["input_tokens", "output_tokens"] {
         required(usage, key, "Jev response.usage")?
             .as_u64()
@@ -1118,7 +1265,9 @@ pub(crate) fn run(args: Vec<String>) {
                         index += 1;
                         model = args[index].clone();
                     }
-                    option => crate::fail(format!("decisions: unknown jev-payload option: {option}")),
+                    option => {
+                        crate::fail(format!("decisions: unknown jev-payload option: {option}"))
+                    }
                 }
                 index += 1;
             }
@@ -1175,7 +1324,11 @@ mod tests {
         assert!(validate_graph(&graph).unwrap_err().contains("cycle"));
         graph["nodes"][0]["depends_on"] = json!([]);
         graph["reducers"][0]["inputs"] = json!(["missing"]);
-        assert!(validate_graph(&graph).unwrap_err().contains("not a decision node"));
+        assert!(
+            validate_graph(&graph)
+                .unwrap_err()
+                .contains("not a decision node")
+        );
     }
 
     #[test]
@@ -1186,7 +1339,11 @@ mod tests {
             "confidence":{"semantics":"provider-defined","supports_distribution":true},
             "external_network":true,"requires_credentials":true,"consequence_authority":true
         });
-        assert!(validate_provider(&provider).unwrap_err().contains("consequence authority"));
+        assert!(
+            validate_provider(&provider)
+                .unwrap_err()
+                .contains("consequence authority")
+        );
 
         let evaluation = json!({
             "format_version":1,"kind":"decision-evaluation","id":"eval","mode":"shadow",
@@ -1194,7 +1351,11 @@ mod tests {
             "side_effects":true,"metrics":[],"coverage":{"total":0,"evaluated":0,"abstained":0,"failed":0},
             "generated_at":"2026-09-18T00:00:00Z"
         });
-        assert!(validate_evaluation(&evaluation).unwrap_err().contains("side effects"));
+        assert!(
+            validate_evaluation(&evaluation)
+                .unwrap_err()
+                .contains("side effects")
+        );
     }
 
     #[test]
@@ -1216,17 +1377,31 @@ mod tests {
         });
         assert!(validate_receipt(&receipt).is_ok());
         receipt["outcome_probability"] = json!(0.8);
-        assert!(validate_receipt(&receipt).unwrap_err().contains("outcome_probability"));
-        receipt.as_object_mut().unwrap().remove("outcome_probability");
+        assert!(
+            validate_receipt(&receipt)
+                .unwrap_err()
+                .contains("outcome_probability")
+        );
+        receipt
+            .as_object_mut()
+            .unwrap()
+            .remove("outcome_probability");
         receipt["uncertainty"]["evidence_coverage"]["value"] = json!(1.0);
-        assert!(validate_receipt(&receipt).unwrap_err().contains("coverage arithmetic"));
+        assert!(
+            validate_receipt(&receipt)
+                .unwrap_err()
+                .contains("coverage arithmetic")
+        );
     }
 
     #[test]
     fn fingerprint_is_stable_across_object_key_order() {
         let a: Value = serde_json::from_str(r#"{"b":2,"a":1}"#).unwrap();
         let b: Value = serde_json::from_str(r#"{"a":1,"b":2}"#).unwrap();
-        assert_eq!(canonical_fingerprint(&a).unwrap(), canonical_fingerprint(&b).unwrap());
+        assert_eq!(
+            canonical_fingerprint(&a).unwrap(),
+            canonical_fingerprint(&b).unwrap()
+        );
     }
 
     #[test]
@@ -1247,10 +1422,17 @@ mod tests {
         choice["id"] = json!("task-type");
         let mut ordinal = spec("ordinal");
         ordinal["id"] = json!("complexity");
-        let payload = jev_payload(&request, &json!([boolean, choice, ordinal]), "jev-latest").unwrap();
+        let payload =
+            jev_payload(&request, &json!([boolean, choice, ordinal]), "jev-latest").unwrap();
         assert_eq!(payload["request"]["questions"]["is-risky"]["type"], "noul");
-        assert_eq!(payload["request"]["questions"]["task-type"]["type"], "choice");
-        assert_eq!(payload["request"]["questions"]["complexity"]["type"], "score");
+        assert_eq!(
+            payload["request"]["questions"]["task-type"]["type"],
+            "choice"
+        );
+        assert_eq!(
+            payload["request"]["questions"]["complexity"]["type"],
+            "score"
+        );
         assert_eq!(payload["network_call_performed"], false);
         assert_eq!(payload["authorization_header"], "Bearer <redacted>");
     }
@@ -1269,6 +1451,10 @@ mod tests {
         assert!(validate_jev_response(&response).is_ok());
         let mut bad = response.clone();
         bad["answers"]["route"]["probabilities"]["code"] = json!(0.9);
-        assert!(validate_jev_response(&bad).unwrap_err().contains("sum to 1"));
+        assert!(
+            validate_jev_response(&bad)
+                .unwrap_err()
+                .contains("sum to 1")
+        );
     }
 }
