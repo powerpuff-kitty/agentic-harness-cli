@@ -14,7 +14,7 @@ use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE};
 use windows_sys::Win32::System::JobObjects::{
     AssignProcessToJobObject, CreateJobObjectW, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JobObjectExtendedLimitInformation,
-    SetInformationJobObject,
+    SetInformationJobObject, TerminateJobObject,
 };
 
 #[allow(dead_code)]
@@ -72,6 +72,16 @@ impl Job {
         }
         Ok(child)
     }
+
+    pub(crate) fn terminate(&self, exit_code: u32) -> io::Result<()> {
+        // SAFETY: the handle is a live, privately-owned Job Object.
+        if unsafe { TerminateJobObject(self.handle, exit_code) } == 0 {
+            return Err(io::Error::from_raw_os_error(
+                unsafe { GetLastError() } as i32
+            ));
+        }
+        Ok(())
+    }
 }
 
 impl Drop for Job {
@@ -101,5 +111,21 @@ mod tests {
             .spawn(&mut command)
             .expect("fixture process should spawn");
         child.wait().expect("fixture process should be reaped");
+    }
+
+    #[test]
+    fn terminates_owned_job_processes() {
+        let job = Job::new().expect("job object should be available on Windows CI");
+        let mut command = Command::new("cmd.exe");
+        command
+            .args(["/C", "ping 127.0.0.1 -n 30 > NUL"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        let mut child = job
+            .spawn(&mut command)
+            .expect("fixture process should spawn");
+        job.terminate(137).expect("owned job should terminate");
+        child.wait().expect("terminated process should be reaped");
     }
 }
