@@ -369,7 +369,7 @@ fn successful_copy_never_claims_host_delivery_or_enforcement() {
     );
     assert_eq!(
         result["source"]["commit"],
-        "5fceb09a50222a29ef0c9a52338ba9be9a82e995"
+        serde_json::from_str::<Value>(include_str!("../upstream.lock.json")).unwrap()["agents"]["commit"]
     );
 }
 

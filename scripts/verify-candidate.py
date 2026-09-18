@@ -14,6 +14,7 @@ from adapter_probe import exercise_adapters
 from skill_delivery_probe import exercise_skill_delivery
 from context_probe import exercise_context
 from check_execution_probe import exercise_execution
+from completion_probe import exercise_completion
 
 parser = argparse.ArgumentParser()
 parser.add_argument('binary', type=Path)
@@ -94,11 +95,12 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     skills = exercise_skill_delivery(binary, root, environment, expected_sources['agents'])
     context = exercise_context(binary, root, environment)
     execution = exercise_execution(run, root)
+    completion = exercise_completion(run, root)
 
 report = {'format_version': 1, 'kind': 'candidate-verification', 'passed': True,
           'binary_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
           'version': version, 'checks': results, 'recovery': 'backup/restore validated',
-          'onboarding': onboarding, 'check_planning': planning, 'check_execution': execution, 'adapters': adapters,
+          'onboarding': onboarding, 'check_planning': planning, 'check_execution': execution, 'check_completion': completion, 'adapters': adapters,
           'skill_delivery': skills,
           'context_selection': context,
           'limitations': ['Network access is not OS-sandboxed; proxy variables deny ordinary HTTP clients.',

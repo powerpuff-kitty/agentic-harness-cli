@@ -28,3 +28,5 @@ A successful verdict means only that required governance assertions satisfy the 
 Rollback removes the public library module and its tests/docs. Existing schemas, source pins, commands and executor behavior are unchanged.
 
 Local verification on 2026-09-18 (macOS x86_64, Rust 1.94.1): all 190 Rust tests passed, including 16 new evaluator tests; Clippy with warnings denied and formatting passed. Canonical catalog validation passed. No remote CI or signed-producer evidence was observed for this slice.
+
+The first consuming command is now `checks complete`, described in [caller-approved completion](check-completion.md). ADR-010 selects exact caller-approved report digests through a reviewed manifest. The pure evaluator remains independent of I/O/authentication; the command acquires current snapshots and combines it with run validation. Signed producers remain deferred.

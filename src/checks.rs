@@ -202,7 +202,7 @@ pub(crate) fn plan_with_budget(
 pub(crate) fn run(args: Vec<String>) {
     if args.len() < 2 || ["--help", "-h"].contains(&args[1].as_str()) {
         println!(
-            "usage: ah checks <plan|prepare|run> [TARGET] [--config PATH]\nplan and prepare are read-only. prepare/run accept --settings PATH.\nrun requires --approve-review DIGEST and --allow-unsandboxed. Linux/macOS execution only."
+            "usage: ah checks <plan|prepare|run|complete> [TARGET] [--config PATH]\nplan and prepare are read-only. prepare/run accept --settings PATH.\nrun requires --approve-review DIGEST and --allow-unsandboxed. Linux/macOS execution only.\ncomplete is read-only and requires --evidence PATH and --approve-evidence DIGEST."
         );
         return;
     }
@@ -211,6 +211,8 @@ pub(crate) fn run(args: Vec<String>) {
     let mut config = ".agentic/checks.json";
     let mut settings = ".agentic/check-execution.json";
     let mut approval = None;
+    let mut evidence = None;
+    let mut evidence_approval = None;
     let mut allow_unsandboxed = false;
     let mut seen = BTreeSet::new();
     let mut index = 2;
@@ -226,6 +228,8 @@ pub(crate) fn run(args: Vec<String>) {
                 index += 1;
                 let value = args[index].as_str();
                 match arg {
+                    "--evidence" => evidence = Some(value),
+                    "--approve-evidence" => evidence_approval = Some(value),
                     "--config" => config = value,
                     "--settings" => settings = value,
                     "--approve-review" => approval = Some(value),
@@ -238,6 +242,14 @@ pub(crate) fn run(args: Vec<String>) {
         index += 1;
     }
     let result = match operation.as_str() {
+        "complete" => crate::completion::evaluate(
+            Path::new(target),
+            config,
+            settings,
+            evidence.unwrap_or_else(|| crate::fail("checks: --evidence is required")),
+            evidence_approval
+                .unwrap_or_else(|| crate::fail("checks: --approve-evidence is required")),
+        ),
         "plan" => plan(Path::new(target), config),
         "prepare" => crate::execution_review::prepare(Path::new(target), config, settings),
         "run" => crate::check_execution::run(

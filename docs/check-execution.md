@@ -44,7 +44,7 @@ Reports distinguish passed, failed, timeout, output-limit, execution-error, skip
 
 Exit 0 from `checks run` means the required local commands passed and reviewed inputs remained current. Exit 1 means failed/unsupported/invalidated results; exit 2 means invalid settings or approval before execution. Ordinary optional command failures remain visible. Supervisor, capture or cleanup failures halt dispatch even for optional checks; later cwd/input errors preserve earlier observations through the outcome ledger. `completion_verified` stays false and governance requirements stay unverified: local command success is not a project readiness badge or proof of host enforcement.
 
-The existing `checks plan` remains read-only and never grants execution. Existing audit/gate semantics do not change. A separate authenticated, freshness-aware imported-evidence/completion gate remains under catalog #85 and CLI #55, as do Windows execution support and measured tool-version/transitive identity handling.
+The existing `checks plan` remains read-only and never grants execution. Existing audit/gate semantics do not change. The separate caller-approved `checks complete` command evaluates imported evidence and freshness under explicit trust. Signed producers, Windows execution support and measured tool-version/transitive identity handling remain open under catalog #85 / CLI #55.
 
 ## Verification
 
@@ -64,4 +64,4 @@ SIGINT/SIGTERM set an atomic cancellation flag, then ordinary supervisor code st
 
 See [executor correction evidence](check-execution-verification.md) for measured local results. Cross-platform CI, release-candidate provenance and authenticated imported completion evidence are separate gates.
 
-The [governance evidence evaluator](governance-verdict.md) now supplies pure semantic rejection of stale, mismatched and conflicting imported claims under explicit caller trust. It is not yet a consuming CLI command or an authenticated completion gate.
+The [governance evidence evaluator](governance-verdict.md) now supplies pure semantic rejection of stale, mismatched and conflicting imported claims under explicit caller trust. The separate [caller-approved completion command](check-completion.md) combines it with current snapshots and saved run validation. Signed producer authentication remains deferred.

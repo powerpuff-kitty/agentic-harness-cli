@@ -11,6 +11,7 @@ mod check_inputs;
 pub mod check_verdict;
 mod checks;
 mod cli;
+mod completion;
 mod context_selection;
 mod date;
 mod design_analysis;
@@ -82,7 +83,7 @@ pub fn entry(family: Option<&str>) {
             .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
         println!(
-            "Experimental family: checks <plan|prepare|run> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n"
+            "Experimental family: checks <plan|prepare|run|complete> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n"
         );
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
     }
@@ -151,6 +152,13 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
             (Some("checks"), "prepare") => (&["--config", "--settings"], &[], 0, 1, true),
+            (Some("checks"), "complete") => (
+                &["--config", "--settings", "--evidence", "--approve-evidence"],
+                &[],
+                0,
+                1,
+                true,
+            ),
             (Some("checks"), "run") => (
                 &["--config", "--settings", "--approve-review"],
                 &["--allow-unsandboxed"],

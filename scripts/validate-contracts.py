@@ -73,3 +73,5 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     print(f"Context selection verified across {len(context_result['checks'])} executable probes")
 print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, check-plan and adapter schemas')
 subprocess.run([sys.executable, str(root / 'scripts/validate-execution.py'), str(binary)], check=True)
+
+subprocess.run([sys.executable, str(root / 'scripts/validate-completion.py'), str(binary)], check=True)
