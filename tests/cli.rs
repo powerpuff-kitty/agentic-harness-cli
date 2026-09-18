@@ -1219,10 +1219,7 @@ fn decision_calibration_is_offline_split_aware_and_regression_gateable() {
     assert_eq!(baseline["consequence_authorized"], false);
     f.put("baseline-report.json", baseline.to_string());
     assert_eq!(
-        f.json(
-            &["decisions", "validate", "baseline-report.json"],
-            0
-        )["artifact_kind"],
+        f.json(&["decisions", "validate", "baseline-report.json"], 0)["artifact_kind"],
         "decision-calibration"
     );
 
