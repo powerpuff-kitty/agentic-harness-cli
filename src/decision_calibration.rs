@@ -1,7 +1,7 @@
 //! Offline empirical evaluation, calibration and regression gating for Decision Kernel receipts.
 
 use serde_json::{Map, Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 const EPSILON: f64 = 1e-15;
 
@@ -357,14 +357,12 @@ pub(crate) fn validate_dataset(value: &Value) -> Result<(), String> {
                 .ok_or("decisions: evaluation truth.observed_at is required")?,
             "evaluation truth.observed_at",
         )?;
-        if let Some(cost) = case.get("cost_usd") {
-            if !cost.is_null() {
-                let cost = cost
-                    .as_f64()
-                    .ok_or("decisions: cost_usd must be numeric or null")?;
-                if !cost.is_finite() || cost < 0.0 {
-                    return Err("decisions: cost_usd must be non-negative and finite".into());
-                }
+        if let Some(cost) = case.get("cost_usd").filter(|value| !value.is_null()) {
+            let cost = cost
+                .as_f64()
+                .ok_or("decisions: cost_usd must be numeric or null")?;
+            if !cost.is_finite() || cost < 0.0 {
+                return Err("decisions: cost_usd must be non-negative and finite".into());
             }
         }
     }
@@ -1047,10 +1045,10 @@ pub(crate) fn compare_calibrations(
             "max total cost increase",
         ),
     ] {
-        if let Some(value) = value {
-            if !value.is_finite() || value < 0.0 {
-                return Err(format!("decisions: {name} must be non-negative finite"));
-            }
+        if let Some(value) = value.filter(|value| !value.is_finite() || *value < 0.0) {
+            return Err(format!(
+                "decisions: {name} must be non-negative finite, got {value}"
+            ));
         }
     }
     if budgets.generated_at.is_empty() || !budgets.generated_at.contains('T') {
