@@ -45,7 +45,7 @@ fn every_family_is_available_in_the_installed_binary() {
     fs::copy(env!("CARGO_BIN_EXE_ah"), &copy).unwrap();
     for args in [
         vec!["--help"],
-        vec!["architecture", "--help"],
+        vec!["architecture", "--help"],\n        vec!["quality", "--help"],
         vec!["design", "--help"],
         vec!["agentic", "--help"],
         vec!["--version"],
@@ -324,7 +324,7 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         ),
         (&["architecture", "detect", "."], &[]),
         (&["architecture", "analyze", "."], &["--profile", "--as-of"]),
-        (&["architecture", "enforce", "."], &["--profile", "--as-of"]),
+        (&["architecture", "enforce", "."], &["--profile", "--as-of"]),\n        (&["quality", "detect", "."], &[]),\n        (&["quality", "analyze", "."], &[]),
         (&["design", "analyze", "."], &["--level", "--output"]),
         (&["design", "preserve"], &["--analysis", "--output"]),
         (&["design", "prompt"], &["--genome", "--task", "--output"]),
@@ -937,4 +937,45 @@ fn mit_attribution_is_retained_without_setting_application_licensing() {
             "Application owner's separate terms\n"
         );
     }
+}
+
+
+#[test]
+fn quality_analysis_is_read_only_and_preserves_unchecked_coverage() {
+    let f = Fixture::new();
+    f.put(
+        "package.json",
+        r#"{
+          "scripts":{"lint":"node -e \\"require('fs').writeFileSync('MUTATED','x')\\""},
+          "devDependencies":{"eslint":"9.0.0","typescript":"5.9.3"}
+        }"#,
+    );
+    f.put("tsconfig.json", r#"{"compilerOptions":{"strict":false}}"#);
+    f.put("src/app.ts", "export const value: any = 1;");
+
+    let detected = f.json(&["quality", "detect", "."], 0);
+    assert_eq!(detected["kind"], "quality-detection");
+    assert!(
+        detected["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|tool| tool["executed"] == false)
+    );
+    assert!(!f.path().join("MUTATED").exists());
+
+    let analyzed = f.json(&["quality", "analyze", "."], 0);
+    assert_eq!(analyzed["kind"], "quality-analysis");
+    assert_eq!(
+        analyzed["findings"][0]["rule_id"],
+        "typescript.type-safety.strict-mode"
+    );
+    assert!(
+        analyzed["coverage"]["not_checked"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| value == "lint execution")
+    );
+    assert!(!f.path().join("MUTATED").exists());
 }
