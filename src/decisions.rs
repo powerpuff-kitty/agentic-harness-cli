@@ -2462,4 +2462,97 @@ mod tests {
             "decision-1"
         );
     }
+
+    fn comparison_receipt(id: &str, provider: &str, value: bool, confidence: f64) -> Value {
+        json!({
+            "format_version":1,"kind":"decision-receipt","id":id,
+            "spec":{"id":"task.risk","revision":1},
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":"sha256:12345678"},
+            "status":"produced",
+            "result":{"value":value,"distribution":{"false":1.0-confidence,"true":confidence}},
+            "provider":{"type":"custom","id":provider},
+            "uncertainty":{
+                "provider_confidence":confidence,
+                "calibration":{"status":"unknown"},
+                "evidence_coverage":{"value":1.0,"required_present":0,"required_total":0,"missing":[]},
+                "evidence_reliability":null,
+                "decision_certainty":null
+            },
+            "evidence":{"used":[],"missing":[]},
+            "policy":{"id":"policy:test","revision":1,"disposition":"review","reasons":[]},
+            "timing":{"decided_at":"2026-09-18T20:00:00Z"}
+        })
+    }
+
+    #[test]
+    fn outcomes_append_feedback_without_rewriting_receipts() {
+        let receipt = comparison_receipt("decision-one", "provider-a", true, 0.9);
+        let original = receipt.clone();
+        let outcome = outcome_from_receipt(
+            &receipt,
+            "outcome-one",
+            "2026-09-19T10:00:00Z",
+            "confirmed-regression",
+            "human",
+            Some("review:42"),
+            Some("issue:99"),
+            true,
+            Some(true),
+        )
+        .unwrap();
+        assert_eq!(receipt, original);
+        assert_eq!(outcome["receipt_id"], "decision-one");
+        assert_eq!(outcome["verification"]["type"], "human");
+        assert_eq!(outcome["feedback"]["usable_for_evaluation"], true);
+        assert_eq!(outcome["outcome"]["success"], true);
+        assert!(validate_outcome(&outcome).is_ok());
+    }
+
+    #[test]
+    fn shadow_and_counterfactual_comparisons_are_side_effect_free() {
+        let champion = comparison_receipt("decision-a", "provider-a", false, 0.8);
+        let candidate = comparison_receipt("decision-b", "provider-b", true, 0.7);
+        let shadow = compare_receipts(
+            &champion,
+            &candidate,
+            "shadow",
+            "dataset:test",
+            "1",
+            "2026-09-18T20:30:00Z",
+            &["provider".to_string()],
+        )
+        .unwrap();
+        assert_eq!(shadow["side_effects"], false);
+        assert_eq!(shadow["metrics"][0]["name"], "result_match");
+        assert_eq!(shadow["metrics"][0]["value"], 0.0);
+        assert_eq!(shadow["source_receipts"][0], "decision-a");
+        assert_eq!(shadow["source_receipts"][1], "decision-b");
+
+        assert!(
+            compare_receipts(
+                &champion,
+                &candidate,
+                "counterfactual",
+                "dataset:test",
+                "1",
+                "2026-09-18T20:30:00Z",
+                &[],
+            )
+            .unwrap_err()
+            .contains("--changed")
+        );
+        let counterfactual = compare_receipts(
+            &champion,
+            &candidate,
+            "counterfactual",
+            "dataset:test",
+            "1",
+            "2026-09-18T20:30:00Z",
+            &["provider".to_string(), "threshold".to_string()],
+        )
+        .unwrap();
+        assert_eq!(counterfactual["mode"], "counterfactual");
+        assert_eq!(counterfactual["side_effects"], false);
+    }
+
 }
