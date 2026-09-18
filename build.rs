@@ -13,6 +13,14 @@ fn main() {
         "upstream/agentic-harness/catalog/policies",
         "upstream/agentic-harness/catalog/profiles",
         "upstream/agentic-harness/catalog/presets",
+        "upstream/agentic-harness/catalog/schema/decision-spec.v1.schema.json",
+        "upstream/agentic-harness/catalog/schema/decision-graph.v1.schema.json",
+        "upstream/agentic-harness/catalog/schema/decision-request.v1.schema.json",
+        "upstream/agentic-harness/catalog/schema/decision-provider-profile.v1.schema.json",
+        "upstream/agentic-harness/catalog/schema/decision-policy.v1.schema.json",
+        "upstream/agentic-harness/catalog/schema/decision-receipt.v1.schema.json",
+        "upstream/agentic-harness/catalog/schema/decision-outcome.v1.schema.json",
+        "upstream/agentic-harness/catalog/schema/decision-evaluation.v1.schema.json",
         "upstream/agentic-harness-agents/skills/agentic-app/SKILL.md",
     ];
     let missing: Vec<_> = required.iter().filter(|p| !Path::new(p).exists()).collect();
