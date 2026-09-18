@@ -403,7 +403,13 @@ mod tests {
         for key in ["", " abc", "abc ", "abc def", "abc\ndef"] {
             let error = validate_api_key(key).unwrap_err();
             assert_eq!(error.code, "provider-credentials-invalid");
-            assert!(!error.message.contains(key));
+            assert_eq!(
+                error.message,
+                "TYPESAFE_API_KEY is empty, malformed, or contains whitespace/control characters"
+            );
+            if !key.is_empty() {
+                assert!(!error.message.contains(key));
+            }
         }
     }
 }
