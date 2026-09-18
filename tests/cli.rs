@@ -987,12 +987,7 @@ fn decision_kernel_cli_is_offline_reproducible_and_fail_closed() {
     assert!(invalid.stdout.is_empty());
     let diagnostic: Value = serde_json::from_slice(&invalid.stderr).unwrap();
     assert_eq!(diagnostic["kind"], "diagnostic");
-    assert!(
-        diagnostic["message"]
-            .as_str()
-            .unwrap()
-            .contains("cycle")
-    );
+    assert!(diagnostic["message"].as_str().unwrap().contains("cycle"));
 
     let boolean = json!({
         "format_version":1,
@@ -1065,7 +1060,10 @@ fn decision_kernel_cli_is_offline_reproducible_and_fail_closed() {
     assert_eq!(payload["provider"], "typesafe-jev");
     assert_eq!(payload["request"]["model"], "jev-latest");
     assert_eq!(payload["request"]["questions"]["task.risk"]["type"], "noul");
-    assert_eq!(payload["request"]["questions"]["task.route"]["type"], "choice");
+    assert_eq!(
+        payload["request"]["questions"]["task.route"]["type"],
+        "choice"
+    );
     assert_eq!(
         payload["request"]["questions"]["task.complexity"]["type"],
         "score"
@@ -1077,4 +1075,3 @@ fn decision_kernel_cli_is_offline_reproducible_and_fail_closed() {
         "provider payload must not serialize credentials"
     );
 }
-
