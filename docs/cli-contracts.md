@@ -10,6 +10,14 @@ The production-core contract covers composition, project validation, audit artif
 
 Package 0.1.x patch releases preserve supported command arguments, exit semantics and existing fields within an artifact version. Additive JSON fields are allowed; consumers must ignore unknown fields. A breaking command change requires a new minor release while pre-1.0, migration notes and an explicit compatibility review. Incompatible artifact changes require a new `format_version` independently of the package version. Stored complete legacy audits remain readable; there is no silent conversion of unknown measurements to numeric scores.
 
+## Decision Kernel compatibility
+
+The pinned canonical Decision Kernel v1 schema family defines provider-neutral specs, graphs, requests, provider profiles, policies, receipts, outcomes and evaluations. The CLI's initial `decisions` surface validates those artifacts plus deterministic semantic invariants that schema syntax alone cannot establish.
+
+`decisions fingerprint` fingerprints only explicit JSON input. `decisions jev-payload` is an offline adapter that maps boolean/choice/ordinal specs to Jev request payloads; it does not read credentials or perform provider inference. Live hosted evaluation, calibration and automated adoption are not implied by payload construction.
+
+Decision providers cannot grant consequence authority. Evaluation artifacts are side-effect free. Provider confidence, calibration, evidence coverage, evidence reliability, decision certainty and domain outcome probability remain distinct.
+
 ## Commands
 
 | Surface | Behavior |
@@ -33,6 +41,9 @@ Package 0.1.x patch releases preserve supported command arguments, exit semantic
 | `agentic models [TARGET] [--task NAME]` | Pinned model profiles with unknown compatibility/ranking represented as null |
 | `agentic compare MODEL_A MODEL_B` | Inspect two known profiles |
 | `agentic migrate [TARGET] --from MODEL_A --to MODEL_B` | Preview only; distinct from filesystem-layout migration |
+| `decisions validate ARTIFACT.json` | Validate Decision Kernel v1 structure plus supported deterministic semantic invariants |
+| `decisions fingerprint STATE.json` | Canonicalize explicit JSON state and emit `ah-json-sha256-v1` identity |
+| `decisions jev-payload REQUEST.json SPECS.json [--model MODEL]` | Construct a Jev payload offline; no credentials are read and no provider call is made |
 
 ## Evidence versions
 
