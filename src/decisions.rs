@@ -1703,17 +1703,28 @@ fn replay_receipts(graph: &Value, receipt_set: &Value) -> Result<Value, String> 
     }))
 }
 
-fn outcome_from_receipt(
-    receipt: &Value,
-    id: &str,
-    observed_at: &str,
-    label: &str,
-    verification_type: &str,
-    verification_ref: Option<&str>,
-    action_ref: Option<&str>,
+struct OutcomeOptions<'a> {
+    id: &'a str,
+    observed_at: &'a str,
+    label: &'a str,
+    verification_type: &'a str,
+    verification_ref: Option<&'a str>,
+    action_ref: Option<&'a str>,
     usable_for_evaluation: bool,
     success: Option<bool>,
-) -> Result<Value, String> {
+}
+
+fn outcome_from_receipt(receipt: &Value, options: OutcomeOptions<'_>) -> Result<Value, String> {
+    let OutcomeOptions {
+        id,
+        observed_at,
+        label,
+        verification_type,
+        verification_ref,
+        action_ref,
+        usable_for_evaluation,
+        success,
+    } = options;
     validate_receipt(receipt)?;
     bounded_text(&Value::String(id.to_string()), "outcome id", 512)?;
     bounded_text(
@@ -2054,19 +2065,22 @@ pub(crate) fn run(args: Vec<String>) {
             }
             let outcome = outcome_from_receipt(
                 &receipt,
-                id.as_deref()
-                    .unwrap_or_else(|| crate::fail("decisions: --id is required")),
-                observed_at
-                    .as_deref()
-                    .unwrap_or_else(|| crate::fail("decisions: --observed-at is required")),
-                label
-                    .as_deref()
-                    .unwrap_or_else(|| crate::fail("decisions: --label is required")),
-                &verification,
-                verification_ref.as_deref(),
-                action_ref.as_deref(),
-                usable,
-                success,
+                OutcomeOptions {
+                    id: id
+                        .as_deref()
+                        .unwrap_or_else(|| crate::fail("decisions: --id is required")),
+                    observed_at: observed_at
+                        .as_deref()
+                        .unwrap_or_else(|| crate::fail("decisions: --observed-at is required")),
+                    label: label
+                        .as_deref()
+                        .unwrap_or_else(|| crate::fail("decisions: --label is required")),
+                    verification_type: &verification,
+                    verification_ref: verification_ref.as_deref(),
+                    action_ref: action_ref.as_deref(),
+                    usable_for_evaluation: usable,
+                    success,
+                },
             )
             .unwrap_or_else(|error| crate::fail(error));
             println!("{}", serde_json::to_string_pretty(&outcome).unwrap());
@@ -2497,14 +2511,16 @@ mod tests {
         let original = receipt.clone();
         let outcome = outcome_from_receipt(
             &receipt,
-            "outcome-one",
-            "2026-09-19T10:00:00Z",
-            "confirmed-regression",
-            "human",
-            Some("review:42"),
-            Some("issue:99"),
-            true,
-            Some(true),
+            OutcomeOptions {
+                id: "outcome-one",
+                observed_at: "2026-09-19T10:00:00Z",
+                label: "confirmed-regression",
+                verification_type: "human",
+                verification_ref: Some("review:42"),
+                action_ref: Some("issue:99"),
+                usable_for_evaluation: true,
+                success: Some(true),
+            },
         )
         .unwrap();
         assert_eq!(receipt, original);
