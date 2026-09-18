@@ -6,10 +6,13 @@ mod architecture_cli;
 mod architecture_contract;
 mod architecture_score;
 mod artifact;
+mod check_execution;
 mod check_inputs;
 pub mod check_verdict;
 mod checks;
 mod cli;
+mod completion;
+mod context_selection;
 mod date;
 mod decisions;
 mod design_analysis;
@@ -18,9 +21,15 @@ mod design_diff;
 mod design_genome;
 mod design_prompt;
 mod design_system;
+mod execution_budget;
+mod execution_cancel;
+mod execution_review;
+pub mod governance_verdict;
 mod jev_transport;
+mod process_check;
 mod project;
 mod scan;
+mod strict_json;
 mod syntax;
 mod syntax_worker;
 
@@ -83,7 +92,9 @@ pub fn entry(family: Option<&str>) {
             .get(1)
             .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
-        println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
+        println!(
+            "Experimental family: checks <plan|prepare|run|complete> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n"
+        );
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
         println!(
             "Decision Kernel: offline contracts plus opt-in decisions jev-evaluate --allow-network\n"
@@ -121,6 +132,7 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                     "--template",
                     "--preset",
                     "--profile",
+                    "--context-profile",
                     "--pack",
                     "--skill",
                     "--policy",
@@ -153,6 +165,21 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 true,
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
+            (Some("checks"), "prepare") => (&["--config", "--settings"], &[], 0, 1, true),
+            (Some("checks"), "complete") => (
+                &["--config", "--settings", "--evidence", "--approve-evidence"],
+                &[],
+                0,
+                1,
+                true,
+            ),
+            (Some("checks"), "run") => (
+                &["--config", "--settings", "--approve-review"],
+                &["--allow-unsandboxed"],
+                0,
+                1,
+                true,
+            ),
             (Some("decisions"), "validate" | "fingerprint") => (&[], &[], 1, 1, false),
             (Some("decisions"), "plan") => (&["--provider", "--mode"], &[], 3, 3, false),
             (Some("decisions"), "replay") => (&[], &[], 2, 2, false),

@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "ignore",
  "include_dir",
+ "libc",
  "oxc_allocator",
  "oxc_ast",
  "oxc_ast_visit",

@@ -42,6 +42,21 @@ impl Fixture {
     }
 }
 #[test]
+fn computed_imports_prevent_complete_architecture_evidence() {
+    let f = Fixture::new();
+    f.put(
+        "src/load.ts",
+        "export const load = (name: string) => import(name);",
+    );
+    let result = f.json(&["architecture", "analyze", "."], 0);
+    assert_eq!(result["compliance"]["complete"], false);
+    assert_eq!(result["compliance"]["passed"], false);
+    let gap = &result["graph"]["unresolved_local_imports"][0];
+    assert_eq!(gap["from"], "src/load.ts");
+    assert_eq!(gap["lines"], json!([1]));
+}
+
+#[test]
 fn every_family_is_available_in_the_installed_binary() {
     let f = Fixture::new();
     let copy = f.path().join(if cfg!(windows) { "ah.exe" } else { "ah" });
@@ -1330,10 +1345,9 @@ fn decision_kernel_cli_is_offline_reproducible_and_fail_closed() {
     let validation = f.json(&["decisions", "validate", "graph.json"], 0);
     assert_eq!(validation["valid"], true);
     assert_eq!(validation["artifact_kind"], "decision-graph");
-    assert_eq!(
-        validation["canonical_source"]["commit"],
-        "ccc74b1ba1c905a01c908d4416ae682ef4ef99dc"
-    );
+    let locked_sources: Value =
+        serde_json::from_str(include_str!("../upstream.lock.json")).unwrap();
+    assert_eq!(validation["canonical_source"], locked_sources["canonical"]);
 
     let mut cyclic = valid_graph;
     cyclic["nodes"][0]["depends_on"] = json!(["route"]);

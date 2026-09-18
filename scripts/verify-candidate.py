@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise a copied candidate offline, outside the checkout, using only Python stdlib."""
+"""Exercise a copied candidate outside the checkout, using only Python stdlib."""
 import argparse
 import hashlib
 import json
@@ -12,6 +12,9 @@ from onboarding import ROOT, exercise
 from check_plan_probe import exercise_plan
 from adapter_probe import exercise_adapters
 from skill_delivery_probe import exercise_skill_delivery
+from context_probe import exercise_context
+from check_execution_probe import exercise_execution
+from completion_probe import exercise_completion
 
 parser = argparse.ArgumentParser()
 parser.add_argument('binary', type=Path)
@@ -25,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     shutil.copy2(source, binary)
     environment = os.environ.copy()
     environment.pop('AH_REGISTRY', None)
-    environment['PATH'] = str(root)  # No Cargo, sibling binaries, or other runtime dependencies.
+    environment['PATH'] = str(root)
     environment.update(HTTP_PROXY='http://127.0.0.1:1', HTTPS_PROXY='http://127.0.0.1:1')
 
     def run(*argv, exits=(0,), json_output=True):
@@ -44,7 +47,6 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     run('harness-audit', 'project')
     run('upgrade', 'project')
     run('validate', 'project')
-    # Restore a project backup and validate it, as the first-release recovery rehearsal.
     shutil.copytree(root / 'project', root / 'backup')
     run('upgrade', 'project', '--policy', 'licensing')
     shutil.rmtree(root / 'project')
@@ -61,7 +63,6 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     run('compare', 'audit.json', 'audit.json')
     run('gate', 'audit.json', '--min-overall', '90', exits=(1,))
     run('gate', 'audit.json', '--max-architecture-errors', '0')
-    # Exercise the bundled parser worker with no runtime tools on PATH.
     (root / 'source').mkdir()
     (root / 'source' / 'env.ts').write_text('export interface Box<T> { value: T }')
     (root / 'source' / 'main.ts').write_text(
@@ -92,12 +93,16 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     planning = exercise_plan(run, root)
     adapters = exercise_adapters(binary, root, environment, expected_sources['agents'])
     skills = exercise_skill_delivery(binary, root, environment, expected_sources['agents'])
+    context = exercise_context(binary, root, environment)
+    execution = exercise_execution(run, root)
+    completion = exercise_completion(run, root)
 
 report = {'format_version': 1, 'kind': 'candidate-verification', 'passed': True,
           'binary_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
           'version': version, 'checks': results, 'recovery': 'backup/restore validated',
-          'onboarding': onboarding, 'check_planning': planning, 'adapters': adapters,
+          'onboarding': onboarding, 'check_planning': planning, 'check_execution': execution, 'check_completion': completion, 'adapters': adapters,
           'skill_delivery': skills,
+          'context_selection': context,
           'limitations': ['Network access is not OS-sandboxed; proxy variables deny ordinary HTTP clients.',
                           'Design prompt approved-artifact loop is exercised by Rust integration tests.',
                           'Check planning does not execute or authorize repository commands.',

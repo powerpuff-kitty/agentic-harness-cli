@@ -2,6 +2,8 @@
 
 ## 0.1.0 — production-core candidate (unpublished)
 
+- Add catalog-owned `--context-profile full|minimal` selection; inherit selection/variant on upgrade and preserve authored files and routes through mode changes.
+
 - Reject malformed optional audit evidence before gates/comparisons and version their result envelopes.
 - Document the supported production-core contract, pre-1.0 compatibility and platform installation/recovery.
 - License authored content under MIT and retain copied Harness attribution without licensing generated application code.

@@ -6,11 +6,13 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from jsonschema import Draft202012Validator
 from adapter_probe import exercise_adapters
 from skill_delivery_probe import exercise_skill_delivery
+from context_probe import exercise_context
 p = argparse.ArgumentParser()
 p.add_argument('binary', type=Path)
 a = p.parse_args()
@@ -64,4 +66,12 @@ with tempfile.TemporaryDirectory(prefix='ah-contracts-') as directory:
     print(f"Actual adapter reports validated across {len(adapter_result['checks'])} executable probes")
     skill_result = exercise_skill_delivery(binary, target, os.environ.copy(), source)
     print(f"Exact skill delivery verified across {len(skill_result['checks'])} executable probes")
+    context_result = exercise_context(binary, target, os.environ.copy())
+    composition = json.loads((schemas / 'manifest.schema.json').read_text())['properties']['composition']
+    for measurement in context_result['measurements']:
+        Draft202012Validator(composition).validate({'context_profile': measurement['context_profile']})
+    print(f"Context selection verified across {len(context_result['checks'])} executable probes")
 print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, check-plan and adapter schemas')
+subprocess.run([sys.executable, str(root / 'scripts/validate-execution.py'), str(binary)], check=True)
+
+subprocess.run([sys.executable, str(root / 'scripts/validate-completion.py'), str(binary)], check=True)

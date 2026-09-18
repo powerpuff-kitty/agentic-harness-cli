@@ -22,7 +22,7 @@ Decision providers cannot grant consequence authority. Evaluation artifacts are 
 
 | Surface | Behavior |
 | --- | --- |
-| `init TARGET`, `upgrade TARGET` | Compose current canonical files; repeated `--pack`, `--skill`, `--policy`; optional `--boilerplate` (`--template` alias), `--preset`, `--profile`, `--name`, `--maturity` |
+| `init TARGET`, `upgrade TARGET` | Compose current canonical files; repeated `--pack`, `--skill`, `--policy`; optional `--boilerplate` (`--template` alias), `--preset`, `--profile`, `--context-profile full|minimal`, `--name`, `--maturity` |
 | `validate [TARGET]`, `harness-audit [TARGET]` | Validate the selected project's YAML and routed context; no fallback to bundled templates |
 | `catalog-check` | Validate embedded catalog materialization |
 | `audit [TARGET]` | Codebase audit v2, with explicit unmeasured scores and discovered checks that have not been executed |
@@ -66,6 +66,12 @@ The architecture indicator is `100 - min(100, deterministic_errors * 100 / suppo
 Optional `.agentic/design-system.json` declares roots, required_components, exceptions and capability aliases. Shared native controls are expected implementation detail; controls and literal CSS colors outside shared roots are review observations. Type parameters, comments, scripts and tests are not template controls. Static observations do not establish visual, accessibility or runtime conformance. CSS-in-JS and full semantic component equivalence remain unmeasured.
 
 ## Project upgrades and recovery
+
+`--context-profile minimal` selects the pinned catalog's 12-file core, conditional design context and selected-module routers. Complete selected packs, policies and skills still install. Full is the default for new projects and retains the existing materialized layout. Minimal does not create empty optional context trees or native host adapters; use supported `adapters sync` operations separately. Organization profiles retain their existing meaning.
+
+Selection is stored in `composition.context_profile` in the manifest; absent means full. An omitted option inherits the current selection. Upgrades without a new variant/preset selection also inherit the installed variant. Changing profiles only adds missing files: authored files, customized modules, custom routes and explicit null routes remain intact. Existing context maps are preserved and reported as conflicts when generated content differs. Expanding to full does not enable a deliberately null route; reconcile it explicitly. Unknown selection values/mappings fail before mutation. Composition reports include the effective `context_profile`.
+
+The baseline budget excludes modules, skills, adapters and user documents. Installed structure does not prove configured project decisions, executed checks, host delivery or verified behavior. Selection data and the map template are embedded from the exact catalog source pin.
 
 New projects contain root `AGENTS.md` plus routed `.agentic` context and `.agentic/lock.json`. DESIGN and REFERENCE routes may be null. Upgrades preserve existing project/module files, report conflicting content, and merge requested module declarations into managed metadata. Checksum provenance distinguishes original installed bytes from customization. Back up an existing project before upgrading; retain the report and reconcile conflicts explicitly.
 

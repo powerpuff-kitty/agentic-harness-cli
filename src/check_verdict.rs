@@ -113,8 +113,10 @@ fn disposition(outcome: &Value) -> Disposition {
         Some("passed" | "failed" | "timeout" | "output-limit")
     ) || outcome.get("spawned").and_then(Value::as_bool) != Some(true)
         || outcome.get("direct_child_reaped").and_then(Value::as_bool) != Some(true)
-        || outcome.get("process_group_cleanup").and_then(Value::as_str)
-            != Some("signal-sent-or-group-absent")
+        || !matches!(
+            outcome.get("process_group_cleanup").and_then(Value::as_str),
+            Some("signal-sent-or-group-absent" | "no-live-group-members")
+        )
     {
         return Disposition::SupervisorFault;
     }

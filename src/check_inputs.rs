@@ -1,5 +1,6 @@
 //! Exact, bounded input snapshots for non-executing check previews.
 //! Unlike advisory analysis scans, declared inputs never use implicit ignore rules.
+use crate::execution_budget::Budget;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -86,16 +87,37 @@ pub(crate) fn resolve(root: &Path, value: &str, allow_dot: bool) -> Result<PathB
 }
 
 pub(crate) fn read(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
+    read_with_budget(path, limit, &Budget::new())
+}
+
+pub(crate) fn read_with_budget(
+    path: &Path,
+    limit: usize,
+    budget: &Budget,
+) -> Result<Vec<u8>, String> {
+    budget.check()?;
     let before = fs::symlink_metadata(path).map_err(|_| "checks: unreadable file")?;
     if !before.is_file() || is_link(&before) {
         return Err("checks: expected a regular non-symlink file".into());
     }
     let mut bytes = Vec::new();
-    fs::File::open(path)
-        .map_err(|_| "checks: cannot open file")?
-        .take((limit + 1) as u64)
-        .read_to_end(&mut bytes)
-        .map_err(|_| "checks: cannot read file")?;
+    let mut file = fs::File::open(path).map_err(|_| "checks: cannot open file")?;
+    let mut buffer = [0u8; 65_536];
+    loop {
+        budget.check()?;
+        let allowance = buffer.len().min(limit + 1 - bytes.len());
+        if allowance == 0 {
+            break;
+        }
+        let count = file
+            .read(&mut buffer[..allowance])
+            .map_err(|_| "checks: cannot read file")?;
+        budget.check()?;
+        if count == 0 {
+            break;
+        }
+        bytes.extend_from_slice(&buffer[..count]);
+    }
     if bytes.len() > limit {
         return Err("checks: declared file exceeds read limit".into());
     }
@@ -111,14 +133,20 @@ pub(crate) fn read(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-pub(crate) fn snapshot(root: &Path, inputs: &[String]) -> Result<(String, Vec<Value>), String> {
+pub(crate) fn snapshot_with_budget(
+    root: &Path,
+    inputs: &[String],
+    budget: &Budget,
+) -> Result<(String, Vec<Value>), String> {
     fn visit(
         root: &Path,
         relative: &str,
         depth: usize,
         total: &mut usize,
         entries: &mut BTreeMap<String, Value>,
+        budget: &Budget,
     ) -> Result<(), String> {
+        budget.check()?;
         if entries.contains_key(relative) {
             return Ok(());
         }
@@ -144,10 +172,11 @@ pub(crate) fn snapshot(root: &Path, inputs: &[String]) -> Result<(String, Vec<Va
                     depth + 1,
                     total,
                     entries,
+                    budget,
                 )?;
             }
         } else {
-            let bytes = read(&path, MAX_FILE)?;
+            let bytes = read_with_budget(&path, MAX_FILE, budget)?;
             *total += bytes.len();
             if *total > MAX_TOTAL {
                 return Err("checks: declared inputs exceed total read limit".into());
@@ -163,7 +192,7 @@ pub(crate) fn snapshot(root: &Path, inputs: &[String]) -> Result<(String, Vec<Va
     let mut entries = BTreeMap::new();
     let mut total = 0;
     for input in inputs {
-        visit(root, input, 0, &mut total, &mut entries)?;
+        visit(root, input, 0, &mut total, &mut entries, budget)?;
     }
     let values: Vec<Value> = entries.into_values().collect();
     let mut fields = Vec::new();
@@ -172,5 +201,6 @@ pub(crate) fn snapshot(root: &Path, inputs: &[String]) -> Result<(String, Vec<Va
         fields.push(value["kind"].as_str().unwrap().as_bytes());
         fields.push(value["digest"].as_str().unwrap_or("").as_bytes());
     }
+    budget.check()?;
     Ok((framed_hash(b"ah-check-inputs-v1\0", &fields), values))
 }

@@ -249,3 +249,9 @@ Authored code and content are available under the [MIT License](LICENSE).
 Third-party material retains its existing licenses and attribution requirements.
 Copied Harness templates and skills retain their MIT notice; independently
 written application code may use its own license.
+
+### Experimental reviewed local checks
+
+`ah checks plan` and `ah checks prepare` are non-executing previews. `ah checks run` requires an exact reviewed digest and an unsandboxed acknowledgment; it uses explicit native tool bindings and a cleared, declared environment. This is for trusted cooperative local checks on the tested backend, not a hostile-code sandbox or completion certification. See [configuration and limitations](docs/check-execution.md) and [local verification](docs/check-execution-verification.md).
+
+Experimental [caller-approved completion](docs/check-completion.md) evaluates saved reports against current inputs without executing commands. Its verdict covers declared checks and required controls under explicit caller trust; signed producer authentication and whole-project readiness remain unverified.

@@ -137,7 +137,9 @@ impl<'a> Visit<'a> for SourceVisitor {
                     self.record(node.span.start, s.as_str(), "dynamic");
                 }
             }
-            _ => {} // Computed targets remain explicitly outside supported resolution.
+            // A computed target cannot be resolved statically. Preserve its source
+            // location so graph consumers cannot report complete coverage.
+            _ => self.unsupported.push(self.line(node.span.start as usize)),
         }
         walk::walk_import_expression(self, node);
     }
@@ -211,6 +213,13 @@ pub fn jsx_tags(path: &Path, text: &str) -> (Vec<String>, Vec<usize>) {
 #[cfg(test)]
 mod parser_tests {
     use super::*;
+    #[test]
+    fn computed_imports_report_gaps_without_inventing_edges() {
+        let source = "const a = import(name);\nconst b = import(`./${name}.ts`);\nconst c = import('./fixed');";
+        let (edges, gaps) = imports(Path::new("main.ts"), source);
+        assert_eq!(gaps, [1, 2]);
+        assert_eq!(edges, [(3, "./fixed".into(), "dynamic".into())]);
+    }
     #[test]
     fn imported_generic_type_edges_are_never_runtime() {
         let source = "import /* comment */ type { Env } from './env';\nexport type App = import('library').App<{ Bindings: Env; Variables: { auth: Env }; }>;";
