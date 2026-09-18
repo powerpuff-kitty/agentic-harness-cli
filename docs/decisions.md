@@ -13,6 +13,8 @@ ah decisions plan graph.json specs.json state.json --provider typesafe-jev --mod
 ah decisions replay graph.json receipts.json
 ah decisions outcome receipt.json --id outcome-1 --observed-at 2026-09-19T10:00:00Z --label confirmed --verification human
 ah decisions compare-receipts champion.json candidate.json --mode shadow --dataset triage-v1 --revision 1 --generated-at 2026-09-19T10:05:00Z --changed provider
+ah decisions calibration-report calibration-dataset.json --generated-at 2026-09-19T10:10:00Z --target-accuracy 0.95 --min-coverage 0.70 --min-samples 30
+ah decisions calibration-compare baseline.json candidate.json --generated-at 2026-09-19T10:15:00Z --max-accuracy-drop 0.01 --max-coverage-drop 0.02
 ah decisions jev-payload request.json specs.json --model jev-latest
 ah decisions jev-evaluate request.json specs.json --allow-network --decided-at 2026-09-18T19:30:00Z --model jev-latest --timeout-ms 10000 --max-retries 2
 ah decisions jev-receipts request.json specs.json response.json --decided-at 2026-09-18T19:30:00Z --evidence evidence.json
@@ -80,6 +82,51 @@ The comparison records result/disposition agreement and provider-confidence delt
 Counterfactual comparison requires explicit `--changed` dimensions such as `provider`, `model`, `policy`, `threshold`, `evidence`, `spec`, or `state`. Different state/spec identities are rejected unless the corresponding change dimension is declared.
 
 These artifacts are engineering evidence, not model-quality proof by themselves. Representative datasets, outcome labels and calibration remain separate evaluation work.
+
+### Empirical calibration
+
+`decisions calibration-report` evaluates a versioned `DecisionEvalDataset v1` entirely offline.
+
+Each dataset case contains the immutable DecisionReceipt plus independently verified expected truth. The dataset itself fixes:
+
+- train/calibration/validation/test split;
+- DecisionSpec ID/revision and decision kind;
+- state schema/version;
+- one exact provider/model/version identity.
+
+The evaluator reports:
+
+- produced coverage;
+- accuracy among produced decisions;
+- abstention and provider-failure rates;
+- Brier score and log loss when result distributions exist;
+- expected calibration error and equal-width reliability bins when provider confidence exists;
+- ordinal mean absolute error for ordered decisions;
+- mean latency and total cost only when those fields are complete across the dataset.
+
+Missing quantities remain `null`. Missing provider confidence is never treated as zero and missing cost/latency is never estimated.
+
+Threshold fitting is opt-in with `--target-accuracy` and `--min-coverage`, and is permitted **only** when the dataset split is `calibration`. The selected threshold is the lowest observed provider-confidence value that satisfies target accuracy, minimum coverage and `--min-samples`. Test/validation splits can be measured but cannot fit a threshold.
+
+A threshold remains policy evidence only. The report always records `side_effects: false` and `consequence_authorized: false`.
+
+### Calibration regression gate
+
+`decisions calibration-compare` compares two `DecisionCalibration v1` reports produced on the exact same dataset/spec/state-schema identity. No provider call is made.
+
+By default the command permits no regression in accuracy, coverage, Brier score, ECE or ordinal MAE. Explicit budgets can relax those limits:
+
+- `--max-accuracy-drop`
+- `--max-coverage-drop`
+- `--max-brier-increase`
+- `--max-ece-increase`
+- `--max-ordinal-mae-increase`
+- optional `--max-latency-increase-ms`
+- optional `--max-cost-increase-usd`
+
+A passing report exits 0. A quality regression emits the complete machine-readable `DecisionRegression v1` report and exits 1, making it suitable for CI without contacting a hosted provider. Invalid/mismatched reports exit 2.
+
+If a metric is unavailable for both baseline and candidate it is treated as not applicable. If a budgeted metric exists on one side but is missing on the other, the gate fails closed for that metric.
 
 ### Jev payload
 
