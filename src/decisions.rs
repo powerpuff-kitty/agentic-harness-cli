@@ -3,7 +3,10 @@
 //! This slice is deliberately offline: it validates the pinned canonical
 //! contracts, fingerprints explicit state, and constructs a TypeSafe Jev
 //! HTTP payload without performing a network call or reading credentials.
-use crate::check_inputs;
+use crate::{
+    check_inputs,
+    jev_transport::{self, JEV_ENDPOINT, ProviderError, TransportOptions},
+};
 use include_dir::{Dir, include_dir};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -13,7 +16,6 @@ static SCHEMAS: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/catalog/schema");
 
 const LIMIT: usize = 2_000_000;
-const JEV_ENDPOINT: &str = "https://api.typesafe.ai/v1/systemone";
 const DECISION_KINDS: &[&str] = &[
     "boolean",
     "choice",
@@ -25,6 +27,33 @@ const DECISION_KINDS: &[&str] = &[
     "constraint",
     "optimization",
 ];
+
+fn provider_fail(error: ProviderError) -> ! {
+    eprintln!(
+        "{}",
+        json!({
+            "format_version": 1,
+            "kind": "diagnostic",
+            "code": error.code,
+            "message": error.message,
+            "provider": "typesafe-jev",
+            "http_status": error.status,
+            "attempts": error.attempts,
+            "credential_source": "TYPESAFE_API_KEY",
+            "authorization_header": "Bearer <redacted>"
+        })
+    );
+    crate::finish(3)
+}
+
+fn provider_fail_code(code: &'static str, message: &str) -> ! {
+    provider_fail(ProviderError {
+        code,
+        message: message.to_string(),
+        status: None,
+        attempts: 0,
+    })
+}
 
 fn read_json(path: &Path) -> Result<Value, String> {
     let bytes = check_inputs::read(path, LIMIT)
@@ -1919,7 +1948,7 @@ fn compare_receipts(
 
 fn usage(program: &str) {
     println!(
-        "Agentic Harness Decisions\n\nusage:\n  {program} validate ARTIFACT.json\n  {program} fingerprint STATE.json\n  {program} plan GRAPH.json SPECS.json STATE.json [--provider ID] [--mode MODE]\n  {program} replay GRAPH.json RECEIPTS.json\n  {program} outcome RECEIPT.json --id ID --observed-at RFC3339 --label LABEL --verification TYPE [--verification-ref REF] [--action-ref REF] [--usable true|false] [--success true|false]\n  {program} compare-receipts CHAMPION.json CANDIDATE.json --mode shadow|champion-challenger|counterfactual --dataset ID --revision REV --generated-at RFC3339 [--changed provider,model,...]\n  {program} jev-payload REQUEST.json SPECS.json [--model MODEL]\n  {program} jev-receipts REQUEST.json SPECS.json RESPONSE.json --decided-at RFC3339 [--evidence EVIDENCE.json]\n\ncommands:\n  validate      Validate a Decision Kernel v1 artifact plus semantic invariants\n  fingerprint   Canonicalize explicit JSON state and emit its SHA-256 identity\n  plan          Topologically stage a DecisionGraph into parallel fan-out batches and cache identities\n  replay        Reconstruct graph inputs from recorded receipts without provider calls\n  outcome       Append an observed outcome/verification artifact without rewriting its receipt\n  compare-receipts  Build side-effect-free shadow/challenger/counterfactual evaluation evidence\n  jev-payload   Construct the documented TypeSafe Jev request without making a network call\n  jev-receipts  Normalize a recorded Jev response into canonical review-required DecisionReceipts"
+        "Agentic Harness Decisions\n\nusage:\n  {program} validate ARTIFACT.json\n  {program} fingerprint STATE.json\n  {program} plan GRAPH.json SPECS.json STATE.json [--provider ID] [--mode MODE]\n  {program} replay GRAPH.json RECEIPTS.json\n  {program} outcome RECEIPT.json --id ID --observed-at RFC3339 --label LABEL --verification TYPE [--verification-ref REF] [--action-ref REF] [--usable true|false] [--success true|false]\n  {program} compare-receipts CHAMPION.json CANDIDATE.json --mode shadow|champion-challenger|counterfactual --dataset ID --revision REV --generated-at RFC3339 [--changed provider,model,...]\n  {program} jev-payload REQUEST.json SPECS.json [--model MODEL]\n  {program} jev-evaluate REQUEST.json SPECS.json --allow-network --decided-at RFC3339 [--evidence EVIDENCE.json] [--model MODEL] [--timeout-ms 10000] [--max-retries 2]\n  {program} jev-receipts REQUEST.json SPECS.json RESPONSE.json --decided-at RFC3339 [--evidence EVIDENCE.json]\n\ncommands:\n  validate      Validate a Decision Kernel v1 artifact plus semantic invariants\n  fingerprint   Canonicalize explicit JSON state and emit its SHA-256 identity\n  plan          Topologically stage a DecisionGraph into parallel fan-out batches and cache identities\n  replay        Reconstruct graph inputs from recorded receipts without provider calls\n  outcome       Append an observed outcome/verification artifact without rewriting its receipt\n  compare-receipts  Build side-effect-free shadow/challenger/counterfactual evaluation evidence\n  jev-payload   Construct the documented TypeSafe Jev request without making a network call\n  jev-evaluate  Opt in to hosted TypeSafe evaluation and normalize the live response into review-required receipts\n  jev-receipts  Normalize a recorded Jev response into canonical review-required DecisionReceipts"
     );
 }
 
@@ -2162,6 +2191,131 @@ pub(crate) fn run(args: Vec<String>) {
             let payload =
                 jev_payload(&request, &specs, &model).unwrap_or_else(|error| crate::fail(error));
             println!("{}", serde_json::to_string_pretty(&payload).unwrap());
+        }
+        "jev-evaluate" => {
+            let request = read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
+            let specs = read_json(Path::new(&args[3])).unwrap_or_else(|error| crate::fail(error));
+            let mut model = "jev-latest".to_string();
+            let mut timeout_ms = 10_000_u64;
+            let mut max_retries = 2_u32;
+            let mut decided_at: Option<String> = None;
+            let mut evidence: Option<Value> = None;
+            let mut allow_network = false;
+            let mut index = 4;
+            while index < args.len() {
+                match args[index].as_str() {
+                    "--model" => {
+                        index += 1;
+                        model = args[index].clone();
+                    }
+                    "--timeout-ms" => {
+                        index += 1;
+                        timeout_ms = args[index].parse::<u64>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --timeout-ms must be an unsigned integer")
+                        });
+                    }
+                    "--max-retries" => {
+                        index += 1;
+                        max_retries = args[index].parse::<u32>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --max-retries must be an unsigned integer")
+                        });
+                    }
+                    "--decided-at" => {
+                        index += 1;
+                        decided_at = Some(args[index].clone());
+                    }
+                    "--evidence" => {
+                        index += 1;
+                        evidence = Some(
+                            read_json(Path::new(&args[index]))
+                                .unwrap_or_else(|error| crate::fail(error)),
+                        );
+                    }
+                    "--allow-network" => {
+                        allow_network = true;
+                    }
+                    option => {
+                        crate::fail(format!("decisions: unknown jev-evaluate option: {option}"))
+                    }
+                }
+                index += 1;
+            }
+
+            if !allow_network {
+                provider_fail_code(
+                    "provider-network-disabled",
+                    "hosted Jev evaluation is disabled unless --allow-network is explicitly supplied",
+                );
+            }
+
+            let decided_at = decided_at
+                .as_deref()
+                .unwrap_or_else(|| crate::fail("decisions: --decided-at is required"));
+            let transport = TransportOptions {
+                timeout_ms,
+                max_retries,
+            }
+            .validate()
+            .unwrap_or_else(provider_fail);
+            let payload =
+                jev_payload(&request, &specs, &model).unwrap_or_else(|error| crate::fail(error));
+            let provider_request = payload
+                .get("request")
+                .cloned()
+                .unwrap_or_else(|| crate::fail("decisions: Jev provider payload is missing request"));
+            let api_key = jev_transport::api_key_from_env().unwrap_or_else(provider_fail);
+            let run = jev_transport::execute(&provider_request, &api_key, transport)
+                .unwrap_or_else(provider_fail);
+
+            if let Err(error) = validate_jev_response(&run.response) {
+                provider_fail(ProviderError {
+                    code: "provider-malformed-response",
+                    message: error,
+                    status: Some(200),
+                    attempts: run.attempts,
+                });
+            }
+
+            let mut receipts = normalize_jev_receipts(
+                &request,
+                &specs,
+                &run.response,
+                evidence.as_ref(),
+                decided_at,
+            )
+            .unwrap_or_else(|error| {
+                provider_fail(ProviderError {
+                    code: "provider-malformed-response",
+                    message: error,
+                    status: Some(200),
+                    attempts: run.attempts,
+                })
+            });
+            receipts["network_call_performed"] = json!(true);
+            receipts["transport"] = json!({
+                "endpoint": JEV_ENDPOINT,
+                "https_only": true,
+                "redirects_followed": false,
+                "proxy_from_environment": false,
+                "attempts": run.attempts,
+                "timeout_ms": timeout_ms,
+                "max_retries": max_retries,
+                "elapsed_ms": run.elapsed_ms,
+                "credential_source": "TYPESAFE_API_KEY",
+                "authorization_header": "Bearer <redacted>",
+                "cost_usd": Value::Null
+            });
+            receipts["usage"] = run
+                .response
+                .get("usage")
+                .cloned()
+                .unwrap_or(Value::Null);
+            receipts["not_checked"] = json!([
+                "provider calibration on this decision class",
+                "billing cost when the provider does not return cost",
+                "authorization for consequential application actions"
+            ]);
+            println!("{}", serde_json::to_string_pretty(&receipts).unwrap());
         }
         "jev-receipts" => {
             let request = read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
