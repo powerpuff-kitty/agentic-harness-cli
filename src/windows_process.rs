@@ -17,10 +17,12 @@ use windows_sys::Win32::System::JobObjects::{
     SetInformationJobObject,
 };
 
+#[allow(dead_code)]
 pub(crate) struct Job {
     handle: HANDLE,
 }
 
+#[allow(dead_code)]
 impl Job {
     pub(crate) fn new() -> io::Result<Self> {
         // SAFETY: null name/security attributes create a private unnamed job.
@@ -86,5 +88,7 @@ mod tests {
             .spawn()
             .expect("fixture process should spawn");
         job.assign(&child).expect("child should join owned job");
+        let mut child = child;
+        child.wait().expect("fixture process should be reaped");
     }
 }
