@@ -78,7 +78,9 @@ fn optional_metric(value: &Value, context: &str) -> Result<Option<f64>, String> 
     Ok(Some(value))
 }
 
-fn provider_identity(receipt: &Value) -> Result<(String, String, Option<String>, Option<String>), String> {
+fn provider_identity(
+    receipt: &Value,
+) -> Result<(String, String, Option<String>, Option<String>), String> {
     let provider = object(
         receipt
             .get("provider")
@@ -100,7 +102,10 @@ fn provider_identity(receipt: &Value) -> Result<(String, String, Option<String>,
             "evaluation receipt.provider.id",
         )?
         .to_string(),
-        provider.get("model").and_then(Value::as_str).map(str::to_string),
+        provider
+            .get("model")
+            .and_then(Value::as_str)
+            .map(str::to_string),
         provider
             .get("version")
             .and_then(Value::as_str)
@@ -229,7 +234,9 @@ pub(crate) fn validate_dataset(value: &Value) -> Result<(), String> {
             "evaluation case.id",
         )?;
         if !case_ids.insert(case_id.to_string()) {
-            return Err(format!("decisions: duplicate evaluation case id: {case_id}"));
+            return Err(format!(
+                "decisions: duplicate evaluation case id: {case_id}"
+            ));
         }
 
         let receipt = case
@@ -288,14 +295,15 @@ pub(crate) fn validate_dataset(value: &Value) -> Result<(), String> {
                 }
             }
             "choice" => {
-                let expected_value = expected
-                    .get("value")
-                    .and_then(Value::as_str)
-                    .ok_or_else(|| {
-                        format!(
-                            "decisions: choice case {case_id} expected.value must be a string"
-                        )
-                    })?;
+                let expected_value =
+                    expected
+                        .get("value")
+                        .and_then(Value::as_str)
+                        .ok_or_else(|| {
+                            format!(
+                                "decisions: choice case {case_id} expected.value must be a string"
+                            )
+                        })?;
                 if !options.iter().any(|option| option == expected_value) {
                     return Err(format!(
                         "decisions: choice case {case_id} expected.value is not declared"
@@ -351,7 +359,9 @@ pub(crate) fn validate_dataset(value: &Value) -> Result<(), String> {
         )?;
         if let Some(cost) = case.get("cost_usd") {
             if !cost.is_null() {
-                let cost = cost.as_f64().ok_or("decisions: cost_usd must be numeric or null")?;
+                let cost = cost
+                    .as_f64()
+                    .ok_or("decisions: cost_usd must be numeric or null")?;
                 if !cost.is_finite() || cost < 0.0 {
                     return Err("decisions: cost_usd must be non-negative and finite".into());
                 }
@@ -429,16 +439,15 @@ pub(crate) fn validate_calibration(value: &Value) -> Result<(), String> {
         }
         _ => return Err("decisions: calibration accuracy presence is inconsistent".into()),
     }
-    for (field, count) in [
-        ("abstention_rate", abstained),
-        ("failure_rate", failed),
-    ] {
+    for (field, count) in [("abstention_rate", abstained), ("failure_rate", failed)] {
         let value = metrics[field]
             .as_f64()
             .ok_or_else(|| format!("decisions: calibration {field} must be numeric"))?;
         finite_ratio(value, &format!("calibration {field}"))?;
         if (value - count as f64 / total as f64).abs() > 1e-9 {
-            return Err(format!("decisions: calibration {field} arithmetic mismatch"));
+            return Err(format!(
+                "decisions: calibration {field} arithmetic mismatch"
+            ));
         }
     }
 
@@ -485,9 +494,7 @@ pub(crate) fn validate_calibration(value: &Value) -> Result<(), String> {
         let selected_coverage = selected["coverage"]
             .as_f64()
             .ok_or("decisions: selected threshold coverage must be numeric")?;
-        if accepted > total
-            || (selected_coverage - accepted as f64 / total as f64).abs() > 1e-9
-        {
+        if accepted > total || (selected_coverage - accepted as f64 / total as f64).abs() > 1e-9 {
             return Err("decisions: selected threshold coverage arithmetic mismatch".into());
         }
     }
@@ -594,9 +601,9 @@ fn produced_correct(
                         );
                     }
                     expected_position += index as f64
-                        * probability.as_f64().ok_or(
-                            "decisions: ordinal distribution probability must be numeric",
-                        )?;
+                        * probability
+                            .as_f64()
+                            .ok_or("decisions: ordinal distribution probability must be numeric")?;
                 }
                 expected_position
             } else if let Some(value) = result.get("value").and_then(Value::as_f64) {
@@ -608,8 +615,7 @@ fn produced_correct(
                 levels
                     .iter()
                     .position(|candidate| candidate == level)
-                    .ok_or("decisions: ordinal result level is undeclared")?
-                    as f64
+                    .ok_or("decisions: ordinal result level is undeclared")? as f64
             } else {
                 return Err("decisions: ordinal result requires numeric/string value".into());
             };
@@ -643,9 +649,7 @@ fn distribution_scores(
         .get(&expected_label)
         .and_then(Value::as_f64)
         .ok_or_else(|| {
-            format!(
-                "decisions: distribution is missing expected label {expected_label}"
-            )
+            format!("decisions: distribution is missing expected label {expected_label}")
         })?
         .clamp(EPSILON, 1.0);
 
@@ -724,8 +728,7 @@ pub(crate) fn calibrate_dataset(
     }
     if options.target_accuracy.is_some() != options.minimum_coverage.is_some() {
         return Err(
-            "decisions: threshold tuning requires both --target-accuracy and --min-coverage"
-                .into(),
+            "decisions: threshold tuning requires both --target-accuracy and --min-coverage".into(),
         );
     }
 
@@ -774,26 +777,17 @@ pub(crate) fn calibrate_dataset(
         match receipt["status"].as_str().unwrap() {
             "produced" => {
                 produced += 1;
-                let (is_correct, ordinal_error) = produced_correct(
-                    decision_kind,
-                    receipt,
-                    expected,
-                    &options_list,
-                    &levels,
-                )?;
+                let (is_correct, ordinal_error) =
+                    produced_correct(decision_kind, receipt, expected, &options_list, &levels)?;
                 if is_correct {
                     correct += 1;
                 }
                 if let Some(error) = ordinal_error {
                     ordinal_errors.push(error);
                 }
-                if let Some((brier, log_loss)) = distribution_scores(
-                    decision_kind,
-                    receipt,
-                    expected,
-                    &options_list,
-                    &levels,
-                )? {
+                if let Some((brier, log_loss)) =
+                    distribution_scores(decision_kind, receipt, expected, &options_list, &levels)?
+                {
                     brier_values.push(brier);
                     log_losses.push(log_loss);
                 }
@@ -864,9 +858,8 @@ pub(crate) fn calibrate_dataset(
                 .sum::<f64>()
                 / count as f64
         });
-        let bin_accuracy = (!members.is_empty()).then(|| {
-            members.iter().filter(|(_, correct)| *correct).count() as f64 / count as f64
-        });
+        let bin_accuracy = (!members.is_empty())
+            .then(|| members.iter().filter(|(_, correct)| *correct).count() as f64 / count as f64);
         if let (Some(mean_confidence), Some(bin_accuracy)) = (mean_confidence, bin_accuracy) {
             ece += count as f64 / confidence_cases.len() as f64
                 * (mean_confidence - bin_accuracy).abs();
@@ -905,9 +898,8 @@ pub(crate) fn calibrate_dataset(
             if threshold_coverage + f64::EPSILON < minimum_coverage {
                 continue;
             }
-            let threshold_accuracy =
-                accepted.iter().filter(|(_, correct)| *correct).count() as f64
-                    / accepted.len() as f64;
+            let threshold_accuracy = accepted.iter().filter(|(_, correct)| *correct).count() as f64
+                / accepted.len() as f64;
             if threshold_accuracy + f64::EPSILON >= target_accuracy {
                 selected = Some(json!({
                     "minimum_provider_confidence": threshold,
@@ -1147,9 +1139,7 @@ pub(crate) fn compare_calibrations(
             continue;
         };
         match (base, candidate) {
-            (Some(base), Some(candidate))
-                if candidate - base > budget + f64::EPSILON =>
-            {
+            (Some(base), Some(candidate)) if candidate - base > budget + f64::EPSILON => {
                 failures.push(format!(
                     "{name} increase {:.6} exceeds budget {:.6}",
                     candidate - base,
