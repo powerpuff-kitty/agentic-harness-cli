@@ -18,6 +18,8 @@ mod design_genome;
 mod design_prompt;
 mod design_system;
 mod project;
+mod quality;
+mod quality_cli;
 mod scan;
 mod syntax;
 mod syntax_worker;
@@ -56,7 +58,15 @@ pub fn entry(family: Option<&str>) {
     }
     let family = family.map(str::to_owned).or_else(|| {
         if args.get(1).is_some_and(|x| {
-            ["agentic", "architecture", "design", "checks", "adapters"].contains(&x.as_str())
+            [
+                "agentic",
+                "architecture",
+                "design",
+                "quality",
+                "checks",
+                "adapters",
+            ]
+            .contains(&x.as_str())
         }) {
             Some(args.remove(1))
         } else {
@@ -73,6 +83,9 @@ pub fn entry(family: Option<&str>) {
             .get(1)
             .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
+        println!(
+            "Experimental family: quality detect|analyze|baseline|diff [options] (read-only)\n"
+        );
         println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
     }
@@ -81,6 +94,7 @@ pub fn entry(family: Option<&str>) {
         Some("agentic") => agentic::run(args.into_iter().skip(1).collect()),
         Some("architecture") => architecture_cli::run(args),
         Some("design") => design_cli::run(args),
+        Some("quality") => quality_cli::run(args),
         Some("checks") => checks::run(args),
         Some("adapters") => adapters::run(args),
         _ => cli::run(args),
@@ -139,6 +153,9 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                 true,
             ),
             (Some("checks"), "plan") => (&["--config"], &[], 0, 1, true),
+            (Some("quality"), "detect" | "analyze") => (&[], &[], 0, 1, true),
+            (Some("quality"), "baseline") => (&["--output"], &[], 0, 1, true),
+            (Some("quality"), "diff") => (&["--output"], &[], 1, 2, false),
             (Some("architecture"), "detect") => (&[], &[], 0, 1, true),
             (Some("architecture"), "analyze") => (&["--profile", "--as-of"], &[], 0, 1, true),
             (Some("architecture"), "enforce") => {

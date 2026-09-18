@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
         return json.loads(process.stdout) if json_output else process.stdout
 
     version = run('--version')
-    for family in [[], ['architecture'], ['design'], ['agentic'], ['checks'], ['adapters']]:
+    for family in [[], ['architecture'], ['quality'], ['design'], ['agentic'], ['checks'], ['adapters']]:
         run(*family, '--help', json_output=False)
     run('catalog-check')
     run('init', 'project', '--boilerplate', 'web-app')
@@ -55,7 +55,16 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     for command in ['detect', 'analyze', 'enforce']:
         run('architecture', command, 'project')
     run('architecture', 'enforce', 'project', '--write')
+    run('quality', 'detect', 'project')
+    quality = run('quality', 'analyze', 'project')
+    assert all(tool['executed'] is False for tool in quality['tools'])
+    assert 'lint execution' in quality['coverage']['not_checked']
+    baseline = run('quality', 'baseline', 'project', '--output', 'quality-baseline.json')
+    assert baseline['kind'] == 'quality-baseline'
+    diff = run('quality', 'diff', 'quality-baseline.json', 'project')
+    assert diff['kind'] == 'quality-diff'
     result = run('audit', 'project', exits=(0, 1))
+    assert result['quality']['kind'] == 'quality-analysis'
     assert result['overall'] is None
     (root / 'audit.json').write_text(json.dumps(result))
     run('compare', 'audit.json', 'audit.json')

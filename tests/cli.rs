@@ -46,6 +46,7 @@ fn every_family_is_available_in_the_installed_binary() {
     for args in [
         vec!["--help"],
         vec!["architecture", "--help"],
+        vec!["quality", "--help"],
         vec!["design", "--help"],
         vec!["agentic", "--help"],
         vec!["--version"],
@@ -325,6 +326,10 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         (&["architecture", "detect", "."], &[]),
         (&["architecture", "analyze", "."], &["--profile", "--as-of"]),
         (&["architecture", "enforce", "."], &["--profile", "--as-of"]),
+        (&["quality", "detect", "."], &[]),
+        (&["quality", "analyze", "."], &[]),
+        (&["quality", "baseline", "."], &["--output"]),
+        (&["quality", "diff", "baseline.json", "."], &["--output"]),
         (&["design", "analyze", "."], &["--level", "--output"]),
         (&["design", "preserve"], &["--analysis", "--output"]),
         (&["design", "prompt"], &["--genome", "--task", "--output"]),
@@ -937,4 +942,89 @@ fn mit_attribution_is_retained_without_setting_application_licensing() {
             "Application owner's separate terms\n"
         );
     }
+}
+
+#[test]
+fn quality_analysis_is_read_only_and_preserves_unchecked_coverage() {
+    let f = Fixture::new();
+    f.put(
+        "package.json",
+        r#"{
+          "scripts":{"lint":"node -e \\"require('fs').writeFileSync('MUTATED','x')\\""},
+          "devDependencies":{"eslint":"9.0.0","typescript":"5.9.3"}
+        }"#,
+    );
+    f.put("tsconfig.json", r#"{"compilerOptions":{"strict":false}}"#);
+    f.put("src/app.ts", "export const value: any = 1;");
+
+    let detected = f.json(&["quality", "detect", "."], 0);
+    assert_eq!(detected["kind"], "quality-detection");
+    assert!(
+        detected["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|tool| tool["executed"] == false)
+    );
+    assert!(!f.path().join("MUTATED").exists());
+
+    let analyzed = f.json(&["quality", "analyze", "."], 0);
+    assert_eq!(analyzed["kind"], "quality-analysis");
+    assert_eq!(
+        analyzed["findings"][0]["rule_id"],
+        "typescript.type-safety.strict-mode"
+    );
+    assert!(
+        analyzed["coverage"]["not_checked"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| value == "lint execution")
+    );
+    assert!(!f.path().join("MUTATED").exists());
+}
+
+#[test]
+fn quality_baseline_and_diff_are_repository_local_and_non_executing() {
+    let f = Fixture::new();
+    f.put("tsconfig.json", r#"{"compilerOptions":{"strict":false}}"#);
+    f.put("src/app.ts", "export const value = 1;");
+
+    let baseline = f.json(
+        &[
+            "quality",
+            "baseline",
+            ".",
+            "--output",
+            "quality-baseline.json",
+        ],
+        0,
+    );
+    assert_eq!(baseline["kind"], "quality-baseline");
+    assert_eq!(baseline["findings"].as_array().unwrap().len(), 1);
+    assert!(f.path().join("quality-baseline.json").is_file());
+
+    f.put("tsconfig.json", r#"{"compilerOptions":{"strict":true}}"#);
+    let diff = f.json(&["quality", "diff", "quality-baseline.json", "."], 0);
+    assert_eq!(diff["kind"], "quality-diff");
+    assert_eq!(diff["stale"], true);
+    assert_eq!(diff["removed"].as_array().unwrap().len(), 1);
+    assert_eq!(diff["added"].as_array().unwrap().len(), 0);
+}
+
+#[cfg(unix)]
+#[test]
+fn quality_baseline_output_cannot_escape_or_follow_symlinks() {
+    let f = Fixture::new();
+    let outside = Fixture::new();
+    let external = outside.put("baseline.json", "retain");
+    std::os::unix::fs::symlink(&external, f.path().join("baseline.json")).unwrap();
+
+    let output = f.run(&["quality", "baseline", ".", "--output", "baseline.json"]);
+    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(fs::read_to_string(external).unwrap(), "retain");
+
+    let output = f.run(&["quality", "baseline", ".", "--output", "../escape.json"]);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(!f.path().parent().unwrap().join("escape.json").exists());
 }

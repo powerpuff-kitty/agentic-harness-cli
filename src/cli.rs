@@ -819,6 +819,19 @@ fn codebase_audit(root: &Path) -> Value {
     }
     findings.extend(architecture_score::codebase_findings(&architecture));
 
+    let quality = crate::quality::analyze(root);
+    if let Some(quality_findings) = quality["findings"].as_array() {
+        for finding in quality_findings {
+            findings.push(json!({
+                "severity": finding["severity"],
+                "dimension": "code_quality",
+                "rule_id": finding["rule_id"],
+                "message": finding["message"],
+                "evidence": finding["evidence"]
+            }));
+        }
+    }
+
     let ds = design_system::audit(root);
     if ds["active"].as_bool().unwrap_or(false) {
         scores.insert("design_system", Value::Null);
@@ -843,7 +856,7 @@ fn codebase_audit(root: &Path) -> Value {
         "architecture": architecture,
         "design_system": ds,
         "findings": findings,
-        "checks": {"performed":["repository structure","file/LOC scan","test/CI presence","docs/security/agent/operations presence","manifest/lockfile presence","architecture source dependency and boundary analysis","design-system compliance when active"],"not_checked":["build execution","test execution","coverage","dependency vulnerabilities","runtime performance","branch protection","deployment environment","visual regression"]}
+        "checks": {"performed":["repository structure","file/LOC scan","test/CI presence","docs/security/agent/operations presence","manifest/lockfile presence","architecture source dependency and boundary analysis","static quality/tooling analysis","design-system compliance when active"],"not_checked":["build execution","test execution","coverage","formatter execution","lint execution","typecheck execution","complexity/duplication/dead-code analysis","dependency vulnerabilities","runtime performance","branch protection","deployment environment","visual regression"]}
     })
 }
 
@@ -936,7 +949,7 @@ fn harness_audit(root: &Path) -> Value {
 
 fn usage(prog: &str) {
     println!(
-        "Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  architecture <detect|analyze|enforce> [TARGET]\n  design <analyze|preserve|diff|prompt> [options]\n  agentic <audit|context|skills|models|compare|improve|migrate> [options] (experimental)\n  catalog-check\n  init TARGET [--boilerplate NAME] [--preset NAME] [--profile NAME] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N] [--max-architecture-errors N] [--fail-on-architecture-error]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]\n\ncompatibility:\n  --version prints build/catalog identity. Audit v2 uses null for unmeasured scores.\n  --template NAME is retained as an alias for --boilerplate NAME"
+        "Agentic Harness\n\nusage: {prog} <command> [options]\n\ncommands:\n  architecture <detect|analyze|enforce> [TARGET]\n  quality <detect|analyze|baseline|diff> [options] (experimental)\n  design <analyze|preserve|diff|prompt> [options]\n  agentic <audit|context|skills|models|compare|improve|migrate> [options] (experimental)\n  catalog-check\n  init TARGET [--boilerplate NAME] [--preset NAME] [--profile NAME] [--pack NAME] [--skill NAME] [--policy NAME]\n  upgrade TARGET [same options]\n  audit [TARGET]\n  design-system-components [TARGET] [--write]\n  compare BEFORE.json AFTER.json\n  gate AUDIT.json [--min-overall N] [--min-score dimension=N] [--max-architecture-errors N] [--fail-on-architecture-error]\n  validate [TARGET]\n  security-scan [TARGET]\n  harness-audit [TARGET]\n\ncompatibility:\n  --version prints build/catalog identity. Audit v2 uses null for unmeasured scores.\n  --template NAME is retained as an alias for --boilerplate NAME"
     );
 }
 

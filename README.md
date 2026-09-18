@@ -97,6 +97,10 @@ ah init ./app --boilerplate web-app
 ah init ./saas --preset vue-saas --profile startup
 ah upgrade ./existing --profile enterprise
 ah audit .
+ah quality detect .
+ah quality analyze .
+ah quality baseline . --output quality-baseline.json
+ah quality diff quality-baseline.json .
 ah architecture detect .
 ah architecture analyze .
 ah architecture analyze . --profile pattern/feature-first/1
@@ -145,6 +149,27 @@ The analyzer resolves relative imports and built-in `@/`, `~/` and `#shared/` al
 The report lists unsupported coverage, including non-JS language graphs, JSONC/extended tsconfig and Vite-only aliases, computed runtime imports and semantic business-logic placement. Basic JSON tsconfig paths, workspace exports and dated project-local exceptions are supported.
 
 `architecture enforce` previews or writes the normalized project-local contract. General registry rule compilation, ESLint/Nx/dependency-cruiser adapters and additional languages remain follow-up work. Architecture coverage and deterministic error counts feed audit gates; an unavailable graph score stays null.
+
+## Experimental code quality intelligence
+
+The first Code Quality Intelligence slice is offline and read-only:
+
+```bash
+ah quality detect ./my-app
+ah quality analyze ./my-app
+ah quality baseline ./my-app --output quality-baseline.json
+ah quality diff quality-baseline.json ./my-app
+```
+
+`quality detect` inventories supported languages plus project quality configuration and quality-related package scripts. Detected scripts and tools are reported with `executed: false`; no tool is installed or invoked.
+
+`quality analyze` currently adds deterministic plain-JSON TypeScript strict-mode inspection and emits normalized findings plus explicit `performed`, `not_checked` and `unsupported` coverage. JSONC/invalid tsconfig input, inherited/decomposed effective strictness, formatter/linter/typecheck execution, complexity, duplication, dead-code analysis and autofix remain unverified in this slice.
+
+`ah audit` includes this report as nested `quality` evidence and retains `code_quality: null`; static tool/config evidence is not converted into an opaque quality score.
+
+`quality baseline` snapshots the complete currently measured finding inventory plus detected tool/config identity. `quality diff` compares current static findings with that baseline and marks the comparison stale when the project quality contract or detected tool configuration changes. A baseline does not turn historical findings into a pass.
+
+Execution adapters, changed-file/Git-range ratcheting, safe autofix, complexity/duplication/dead-code measurement and additional language execution support remain tracked follow-up work.
 
 ## Experimental design intelligence
 
