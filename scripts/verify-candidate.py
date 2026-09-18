@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
         return json.loads(process.stdout) if json_output else process.stdout
 
     version = run('--version')
-    for family in [[], ['architecture'], ['design'], ['agentic'], ['checks'], ['adapters']]:
+    for family in [[], ['architecture'], ['quality'], ['design'], ['agentic'], ['checks'], ['adapters']]:
         run(*family, '--help', json_output=False)
     run('catalog-check')
     run('init', 'project', '--boilerplate', 'web-app')
