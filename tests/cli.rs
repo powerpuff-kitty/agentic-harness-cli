@@ -390,7 +390,13 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         ),
         (
             &["decisions", "jev-evaluate", "request.json", "specs.json"],
-            &["--model", "--timeout-ms", "--max-retries", "--decided-at", "--evidence"],
+            &[
+                "--model",
+                "--timeout-ms",
+                "--max-retries",
+                "--decided-at",
+                "--evidence",
+            ],
         ),
         (
             &[
