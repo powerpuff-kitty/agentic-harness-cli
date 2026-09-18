@@ -1,0 +1,21 @@
+name: Generate Jev lockfile
+on:
+  push:
+    branches: [feat/jev-live-provider]
+permissions:
+  contents: read
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.94.1
+      - name: Resolve only the newly declared dependency into Cargo.lock
+        run: cargo check --all-targets
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: jev-cargo-lock
+          path: Cargo.lock
+          if-no-files-found: error
