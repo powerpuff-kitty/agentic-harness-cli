@@ -196,9 +196,7 @@ fn retry_after_ms(
 fn transport_error(error: &ureq::Error, attempts: u32) -> ProviderError {
     let (code, message) = match error {
         ureq::Error::Timeout(_) => ("provider-timeout", "TypeSafe request timed out"),
-        ureq::Error::HostNotFound
-        | ureq::Error::ConnectionFailed
-        | ureq::Error::Io(_) => (
+        ureq::Error::HostNotFound | ureq::Error::ConnectionFailed | ureq::Error::Io(_) => (
             "provider-connection",
             "Could not establish or maintain a connection to TypeSafe",
         ),
@@ -352,9 +350,30 @@ mod tests {
 
     #[test]
     fn invalid_transport_budgets_fail_before_network() {
-        assert!(TransportOptions { timeout_ms: 99, max_retries: 0 }.validate().is_err());
-        assert!(TransportOptions { timeout_ms: 60_000, max_retries: 5 }.validate().is_err());
-        assert!(TransportOptions { timeout_ms: 10_000, max_retries: 6 }.validate().is_err());
+        assert!(
+            TransportOptions {
+                timeout_ms: 99,
+                max_retries: 0
+            }
+            .validate()
+            .is_err()
+        );
+        assert!(
+            TransportOptions {
+                timeout_ms: 60_000,
+                max_retries: 5
+            }
+            .validate()
+            .is_err()
+        );
+        assert!(
+            TransportOptions {
+                timeout_ms: 10_000,
+                max_retries: 6
+            }
+            .validate()
+            .is_err()
+        );
     }
 
     #[test]
