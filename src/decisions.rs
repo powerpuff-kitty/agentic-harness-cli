@@ -1695,7 +1695,6 @@ fn replay_receipts(graph: &Value, receipt_set: &Value) -> Result<Value, String> 
     }))
 }
 
-
 fn outcome_from_receipt(
     receipt: &Value,
     id: &str,
@@ -1805,7 +1804,13 @@ fn compare_receipts(
     let changed: BTreeSet<_> = changed_dimensions.iter().map(String::as_str).collect();
     for dimension in &changed {
         if ![
-            "provider", "model", "spec", "policy", "evidence", "threshold", "state",
+            "provider",
+            "model",
+            "spec",
+            "policy",
+            "evidence",
+            "threshold",
+            "state",
         ]
         .contains(dimension)
         {
@@ -1837,10 +1842,7 @@ fn compare_receipts(
         && champion.get("result").cloned().unwrap_or(Value::Null)
             == candidate.get("result").cloned().unwrap_or(Value::Null);
     let disposition_match = receipt_disposition(champion) == receipt_disposition(candidate);
-    let confidence_delta = match (
-        receipt_confidence(champion),
-        receipt_confidence(candidate),
-    ) {
+    let confidence_delta = match (receipt_confidence(champion), receipt_confidence(candidate)) {
         (Some(left), Some(right)) => Some(right - left),
         _ => None,
     };
@@ -2004,8 +2006,7 @@ pub(crate) fn run(args: Vec<String>) {
             println!("{}", serde_json::to_string_pretty(&replay).unwrap());
         }
         "outcome" => {
-            let receipt =
-                read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
+            let receipt = read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
             let mut id: Option<String> = None;
             let mut observed_at: Option<String> = None;
             let mut label: Option<String> = None;
@@ -2030,16 +2031,14 @@ pub(crate) fn run(args: Vec<String>) {
                     "--verification-ref" => verification_ref = Some(value),
                     "--action-ref" => action_ref = Some(value),
                     "--usable" => {
-                        usable = value
-                            .parse::<bool>()
-                            .unwrap_or_else(|_| crate::fail("decisions: --usable expects true|false"));
+                        usable = value.parse::<bool>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --usable expects true|false")
+                        });
                     }
                     "--success" => {
-                        success = Some(
-                            value.parse::<bool>().unwrap_or_else(|_| {
-                                crate::fail("decisions: --success expects true|false")
-                            }),
-                        );
+                        success = Some(value.parse::<bool>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --success expects true|false")
+                        }));
                     }
                     option => crate::fail(format!("decisions: unknown outcome option: {option}")),
                 }
@@ -2554,5 +2553,4 @@ mod tests {
         assert_eq!(counterfactual["mode"], "counterfactual");
         assert_eq!(counterfactual["side_effects"], false);
     }
-
 }
