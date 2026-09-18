@@ -55,7 +55,16 @@ with tempfile.TemporaryDirectory(prefix='ah-candidate-') as directory:
     for command in ['detect', 'analyze', 'enforce']:
         run('architecture', command, 'project')
     run('architecture', 'enforce', 'project', '--write')
+    run('quality', 'detect', 'project')
+    quality = run('quality', 'analyze', 'project')
+    assert all(tool['executed'] is False for tool in quality['tools'])
+    assert 'lint execution' in quality['coverage']['not_checked']
+    baseline = run('quality', 'baseline', 'project', '--output', 'quality-baseline.json')
+    assert baseline['kind'] == 'quality-baseline'
+    diff = run('quality', 'diff', 'quality-baseline.json', 'project')
+    assert diff['kind'] == 'quality-diff'
     result = run('audit', 'project', exits=(0, 1))
+    assert result['quality']['kind'] == 'quality-analysis'
     assert result['overall'] is None
     (root / 'audit.json').write_text(json.dumps(result))
     run('compare', 'audit.json', 'audit.json')
