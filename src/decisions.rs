@@ -1182,7 +1182,6 @@ fn validate_jev_response(value: &Value) -> Result<(), String> {
     Ok(())
 }
 
-
 fn evidence_for_spec(
     manifest: Option<&Value>,
     spec_id: &str,
@@ -1243,7 +1242,9 @@ fn normalize_jev_receipts(
         let id = spec["id"].as_str().unwrap().to_string();
         let revision = spec["revision"].as_u64().unwrap();
         if registry.insert((id.clone(), revision), spec).is_some() {
-            return Err(format!("decisions: duplicate spec revision: {id}@{revision}"));
+            return Err(format!(
+                "decisions: duplicate spec revision: {id}@{revision}"
+            ));
         }
     }
 
@@ -1261,7 +1262,9 @@ fn normalize_jev_receipts(
         let spec_revision = question["spec_revision"].as_u64().unwrap();
         let spec = registry
             .get(&(spec_id.to_string(), spec_revision))
-            .ok_or_else(|| format!("decisions: requested spec not found: {spec_id}@{spec_revision}"))?;
+            .ok_or_else(|| {
+                format!("decisions: requested spec not found: {spec_id}@{spec_revision}")
+            })?;
         let answer = answers
             .get(spec_id)
             .ok_or_else(|| format!("decisions: Jev response is missing answer for {spec_id}"))?;
@@ -1313,9 +1316,9 @@ fn normalize_jev_receipts(
             ("ordinal", "score") => {
                 let levels = spec["levels"].as_array().unwrap();
                 let legend = object(
-                    answer
-                        .get("legend")
-                        .ok_or_else(|| format!("decisions: Jev Score legend missing for {spec_id}"))?,
+                    answer.get("legend").ok_or_else(|| {
+                        format!("decisions: Jev Score legend missing for {spec_id}")
+                    })?,
                     "Jev score legend",
                 )?;
                 if legend.len() != levels.len() {
@@ -1324,11 +1327,7 @@ fn normalize_jev_receipts(
                     ));
                 }
                 for (index, level) in levels.iter().enumerate() {
-                    if legend
-                        .get(&index.to_string())
-                        .and_then(Value::as_str)
-                        != level.as_str()
-                    {
+                    if legend.get(&index.to_string()).and_then(Value::as_str) != level.as_str() {
                         return Err(format!(
                             "decisions: Jev Score legend does not match declared levels for {spec_id}"
                         ));
@@ -1346,7 +1345,7 @@ fn normalize_jev_receipts(
             _ => {
                 return Err(format!(
                     "decisions: Jev answer type {answer_type} does not match DecisionSpec kind {decision_kind} for {spec_id}"
-                ))
+                ));
             }
         };
 
@@ -1357,8 +1356,7 @@ fn normalize_jev_receipts(
             .filter(|requirement| requirement["required"].as_bool() == Some(true))
             .filter_map(|requirement| requirement["id"].as_str().map(str::to_string))
             .collect();
-        let (used, missing) =
-            evidence_for_spec(evidence_manifest, spec_id, &required_ids)?;
+        let (used, missing) = evidence_for_spec(evidence_manifest, spec_id, &required_ids)?;
         let total = required_ids.len() as u64;
         let present = total - missing.len() as u64;
         let coverage = if total == 0 {
@@ -1376,7 +1374,10 @@ fn normalize_jev_receipts(
             "answer": answer,
             "decided_at": decided_at,
         });
-        let receipt_id = canonical_fingerprint(&receipt_identity)?.0.replacen("sha256:", "decision-", 1);
+        let receipt_id =
+            canonical_fingerprint(&receipt_identity)?
+                .0
+                .replacen("sha256:", "decision-", 1);
         let mut receipt = json!({
             "format_version": 1,
             "kind": "decision-receipt",
@@ -1426,7 +1427,9 @@ fn normalize_jev_receipts(
     }
 
     if answers.len() != receipts.len() {
-        return Err("decisions: Jev response contains answers not present in the DecisionRequest".into());
+        return Err(
+            "decisions: Jev response contains answers not present in the DecisionRequest".into(),
+        );
     }
 
     Ok(json!({
@@ -1464,7 +1467,10 @@ fn graph_plan(
             spec["revision"].as_u64().unwrap(),
         );
         if registry.insert(key.clone(), spec).is_some() {
-            return Err(format!("decisions: duplicate spec revision: {}@{}", key.0, key.1));
+            return Err(format!(
+                "decisions: duplicate spec revision: {}@{}",
+                key.0, key.1
+            ));
         }
     }
 
@@ -1486,13 +1492,16 @@ fn graph_plan(
         let node_id = node["id"].as_str().unwrap().to_string();
         let spec_id = node["spec_id"].as_str().unwrap().to_string();
         let revision = node["spec_revision"].as_u64().unwrap();
-        let spec = registry
-            .get(&(spec_id.clone(), revision))
-            .ok_or_else(|| format!("decisions: graph references missing spec {spec_id}@{revision}"))?;
+        let spec = registry.get(&(spec_id.clone(), revision)).ok_or_else(|| {
+            format!("decisions: graph references missing spec {spec_id}@{revision}")
+        })?;
         if spec["input"]["schema_id"] != schema_id
             || spec["input"]["schema_version"] != schema_version
         {
-            return Err("decisions: all specs in one DecisionGraph must share a state schema/version".into());
+            return Err(
+                "decisions: all specs in one DecisionGraph must share a state schema/version"
+                    .into(),
+            );
         }
         let deps = node["depends_on"]
             .as_array()
@@ -1514,7 +1523,9 @@ fn graph_plan(
             .map(|(id, _)| id.clone())
             .collect();
         if ready.is_empty() {
-            return Err("decisions: graph could not be scheduled; dependency cycle or missing node".into());
+            return Err(
+                "decisions: graph could not be scheduled; dependency cycle or missing node".into(),
+            );
         }
         let mut stage = Vec::new();
         for node_id in ready {
@@ -1561,26 +1572,32 @@ fn graph_plan(
 
 fn replay_receipts(graph: &Value, receipt_set: &Value) -> Result<Value, String> {
     validate_graph(graph)?;
-    let receipts = if receipt_set.get("kind").and_then(Value::as_str) == Some("decision-receipt-set") {
-        receipt_set
-            .get("receipts")
-            .and_then(Value::as_array)
-            .ok_or("decisions: decision-receipt-set.receipts must be an array")?
-    } else {
-        receipt_set
-            .as_array()
-            .ok_or("decisions: replay receipts must be an array or decision-receipt-set")?
-    };
+    let receipts =
+        if receipt_set.get("kind").and_then(Value::as_str) == Some("decision-receipt-set") {
+            receipt_set
+                .get("receipts")
+                .and_then(Value::as_array)
+                .ok_or("decisions: decision-receipt-set.receipts must be an array")?
+        } else {
+            receipt_set
+                .as_array()
+                .ok_or("decisions: replay receipts must be an array or decision-receipt-set")?
+        };
     let mut by_spec = BTreeMap::<(String, u64), &Value>::new();
     let mut state_fingerprint: Option<String> = None;
     for receipt in receipts {
         validate_receipt(receipt)?;
-        let receipt_state = receipt["state"]["fingerprint"].as_str().unwrap().to_string();
+        let receipt_state = receipt["state"]["fingerprint"]
+            .as_str()
+            .unwrap()
+            .to_string();
         if state_fingerprint
             .as_ref()
             .is_some_and(|known| known != &receipt_state)
         {
-            return Err("decisions: replay receipts do not share one immutable state fingerprint".into());
+            return Err(
+                "decisions: replay receipts do not share one immutable state fingerprint".into(),
+            );
         }
         state_fingerprint.get_or_insert(receipt_state);
         let key = (
@@ -1811,7 +1828,8 @@ pub(crate) fn run(args: Vec<String>) {
         "jev-receipts" => {
             let request = read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
             let specs = read_json(Path::new(&args[3])).unwrap_or_else(|error| crate::fail(error));
-            let response = read_json(Path::new(&args[4])).unwrap_or_else(|error| crate::fail(error));
+            let response =
+                read_json(Path::new(&args[4])).unwrap_or_else(|error| crate::fail(error));
             let mut decided_at: Option<String> = None;
             let mut evidence: Option<Value> = None;
             let mut index = 5;
@@ -1828,22 +1846,17 @@ pub(crate) fn run(args: Vec<String>) {
                                 .unwrap_or_else(|error| crate::fail(error)),
                         );
                     }
-                    option => crate::fail(format!(
-                        "decisions: unknown jev-receipts option: {option}"
-                    )),
+                    option => {
+                        crate::fail(format!("decisions: unknown jev-receipts option: {option}"))
+                    }
                 }
                 index += 1;
             }
             let decided_at =
                 decided_at.unwrap_or_else(|| crate::fail("decisions: --decided-at is required"));
-            let receipts = normalize_jev_receipts(
-                &request,
-                &specs,
-                &response,
-                evidence.as_ref(),
-                &decided_at,
-            )
-            .unwrap_or_else(|error| crate::fail(error));
+            let receipts =
+                normalize_jev_receipts(&request, &specs, &response, evidence.as_ref(), &decided_at)
+                    .unwrap_or_else(|error| crate::fail(error));
             println!("{}", serde_json::to_string_pretty(&receipts).unwrap());
         }
         _ => {
@@ -2127,7 +2140,9 @@ mod tests {
         assert_eq!(replay["complete"], true);
         assert_eq!(replay["provider_calls_performed"], false);
         assert_eq!(replay["reducers"][0]["executed"], false);
-        assert_eq!(replay["reducers"][0]["inputs"][0]["receipt_id"], "decision-1");
+        assert_eq!(
+            replay["reducers"][0]["inputs"][0]["receipt_id"],
+            "decision-1"
+        );
     }
-
 }
