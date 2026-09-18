@@ -998,24 +998,32 @@ fn mit_attribution_is_retained_without_setting_application_licensing() {
 #[test]
 fn decision_outcome_and_receipt_comparison_close_the_feedback_loop_without_side_effects() {
     let f = Fixture::new();
-    let receipt = |id: &str, provider: &str, value: bool, confidence: f64| json!({
-        "format_version":1,"kind":"decision-receipt","id":id,
-        "spec":{"id":"task.risk","revision":1},
-        "state":{"schema_id":"task-state","schema_version":1,"fingerprint":"sha256:12345678"},
-        "status":"produced",
-        "result":{"value":value,"distribution":{"false":1.0-confidence,"true":confidence}},
-        "provider":{"type":"custom","id":provider},
-        "uncertainty":{
-            "provider_confidence":confidence,"calibration":{"status":"unknown"},
-            "evidence_coverage":{"value":1.0,"required_present":0,"required_total":0,"missing":[]},
-            "evidence_reliability":null,"decision_certainty":null
-        },
-        "evidence":{"used":[],"missing":[]},
-        "policy":{"id":"policy:test","revision":1,"disposition":"review","reasons":[]},
-        "timing":{"decided_at":"2026-09-18T20:00:00Z"}
-    });
-    f.put("champion.json", receipt("decision-a", "provider-a", false, 0.8).to_string());
-    f.put("candidate.json", receipt("decision-b", "provider-b", true, 0.7).to_string());
+    let receipt = |id: &str, provider: &str, value: bool, confidence: f64| {
+        json!({
+            "format_version":1,"kind":"decision-receipt","id":id,
+            "spec":{"id":"task.risk","revision":1},
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":"sha256:12345678"},
+            "status":"produced",
+            "result":{"value":value,"distribution":{"false":1.0-confidence,"true":confidence}},
+            "provider":{"type":"custom","id":provider},
+            "uncertainty":{
+                "provider_confidence":confidence,"calibration":{"status":"unknown"},
+                "evidence_coverage":{"value":1.0,"required_present":0,"required_total":0,"missing":[]},
+                "evidence_reliability":null,"decision_certainty":null
+            },
+            "evidence":{"used":[],"missing":[]},
+            "policy":{"id":"policy:test","revision":1,"disposition":"review","reasons":[]},
+            "timing":{"decided_at":"2026-09-18T20:00:00Z"}
+        })
+    };
+    f.put(
+        "champion.json",
+        receipt("decision-a", "provider-a", false, 0.8).to_string(),
+    );
+    f.put(
+        "candidate.json",
+        receipt("decision-b", "provider-b", true, 0.7).to_string(),
+    );
 
     let outcome = f.json(
         &[
