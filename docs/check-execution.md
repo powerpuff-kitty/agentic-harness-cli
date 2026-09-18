@@ -4,6 +4,8 @@
 
 This backend is for trusted local commands and cooperative repositories. It does not isolate filesystem/network access or contain a malicious program. Use a separately sandboxed host for untrusted code. An agent with unrestricted shell access can supply flags itself; these flags are not owner authentication or a replacement for host approval controls.
 
+Windows remains unsupported until the Job Object ownership, bounded I/O, deadline, cancellation, reaping, and recovery contract in [windows-execution.md](windows-execution.md) is implemented and covered by Windows CI.
+
 ## Configure and inspect
 
 First author `.agentic/checks.json` as described in [check planning](check-planning.md), including every relevant source/config input. Then author `.agentic/check-execution.json` with actual absolute paths from your environment:
@@ -65,3 +67,6 @@ SIGINT/SIGTERM set an atomic cancellation flag, then ordinary supervisor code st
 See [executor correction evidence](check-execution-verification.md) for measured local results. Cross-platform CI, release-candidate provenance and authenticated imported completion evidence are separate gates.
 
 The [governance evidence evaluator](governance-verdict.md) now supplies pure semantic rejection of stale, mismatched and conflicting imported claims under explicit caller trust. The separate [caller-approved completion command](check-completion.md) combines it with current snapshots and saved run validation. Signed producer authentication remains deferred.
+# Windows execution boundary
+
+Windows remains unsupported until the Job Object ownership, bounded I/O, deadline, cancellation, reaping, and recovery contract in [windows-execution.md](windows-execution.md) is implemented and covered by Windows CI.
