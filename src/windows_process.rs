@@ -9,7 +9,7 @@
 use std::io;
 use std::mem::{size_of, zeroed};
 use std::os::windows::io::{AsRawHandle, RawHandle};
-use std::process::Child;
+use std::process::{Child, Command};
 use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE};
 use windows_sys::Win32::System::JobObjects::{
     AssignProcessToJobObject, CreateJobObjectW, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
@@ -61,6 +61,17 @@ impl Job {
         }
         Ok(())
     }
+
+    /// Spawn and assign without exposing an unmanaged child to the caller.
+    pub(crate) fn spawn(&self, command: &mut Command) -> io::Result<Child> {
+        let mut child = command.spawn()?;
+        if let Err(error) = self.assign(&child) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(error);
+        }
+        Ok(child)
+    }
 }
 
 impl Drop for Job {
@@ -80,15 +91,15 @@ mod tests {
     #[test]
     fn creates_a_kill_on_close_job() {
         let job = Job::new().expect("job object should be available on Windows CI");
-        let child = Command::new("cmd.exe")
+        let mut command = Command::new("cmd.exe");
+        command
             .args(["/C", "exit", "0"])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
+            .stderr(Stdio::null());
+        let mut child = job
+            .spawn(&mut command)
             .expect("fixture process should spawn");
-        job.assign(&child).expect("child should join owned job");
-        let mut child = child;
         child.wait().expect("fixture process should be reaped");
     }
 }
