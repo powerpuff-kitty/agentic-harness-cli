@@ -819,6 +819,19 @@ fn codebase_audit(root: &Path) -> Value {
     }
     findings.extend(architecture_score::codebase_findings(&architecture));
 
+    let quality = crate::quality::analyze(root);
+    if let Some(quality_findings) = quality["findings"].as_array() {
+        for finding in quality_findings {
+            findings.push(json!({
+                "severity": finding["severity"],
+                "dimension": "code_quality",
+                "rule_id": finding["rule_id"],
+                "message": finding["message"],
+                "evidence": finding["evidence"]
+            }));
+        }
+    }
+
     let ds = design_system::audit(root);
     if ds["active"].as_bool().unwrap_or(false) {
         scores.insert("design_system", Value::Null);
@@ -843,7 +856,7 @@ fn codebase_audit(root: &Path) -> Value {
         "architecture": architecture,
         "design_system": ds,
         "findings": findings,
-        "checks": {"performed":["repository structure","file/LOC scan","test/CI presence","docs/security/agent/operations presence","manifest/lockfile presence","architecture source dependency and boundary analysis","design-system compliance when active"],"not_checked":["build execution","test execution","coverage","dependency vulnerabilities","runtime performance","branch protection","deployment environment","visual regression"]}
+        "checks": {"performed":["repository structure","file/LOC scan","test/CI presence","docs/security/agent/operations presence","manifest/lockfile presence","architecture source dependency and boundary analysis","static quality/tooling analysis","design-system compliance when active"],"not_checked":["build execution","test execution","coverage","formatter execution","lint execution","typecheck execution","complexity/duplication/dead-code analysis","dependency vulnerabilities","runtime performance","branch protection","deployment environment","visual regression"]}
     })
 }
 
