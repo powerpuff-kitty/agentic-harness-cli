@@ -1,5 +1,6 @@
 use crate::scan;
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -353,6 +354,203 @@ pub fn analyze(root: &Path) -> Value {
     })
 }
 
+fn sha256(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+fn contract_digest(root: &Path) -> Result<String, String> {
+    let path = root.join(".agentic/quality.json");
+    if !path.exists() {
+        return Ok(sha256(b"absent-quality-contract"));
+    }
+    let text = scan::read(root, &path, 1_000_000)
+        .map_err(|error| format!(".agentic/quality.json: {error}"))?;
+    let value: Value = serde_json::from_str(&text)
+        .map_err(|error| format!(".agentic/quality.json is not valid JSON: {error}"))?;
+    if value["format_version"] != 1 || value["kind"] != "quality-contract" {
+        return Err(
+            ".agentic/quality.json must be a Quality Contract v1 before it can anchor a baseline"
+                .to_string(),
+        );
+    }
+    Ok(sha256(text.as_bytes()))
+}
+
+fn tool_config_digest(root: &Path, tool: &Value) -> Option<String> {
+    let configs = tool["config"].as_array()?;
+    if configs.is_empty() {
+        return None;
+    }
+    let mut bytes = Vec::new();
+    for config in configs {
+        let path = config.as_str()?;
+        let full = root.join(path);
+        let text = scan::read(root, &full, 1_000_000).ok()?;
+        bytes.extend_from_slice(path.as_bytes());
+        bytes.push(0);
+        bytes.extend_from_slice(text.as_bytes());
+        bytes.push(0);
+    }
+    Some(sha256(&bytes))
+}
+
+fn baseline_finding(finding: &Value) -> Result<Value, String> {
+    let rule_id = finding["rule_id"]
+        .as_str()
+        .ok_or_else(|| "quality finding is missing rule_id".to_string())?;
+    let severity = finding["severity"]
+        .as_str()
+        .ok_or_else(|| "quality finding is missing severity".to_string())?;
+    let evidence = finding["evidence"]
+        .as_array()
+        .and_then(|items| items.first())
+        .ok_or_else(|| format!("{rule_id}: baseline finding has no source evidence"))?;
+    let path = evidence["path"]
+        .as_str()
+        .ok_or_else(|| format!("{rule_id}: baseline finding evidence has no path"))?;
+    let line = evidence["line"].as_u64();
+    let native_code = finding["native_code"].as_str();
+    let fingerprint_source = format!(
+        "{rule_id}\0{}\0{path}\0{}",
+        native_code.unwrap_or(""),
+        line.map(|value| value.to_string())
+            .unwrap_or_else(|| "-".to_string())
+    );
+
+    Ok(json!({
+        "fingerprint": sha256(fingerprint_source.as_bytes()),
+        "rule_id": rule_id,
+        "native_code": native_code,
+        "severity": severity,
+        "path": path,
+        "line": line
+    }))
+}
+
+pub fn baseline(root: &Path) -> Result<Value, String> {
+    let analysis = analyze(root);
+    let contract_digest = contract_digest(root)?;
+    let mut tools = Vec::new();
+    for tool in analysis["tools"].as_array().into_iter().flatten() {
+        let id = tool["id"]
+            .as_str()
+            .ok_or_else(|| "quality tool entry is missing id".to_string())?;
+        tools.push(json!({
+            "id": id,
+            "version": tool["version"].clone(),
+            "config_digest": tool_config_digest(root, tool)
+        }));
+    }
+
+    let mut findings = Vec::new();
+    for finding in analysis["findings"].as_array().into_iter().flatten() {
+        findings.push(baseline_finding(finding)?);
+    }
+    findings.sort_by(|left, right| {
+        left["fingerprint"]
+            .as_str()
+            .cmp(&right["fingerprint"].as_str())
+    });
+
+    Ok(json!({
+        "format_version": 1,
+        "kind": "quality-baseline",
+        "created_at": crate::date::today(),
+        "target": {
+            "root": root.to_string_lossy(),
+            "revision": Value::Null,
+            "tree_digest": Value::Null
+        },
+        "contract_digest": contract_digest,
+        "tools": tools,
+        "findings": findings,
+        "metrics": {},
+        "coverage": analysis["coverage"].clone()
+    }))
+}
+
+fn validate_baseline(value: &Value) -> Result<(), String> {
+    if value["format_version"] != 1 || value["kind"] != "quality-baseline" {
+        return Err("expected Quality Baseline v1".to_string());
+    }
+    if !value["contract_digest"].is_string()
+        || !value["tools"].is_array()
+        || !value["findings"].is_array()
+        || !value["coverage"].is_object()
+    {
+        return Err("quality baseline is missing required identity/evidence fields".to_string());
+    }
+    for finding in value["findings"].as_array().unwrap() {
+        if !finding["fingerprint"].is_string()
+            || !finding["rule_id"].is_string()
+            || !finding["severity"].is_string()
+            || !finding["path"].is_string()
+        {
+            return Err("quality baseline contains an invalid finding".to_string());
+        }
+    }
+    Ok(())
+}
+
+pub fn diff(root: &Path, baseline_path: &str, previous: &Value) -> Result<Value, String> {
+    validate_baseline(previous)?;
+    let current = baseline(root)?;
+
+    let mut stale_reasons = BTreeSet::new();
+    if previous["contract_digest"] != current["contract_digest"] {
+        stale_reasons.insert("quality contract identity changed".to_string());
+    }
+    if previous["tools"] != current["tools"] {
+        stale_reasons.insert("quality tool/config identity changed".to_string());
+    }
+
+    let old = previous["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|finding| {
+            finding["fingerprint"]
+                .as_str()
+                .map(|fingerprint| (fingerprint.to_string(), finding.clone()))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let new = current["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|finding| {
+            finding["fingerprint"]
+                .as_str()
+                .map(|fingerprint| (fingerprint.to_string(), finding.clone()))
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    let added = new
+        .iter()
+        .filter(|(fingerprint, _)| !old.contains_key(*fingerprint))
+        .map(|(_, finding)| finding.clone())
+        .collect::<Vec<_>>();
+    let removed = old
+        .iter()
+        .filter(|(fingerprint, _)| !new.contains_key(*fingerprint))
+        .map(|(_, finding)| finding.clone())
+        .collect::<Vec<_>>();
+    let unchanged = new.keys().filter(|fingerprint| old.contains_key(*fingerprint)).count();
+
+    Ok(json!({
+        "format_version": 1,
+        "kind": "quality-diff",
+        "baseline": baseline_path,
+        "current": root.to_string_lossy(),
+        "stale": !stale_reasons.is_empty(),
+        "stale_reasons": stale_reasons,
+        "added": added,
+        "removed": removed,
+        "unchanged": unchanged,
+        "coverage": current["coverage"].clone()
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -441,4 +639,38 @@ mod tests {
                 .any(|value| value.as_str().unwrap().contains("JSONC"))
         );
     }
+    #[test]
+    fn baseline_keeps_findings_visible_and_diff_detects_config_staleness() {
+        let temp = tempfile::tempdir().unwrap();
+        put(
+            temp.path(),
+            "tsconfig.json",
+            r#"{"compilerOptions":{"strict":false}}"#,
+        );
+        put(temp.path(), "src/app.ts", "export const value = 1;");
+        let previous = baseline(temp.path()).unwrap();
+        assert_eq!(previous["kind"], "quality-baseline");
+        assert_eq!(previous["findings"].as_array().unwrap().len(), 1);
+
+        put(
+            temp.path(),
+            "tsconfig.json",
+            r#"{"compilerOptions":{"strict":true}}"#,
+        );
+        let report = diff(temp.path(), "quality-baseline.json", &previous).unwrap();
+        assert_eq!(report["kind"], "quality-diff");
+        assert_eq!(report["stale"], true);
+        assert_eq!(report["added"].as_array().unwrap().len(), 0);
+        assert_eq!(report["removed"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn malformed_quality_contract_blocks_baseline_creation() {
+        let temp = tempfile::tempdir().unwrap();
+        put(temp.path(), ".agentic/quality.json", r#"{"kind":"other"}"#);
+        let error = baseline(temp.path()).unwrap_err();
+        assert!(error.contains("Quality Contract v1"));
+    }
+
+
 }
