@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-eval-dataset.v1.schema.json",
+  "title": "Agentic Harness DecisionEvalDataset v1",
+  "description": "Versioned labeled dataset for empirical Decision Kernel evaluation. Cases embed immutable receipts plus independently verified expected truth.",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "revision",
+    "split",
+    "decision",
+    "state_schema",
+    "cases",
+    "created_at"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-eval-dataset"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "split": {
+      "enum": [
+        "training",
+        "calibration",
+        "validation",
+        "test"
+      ]
+    },
+    "decision": {
+      "type": "object",
+      "required": [
+        "spec_id",
+        "spec_revision",
+        "decision_kind"
+      ],
+      "properties": {
+        "spec_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spec_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision_kind": {
+          "enum": [
+            "boolean",
+            "choice",
+            "ordinal"
+          ]
+        },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "levels": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "state_schema": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "receipt",
+          "expected",
+          "truth"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt": {
+            "type": "object"
+          },
+          "expected": {
+            "type": "object",
+            "properties": {
+              "value": {},
+              "ordinal_index": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          },
+          "truth": {
+            "type": "object",
+            "required": [
+              "verification_type",
+              "observed_at"
+            ],
+            "properties": {
+              "verification_type": {
+                "enum": [
+                  "human",
+                  "deterministic",
+                  "external-authority",
+                  "measurement"
+                ]
+              },
+              "ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": true
+          },
+          "cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "decision_kind": {
+                "const": "choice"
+              }
+            },
+            "required": [
+              "decision_kind"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "required": [
+              "options"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "decision_kind": {
+                "const": "ordinal"
+              }
+            },
+            "required": [
+              "decision_kind"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "required": [
+              "levels"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}
