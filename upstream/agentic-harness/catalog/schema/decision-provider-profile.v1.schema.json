@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-harness.dev/schema/decision-provider-profile.v1.schema.json",
+  "title": "Agentic Harness Decision Provider Profile v1",
+  "type": "object",
+  "required": [
+    "format_version",
+    "kind",
+    "id",
+    "revision",
+    "provider_type",
+    "decision_kinds",
+    "confidence",
+    "external_network",
+    "requires_credentials",
+    "consequence_authority"
+  ],
+  "properties": {
+    "format_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "decision-provider-profile"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "provider_type": {
+      "enum": [
+        "deterministic",
+        "jev",
+        "llm",
+        "ml",
+        "human",
+        "custom"
+      ]
+    },
+    "decision_kinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "boolean",
+          "choice",
+          "ordinal",
+          "ranking",
+          "estimate",
+          "distribution",
+          "extraction",
+          "constraint",
+          "optimization"
+        ]
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "required": [
+        "semantics",
+        "supports_distribution"
+      ],
+      "properties": {
+        "semantics": {
+          "enum": [
+            "calibrated-probability",
+            "uncalibrated-score",
+            "self-report",
+            "none",
+            "provider-defined"
+          ]
+        },
+        "supports_distribution": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "external_network": {
+      "type": "boolean"
+    },
+    "requires_credentials": {
+      "type": "boolean"
+    },
+    "consequence_authority": {
+      "const": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
