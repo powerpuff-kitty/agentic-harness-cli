@@ -83,7 +83,9 @@ pub fn entry(family: Option<&str>) {
             .get(1)
             .is_none_or(|s| ["--help", "-h"].contains(&s.as_str()))
     {
-        println!("Experimental family: quality detect|analyze|baseline|diff [options] (read-only)\n");
+        println!(
+            "Experimental family: quality detect|analyze|baseline|diff [options] (read-only)\n"
+        );
         println!("Experimental family: checks plan [TARGET] [--config PATH] (read-only)\n");
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
     }
