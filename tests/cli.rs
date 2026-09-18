@@ -1293,7 +1293,6 @@ fn decision_calibration_is_offline_split_aware_and_regression_gateable() {
     assert!(invalid.stdout.is_empty());
 }
 
-
 #[test]
 fn hosted_jev_evaluation_is_explicit_and_fails_closed_without_credentials() {
     let f = Fixture::new();
