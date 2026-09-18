@@ -45,7 +45,8 @@ fn every_family_is_available_in_the_installed_binary() {
     fs::copy(env!("CARGO_BIN_EXE_ah"), &copy).unwrap();
     for args in [
         vec!["--help"],
-        vec!["architecture", "--help"],\n        vec!["quality", "--help"],
+        vec!["architecture", "--help"],
+        vec!["quality", "--help"],
         vec!["design", "--help"],
         vec!["agentic", "--help"],
         vec!["--version"],
@@ -324,7 +325,9 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         ),
         (&["architecture", "detect", "."], &[]),
         (&["architecture", "analyze", "."], &["--profile", "--as-of"]),
-        (&["architecture", "enforce", "."], &["--profile", "--as-of"]),\n        (&["quality", "detect", "."], &[]),\n        (&["quality", "analyze", "."], &[]),
+        (&["architecture", "enforce", "."], &["--profile", "--as-of"]),
+        (&["quality", "detect", "."], &[]),
+        (&["quality", "analyze", "."], &[]),
         (&["design", "analyze", "."], &["--level", "--output"]),
         (&["design", "preserve"], &["--analysis", "--output"]),
         (&["design", "prompt"], &["--genome", "--task", "--output"]),
