@@ -11,6 +11,7 @@ pub mod check_verdict;
 mod checks;
 mod cli;
 mod date;
+mod decision_calibration;
 mod decisions;
 mod design_analysis;
 mod design_cli;
@@ -179,6 +180,35 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
                     "--revision",
                     "--generated-at",
                     "--changed",
+                ],
+                &[],
+                2,
+                2,
+                false,
+            ),
+            (Some("decisions"), "calibration-report") => (
+                &[
+                    "--bins",
+                    "--target-accuracy",
+                    "--min-coverage",
+                    "--min-samples",
+                    "--generated-at",
+                ],
+                &[],
+                1,
+                1,
+                false,
+            ),
+            (Some("decisions"), "calibration-compare") => (
+                &[
+                    "--max-accuracy-drop",
+                    "--max-coverage-drop",
+                    "--max-brier-increase",
+                    "--max-ece-increase",
+                    "--max-ordinal-mae-increase",
+                    "--max-latency-increase-ms",
+                    "--max-cost-increase-usd",
+                    "--generated-at",
                 ],
                 &[],
                 2,
