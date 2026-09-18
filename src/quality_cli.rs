@@ -75,7 +75,7 @@ pub fn run(args: Vec<String>) {
         "baseline" => {
             let (positional, output) = split_args(&args, 2);
             let root = require_root(positional.first());
-            let value = quality::baseline(&root).unwrap_or_else(crate::fail);
+            let value = quality::baseline(&root).unwrap_or_else(|error| crate::fail(error));
             emit(&root, output.as_deref(), value);
         }
         "diff" => {
@@ -85,7 +85,8 @@ pub fn run(args: Vec<String>) {
                 .unwrap_or_else(|| crate::fail("quality diff requires BASELINE"));
             let root = require_root(positional.get(1));
             let previous = read_baseline(&root, baseline_path);
-            let value = quality::diff(&root, baseline_path, &previous).unwrap_or_else(crate::fail);
+            let value = quality::diff(&root, baseline_path, &previous)
+                .unwrap_or_else(|error| crate::fail(error));
             emit(&root, output.as_deref(), value);
         }
         _ => {
