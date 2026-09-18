@@ -22,6 +22,7 @@ mod design_system;
 mod execution_budget;
 mod execution_cancel;
 mod execution_review;
+pub mod governance_verdict;
 mod process_check;
 mod project;
 mod scan;

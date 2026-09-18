@@ -63,3 +63,5 @@ The supervisor observes terminal status with `waitid(WNOWAIT)`, retains the unre
 SIGINT/SIGTERM set an atomic cancellation flag, then ordinary supervisor code stops the owned group and collects the direct child. SIGKILL, crashes, detached descendants and uninterruptible OS behavior remain outside these guarantees. Tests never attempt PID reuse or signal unrelated processes.
 
 See [executor correction evidence](check-execution-verification.md) for measured local results. Cross-platform CI, release-candidate provenance and authenticated imported completion evidence are separate gates.
+
+The [governance evidence evaluator](governance-verdict.md) now supplies pure semantic rejection of stale, mismatched and conflicting imported claims under explicit caller trust. It is not yet a consuming CLI command or an authenticated completion gate.

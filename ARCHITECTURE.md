@@ -21,3 +21,7 @@ The parser and AST visitor run in a reusable native child process launched from 
 ## Experimental reviewed check execution
 
 `execution_review` binds explicit native tool identities, environment and the non-executing plan. `execution_budget` carries one cooperative monotonic deadline through review/input/tool reads and finalization. `process_check` owns process-group signaling before direct-child reaping, bounded output and cancellation cleanup; `check_execution` schedules through the pure `check_verdict::RunLedger`. No runtime outcome becomes global completion or owner authentication. See `docs/check-execution.md` for platform, schema and recovery limits.
+
+## Governance evidence semantics
+
+The experimental `governance_verdict` library evaluates existing v1 claims against caller-supplied trust, current identity, references and required capabilities. It performs no I/O or authentication and never verifies global completion. See [the evaluator contract](docs/governance-verdict.md) for integration responsibilities.
