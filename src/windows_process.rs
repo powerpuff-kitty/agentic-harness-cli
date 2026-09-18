@@ -25,7 +25,7 @@ impl Job {
     pub(crate) fn new() -> io::Result<Self> {
         // SAFETY: null name/security attributes create a private unnamed job.
         let handle = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
-        if handle == 0 {
+        if handle.is_null() {
             return Err(io::Error::from_raw_os_error(
                 unsafe { GetLastError() } as i32
             ));
@@ -37,7 +37,7 @@ impl Job {
             SetInformationJobObject(
                 handle,
                 JobObjectExtendedLimitInformation,
-                (&mut limits as *mut _).cast(),
+                (&mut limits as *mut JOBOBJECT_EXTENDED_LIMIT_INFORMATION).cast(),
                 size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
             )
         };
@@ -63,7 +63,7 @@ impl Job {
 
 impl Drop for Job {
     fn drop(&mut self) {
-        if self.handle != 0 {
+        if !self.handle.is_null() {
             // SAFETY: this object uniquely owns the job handle.
             unsafe { CloseHandle(self.handle) };
         }
