@@ -48,6 +48,7 @@ fn every_family_is_available_in_the_installed_binary() {
         vec!["architecture", "--help"],
         vec!["design", "--help"],
         vec!["agentic", "--help"],
+        vec!["decisions", "--help"],
         vec!["--version"],
     ] {
         let mut command = Command::new(&copy);
@@ -339,6 +340,12 @@ fn documented_command_options_fail_with_structured_diagnostics() {
         (&["agentic", "improve", "."], &[]),
         (&["agentic", "migrate", "."], &["--from", "--to"]),
         (&["agentic", "compare", "a", "b"], &[]),
+        (&["decisions", "validate", "artifact.json"], &[]),
+        (&["decisions", "fingerprint", "state.json"], &[]),
+        (
+            &["decisions", "jev-payload", "request.json", "specs.json"],
+            &["--model"],
+        ),
     ];
     for (command, flags) in commands {
         for flag in ["--unsupported"].iter().chain(flags.iter()) {
@@ -938,3 +945,136 @@ fn mit_attribution_is_retained_without_setting_application_licensing() {
         );
     }
 }
+
+#[test]
+fn decision_kernel_cli_is_offline_reproducible_and_fail_closed() {
+    let f = Fixture::new();
+
+    f.put("state-a.json", r#"{"b":2,"a":1}"#);
+    f.put("state-b.json", r#"{"a":1,"b":2}"#);
+    let a = f.json(&["decisions", "fingerprint", "state-a.json"], 0);
+    let b = f.json(&["decisions", "fingerprint", "state-b.json"], 0);
+    assert_eq!(a["fingerprint"], b["fingerprint"]);
+    assert_eq!(a["algorithm"], "ah-json-sha256-v1");
+
+    let valid_graph = json!({
+        "format_version":1,
+        "kind":"decision-graph",
+        "id":"task.routing",
+        "revision":1,
+        "nodes":[
+            {"id":"risk","spec_id":"task.risk","spec_revision":1,"depends_on":[]},
+            {"id":"route","spec_id":"task.route","spec_revision":1,"depends_on":["risk"]}
+        ],
+        "reducers":[
+            {"id":"routing","type":"deterministic","inputs":["risk","route"],"output":"task.routing-result"}
+        ]
+    });
+    f.put("graph.json", valid_graph.to_string());
+    let validation = f.json(&["decisions", "validate", "graph.json"], 0);
+    assert_eq!(validation["valid"], true);
+    assert_eq!(validation["artifact_kind"], "decision-graph");
+    assert_eq!(
+        validation["canonical_source"]["commit"],
+        "ccc74b1ba1c905a01c908d4416ae682ef4ef99dc"
+    );
+
+    let mut cyclic = valid_graph;
+    cyclic["nodes"][0]["depends_on"] = json!(["route"]);
+    f.put("cyclic.json", cyclic.to_string());
+    let invalid = f.run(&["decisions", "validate", "cyclic.json"]);
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(invalid.stdout.is_empty());
+    let diagnostic: Value = serde_json::from_slice(&invalid.stderr).unwrap();
+    assert_eq!(diagnostic["kind"], "diagnostic");
+    assert!(
+        diagnostic["message"]
+            .as_str()
+            .unwrap()
+            .contains("cycle")
+    );
+
+    let boolean = json!({
+        "format_version":1,
+        "kind":"decision-spec",
+        "id":"task.risk",
+        "revision":1,
+        "decision_kind":"boolean",
+        "description":"Is this task security-sensitive?",
+        "input":{"schema_id":"task-state","schema_version":1,"immutable_snapshot_required":true},
+        "evidence":{"requirements":[]},
+        "policy":{"risk":"medium","consequential_action":"forbidden"}
+    });
+    let choice = json!({
+        "format_version":1,
+        "kind":"decision-spec",
+        "id":"task.route",
+        "revision":1,
+        "decision_kind":"choice",
+        "description":"Which capability should handle this task?",
+        "input":{"schema_id":"task-state","schema_version":1,"immutable_snapshot_required":true},
+        "options":["code","docs"],
+        "evidence":{"requirements":[]},
+        "policy":{"risk":"low","consequential_action":"forbidden"}
+    });
+    let ordinal = json!({
+        "format_version":1,
+        "kind":"decision-spec",
+        "id":"task.complexity",
+        "revision":1,
+        "decision_kind":"ordinal",
+        "description":"How complex is this task?",
+        "input":{"schema_id":"task-state","schema_version":1,"immutable_snapshot_required":true},
+        "levels":["low","medium","high"],
+        "evidence":{"requirements":[]},
+        "policy":{"risk":"low","consequential_action":"forbidden"}
+    });
+    f.put("specs.json", json!([boolean, choice, ordinal]).to_string());
+    f.put(
+        "request.json",
+        json!({
+            "format_version":1,
+            "kind":"decision-request",
+            "request_id":"request-1",
+            "state":{
+                "schema_id":"task-state",
+                "schema_version":1,
+                "fingerprint":"sha256:12345678",
+                "payload":{"task":"Review this change"}
+            },
+            "questions":[
+                {"spec_id":"task.risk","spec_revision":1},
+                {"spec_id":"task.route","spec_revision":1},
+                {"spec_id":"task.complexity","spec_revision":1}
+            ],
+            "mode":"live"
+        })
+        .to_string(),
+    );
+    let payload = f.json(
+        &[
+            "decisions",
+            "jev-payload",
+            "request.json",
+            "specs.json",
+            "--model",
+            "jev-latest",
+        ],
+        0,
+    );
+    assert_eq!(payload["provider"], "typesafe-jev");
+    assert_eq!(payload["request"]["model"], "jev-latest");
+    assert_eq!(payload["request"]["questions"]["task.risk"]["type"], "noul");
+    assert_eq!(payload["request"]["questions"]["task.route"]["type"], "choice");
+    assert_eq!(
+        payload["request"]["questions"]["task.complexity"]["type"],
+        "score"
+    );
+    assert_eq!(payload["network_call_performed"], false);
+    assert_eq!(payload["authorization_header"], "Bearer <redacted>");
+    assert!(
+        !payload.to_string().contains("TYPESAFE_API_KEY="),
+        "provider payload must not serialize credentials"
+    );
+}
+
