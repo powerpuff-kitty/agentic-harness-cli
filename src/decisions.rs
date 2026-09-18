@@ -73,6 +73,14 @@ fn text<'a>(value: &'a Value, context: &str) -> Result<&'a str, String> {
     Ok(value)
 }
 
+fn bounded_text<'a>(value: &'a Value, context: &str, max: usize) -> Result<&'a str, String> {
+    let value = text(value, context)?;
+    if value.len() > max {
+        return Err(format!("decisions: {context} exceeds {max} bytes"));
+    }
+    Ok(value)
+}
+
 fn positive_revision(value: &Value, context: &str) -> Result<u64, String> {
     let value = value
         .as_u64()
@@ -1695,9 +1703,223 @@ fn replay_receipts(graph: &Value, receipt_set: &Value) -> Result<Value, String> 
     }))
 }
 
+struct OutcomeOptions<'a> {
+    id: &'a str,
+    observed_at: &'a str,
+    label: &'a str,
+    verification_type: &'a str,
+    verification_ref: Option<&'a str>,
+    action_ref: Option<&'a str>,
+    usable_for_evaluation: bool,
+    success: Option<bool>,
+}
+
+fn outcome_from_receipt(receipt: &Value, options: OutcomeOptions<'_>) -> Result<Value, String> {
+    let OutcomeOptions {
+        id,
+        observed_at,
+        label,
+        verification_type,
+        verification_ref,
+        action_ref,
+        usable_for_evaluation,
+        success,
+    } = options;
+    validate_receipt(receipt)?;
+    bounded_text(&Value::String(id.to_string()), "outcome id", 512)?;
+    bounded_text(
+        &Value::String(observed_at.to_string()),
+        "outcome observed_at",
+        128,
+    )?;
+    if !observed_at.contains('T') {
+        return Err("decisions: --observed-at must be an RFC3339 timestamp".into());
+    }
+    bounded_text(&Value::String(label.to_string()), "outcome label", 512)?;
+    if ![
+        "human",
+        "deterministic",
+        "external-authority",
+        "measurement",
+        "unknown",
+    ]
+    .contains(&verification_type)
+    {
+        return Err("decisions: unsupported outcome verification type".into());
+    }
+
+    let mut verification = json!({"type": verification_type});
+    if let Some(reference) = verification_ref {
+        bounded_text(
+            &Value::String(reference.to_string()),
+            "verification ref",
+            2048,
+        )?;
+        verification["ref"] = json!(reference);
+    }
+
+    let mut outcome_value = json!({"label": label});
+    if let Some(success) = success {
+        outcome_value["success"] = json!(success);
+    }
+
+    let mut outcome = json!({
+        "format_version": 1,
+        "kind": "decision-outcome",
+        "id": id,
+        "receipt_id": receipt["id"],
+        "observed_at": observed_at,
+        "outcome": outcome_value,
+        "verification": verification,
+        "feedback": {"usable_for_evaluation": usable_for_evaluation}
+    });
+    if let Some(action_ref) = action_ref {
+        bounded_text(
+            &Value::String(action_ref.to_string()),
+            "outcome action_ref",
+            2048,
+        )?;
+        outcome["action_ref"] = json!(action_ref);
+    }
+    validate_outcome(&outcome)?;
+    Ok(outcome)
+}
+
+fn receipt_provider_id(receipt: &Value) -> &str {
+    receipt["provider"]["id"].as_str().unwrap_or("unknown")
+}
+
+fn receipt_disposition(receipt: &Value) -> &str {
+    receipt["policy"]["disposition"]
+        .as_str()
+        .unwrap_or("unknown")
+}
+
+fn receipt_confidence(receipt: &Value) -> Option<f64> {
+    receipt["uncertainty"]["provider_confidence"].as_f64()
+}
+
+fn compare_receipts(
+    champion: &Value,
+    candidate: &Value,
+    mode: &str,
+    dataset_id: &str,
+    dataset_revision: &str,
+    generated_at: &str,
+    changed_dimensions: &[String],
+) -> Result<Value, String> {
+    validate_receipt(champion)?;
+    validate_receipt(candidate)?;
+    if !["shadow", "champion-challenger", "counterfactual"].contains(&mode) {
+        return Err("decisions: unsupported comparison mode".into());
+    }
+    if dataset_id.is_empty() || dataset_revision.is_empty() {
+        return Err("decisions: dataset id/revision must be non-empty".into());
+    }
+    if !generated_at.contains('T') {
+        return Err("decisions: --generated-at must be an RFC3339 timestamp".into());
+    }
+
+    let changed: BTreeSet<_> = changed_dimensions.iter().map(String::as_str).collect();
+    for dimension in &changed {
+        if ![
+            "provider",
+            "model",
+            "spec",
+            "policy",
+            "evidence",
+            "threshold",
+            "state",
+        ]
+        .contains(dimension)
+        {
+            return Err(format!(
+                "decisions: unsupported changed dimension {dimension}"
+            ));
+        }
+    }
+    if mode == "counterfactual" && changed.is_empty() {
+        return Err("decisions: counterfactual comparison requires --changed".into());
+    }
+
+    let same_spec = champion["spec"] == candidate["spec"];
+    let same_state = champion["state"]["fingerprint"] == candidate["state"]["fingerprint"];
+    if !same_spec && !changed.contains("spec") {
+        return Err(
+            "decisions: compared receipts use different specs without declaring changed dimension spec"
+                .into(),
+        );
+    }
+    if !same_state && !changed.contains("state") && !changed.contains("evidence") {
+        return Err(
+            "decisions: compared receipts use different states without declaring state/evidence change"
+                .into(),
+        );
+    }
+
+    let result_match = champion["status"] == candidate["status"]
+        && champion.get("result").cloned().unwrap_or(Value::Null)
+            == candidate.get("result").cloned().unwrap_or(Value::Null);
+    let disposition_match = receipt_disposition(champion) == receipt_disposition(candidate);
+    let confidence_delta = match (receipt_confidence(champion), receipt_confidence(candidate)) {
+        (Some(left), Some(right)) => Some(right - left),
+        _ => None,
+    };
+
+    let mut metrics = vec![
+        json!({"name":"result_match","value": if result_match {1.0} else {0.0},"unit":"ratio"}),
+        json!({"name":"disposition_match","value": if disposition_match {1.0} else {0.0},"unit":"ratio"}),
+    ];
+    if let Some(delta) = confidence_delta {
+        metrics.push(json!({
+            "name":"provider_confidence_delta",
+            "value":delta,
+            "unit":"absolute"
+        }));
+    }
+
+    let evaluation = json!({
+        "format_version": 1,
+        "kind": "decision-evaluation",
+        "id": canonical_fingerprint(&json!({
+            "champion": champion["id"],
+            "candidate": candidate["id"],
+            "mode": mode,
+            "dataset": dataset_id,
+            "revision": dataset_revision,
+            "generated_at": generated_at,
+            "changed": changed_dimensions
+        }))?.0.replacen("sha256:", "eval-", 1),
+        "mode": mode,
+        "dataset": {
+            "id": dataset_id,
+            "revision": dataset_revision
+        },
+        "champion": {
+            "provider_id": receipt_provider_id(champion),
+            "policy_id": champion["policy"]["id"],
+            "revision": champion["policy"]["revision"]
+        },
+        "candidate": {
+            "provider_id": receipt_provider_id(candidate),
+            "policy_id": candidate["policy"]["id"],
+            "revision": candidate["policy"]["revision"]
+        },
+        "side_effects": false,
+        "changed_dimensions": changed_dimensions,
+        "source_receipts": [champion["id"], candidate["id"]],
+        "metrics": metrics,
+        "coverage": {"total":1,"evaluated":1,"abstained":0,"failed":0},
+        "generated_at": generated_at,
+        "notes": "Receipt comparison only; no provider call, side effect, authorization, or outcome prediction was performed."
+    });
+    validate_evaluation(&evaluation)?;
+    Ok(evaluation)
+}
+
 fn usage(program: &str) {
     println!(
-        "Agentic Harness Decisions\n\nusage:\n  {program} validate ARTIFACT.json\n  {program} fingerprint STATE.json\n  {program} plan GRAPH.json SPECS.json STATE.json [--provider ID] [--mode MODE]\n  {program} replay GRAPH.json RECEIPTS.json\n  {program} jev-payload REQUEST.json SPECS.json [--model MODEL]\n  {program} jev-receipts REQUEST.json SPECS.json RESPONSE.json --decided-at RFC3339 [--evidence EVIDENCE.json]\n\ncommands:\n  validate      Validate a Decision Kernel v1 artifact plus semantic invariants\n  fingerprint   Canonicalize explicit JSON state and emit its SHA-256 identity\n  plan          Topologically stage a DecisionGraph into parallel fan-out batches and cache identities\n  replay        Reconstruct graph inputs from recorded receipts without provider calls\n  jev-payload   Construct the documented TypeSafe Jev request without making a network call\n  jev-receipts  Normalize a recorded Jev response into canonical review-required DecisionReceipts"
+        "Agentic Harness Decisions\n\nusage:\n  {program} validate ARTIFACT.json\n  {program} fingerprint STATE.json\n  {program} plan GRAPH.json SPECS.json STATE.json [--provider ID] [--mode MODE]\n  {program} replay GRAPH.json RECEIPTS.json\n  {program} outcome RECEIPT.json --id ID --observed-at RFC3339 --label LABEL --verification TYPE [--verification-ref REF] [--action-ref REF] [--usable true|false] [--success true|false]\n  {program} compare-receipts CHAMPION.json CANDIDATE.json --mode shadow|champion-challenger|counterfactual --dataset ID --revision REV --generated-at RFC3339 [--changed provider,model,...]\n  {program} jev-payload REQUEST.json SPECS.json [--model MODEL]\n  {program} jev-receipts REQUEST.json SPECS.json RESPONSE.json --decided-at RFC3339 [--evidence EVIDENCE.json]\n\ncommands:\n  validate      Validate a Decision Kernel v1 artifact plus semantic invariants\n  fingerprint   Canonicalize explicit JSON state and emit its SHA-256 identity\n  plan          Topologically stage a DecisionGraph into parallel fan-out batches and cache identities\n  replay        Reconstruct graph inputs from recorded receipts without provider calls\n  outcome       Append an observed outcome/verification artifact without rewriting its receipt\n  compare-receipts  Build side-effect-free shadow/challenger/counterfactual evaluation evidence\n  jev-payload   Construct the documented TypeSafe Jev request without making a network call\n  jev-receipts  Normalize a recorded Jev response into canonical review-required DecisionReceipts"
     );
 }
 
@@ -1801,6 +2023,122 @@ pub(crate) fn run(args: Vec<String>) {
             let replay =
                 replay_receipts(&graph, &receipts).unwrap_or_else(|error| crate::fail(error));
             println!("{}", serde_json::to_string_pretty(&replay).unwrap());
+        }
+        "outcome" => {
+            let receipt = read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
+            let mut id: Option<String> = None;
+            let mut observed_at: Option<String> = None;
+            let mut label: Option<String> = None;
+            let mut verification = "unknown".to_string();
+            let mut verification_ref: Option<String> = None;
+            let mut action_ref: Option<String> = None;
+            let mut usable = true;
+            let mut success: Option<bool> = None;
+            let mut index = 3;
+            while index < args.len() {
+                let flag = args[index].as_str();
+                index += 1;
+                let value = args
+                    .get(index)
+                    .cloned()
+                    .unwrap_or_else(|| crate::fail(format!("decisions: {flag} requires a value")));
+                match flag {
+                    "--id" => id = Some(value),
+                    "--observed-at" => observed_at = Some(value),
+                    "--label" => label = Some(value),
+                    "--verification" => verification = value,
+                    "--verification-ref" => verification_ref = Some(value),
+                    "--action-ref" => action_ref = Some(value),
+                    "--usable" => {
+                        usable = value.parse::<bool>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --usable expects true|false")
+                        });
+                    }
+                    "--success" => {
+                        success = Some(value.parse::<bool>().unwrap_or_else(|_| {
+                            crate::fail("decisions: --success expects true|false")
+                        }));
+                    }
+                    option => crate::fail(format!("decisions: unknown outcome option: {option}")),
+                }
+                index += 1;
+            }
+            let outcome = outcome_from_receipt(
+                &receipt,
+                OutcomeOptions {
+                    id: id
+                        .as_deref()
+                        .unwrap_or_else(|| crate::fail("decisions: --id is required")),
+                    observed_at: observed_at
+                        .as_deref()
+                        .unwrap_or_else(|| crate::fail("decisions: --observed-at is required")),
+                    label: label
+                        .as_deref()
+                        .unwrap_or_else(|| crate::fail("decisions: --label is required")),
+                    verification_type: &verification,
+                    verification_ref: verification_ref.as_deref(),
+                    action_ref: action_ref.as_deref(),
+                    usable_for_evaluation: usable,
+                    success,
+                },
+            )
+            .unwrap_or_else(|error| crate::fail(error));
+            println!("{}", serde_json::to_string_pretty(&outcome).unwrap());
+        }
+        "compare-receipts" => {
+            let champion =
+                read_json(Path::new(&args[2])).unwrap_or_else(|error| crate::fail(error));
+            let candidate =
+                read_json(Path::new(&args[3])).unwrap_or_else(|error| crate::fail(error));
+            let mut mode: Option<String> = None;
+            let mut dataset: Option<String> = None;
+            let mut revision: Option<String> = None;
+            let mut generated_at: Option<String> = None;
+            let mut changed: Vec<String> = Vec::new();
+            let mut index = 4;
+            while index < args.len() {
+                let flag = args[index].as_str();
+                index += 1;
+                let value = args
+                    .get(index)
+                    .cloned()
+                    .unwrap_or_else(|| crate::fail(format!("decisions: {flag} requires a value")));
+                match flag {
+                    "--mode" => mode = Some(value),
+                    "--dataset" => dataset = Some(value),
+                    "--revision" => revision = Some(value),
+                    "--generated-at" => generated_at = Some(value),
+                    "--changed" => {
+                        changed = value
+                            .split(',')
+                            .filter(|item| !item.is_empty())
+                            .map(str::to_string)
+                            .collect();
+                    }
+                    option => crate::fail(format!(
+                        "decisions: unknown compare-receipts option: {option}"
+                    )),
+                }
+                index += 1;
+            }
+            let evaluation = compare_receipts(
+                &champion,
+                &candidate,
+                mode.as_deref()
+                    .unwrap_or_else(|| crate::fail("decisions: --mode is required")),
+                dataset
+                    .as_deref()
+                    .unwrap_or_else(|| crate::fail("decisions: --dataset is required")),
+                revision
+                    .as_deref()
+                    .unwrap_or_else(|| crate::fail("decisions: --revision is required")),
+                generated_at
+                    .as_deref()
+                    .unwrap_or_else(|| crate::fail("decisions: --generated-at is required")),
+                &changed,
+            )
+            .unwrap_or_else(|error| crate::fail(error));
+            println!("{}", serde_json::to_string_pretty(&evaluation).unwrap());
         }
         "jev-payload" => {
             let request_path = PathBuf::from(&args[2]);
@@ -2144,5 +2482,99 @@ mod tests {
             replay["reducers"][0]["inputs"][0]["receipt_id"],
             "decision-1"
         );
+    }
+
+    fn comparison_receipt(id: &str, provider: &str, value: bool, confidence: f64) -> Value {
+        json!({
+            "format_version":1,"kind":"decision-receipt","id":id,
+            "spec":{"id":"task.risk","revision":1},
+            "state":{"schema_id":"task-state","schema_version":1,"fingerprint":"sha256:12345678"},
+            "status":"produced",
+            "result":{"value":value,"distribution":{"false":1.0-confidence,"true":confidence}},
+            "provider":{"type":"custom","id":provider},
+            "uncertainty":{
+                "provider_confidence":confidence,
+                "calibration":{"status":"unknown"},
+                "evidence_coverage":{"value":1.0,"required_present":0,"required_total":0,"missing":[]},
+                "evidence_reliability":null,
+                "decision_certainty":null
+            },
+            "evidence":{"used":[],"missing":[]},
+            "policy":{"id":"policy:test","revision":1,"disposition":"review","reasons":[]},
+            "timing":{"decided_at":"2026-09-18T20:00:00Z"}
+        })
+    }
+
+    #[test]
+    fn outcomes_append_feedback_without_rewriting_receipts() {
+        let receipt = comparison_receipt("decision-one", "provider-a", true, 0.9);
+        let original = receipt.clone();
+        let outcome = outcome_from_receipt(
+            &receipt,
+            OutcomeOptions {
+                id: "outcome-one",
+                observed_at: "2026-09-19T10:00:00Z",
+                label: "confirmed-regression",
+                verification_type: "human",
+                verification_ref: Some("review:42"),
+                action_ref: Some("issue:99"),
+                usable_for_evaluation: true,
+                success: Some(true),
+            },
+        )
+        .unwrap();
+        assert_eq!(receipt, original);
+        assert_eq!(outcome["receipt_id"], "decision-one");
+        assert_eq!(outcome["verification"]["type"], "human");
+        assert_eq!(outcome["feedback"]["usable_for_evaluation"], true);
+        assert_eq!(outcome["outcome"]["success"], true);
+        assert!(validate_outcome(&outcome).is_ok());
+    }
+
+    #[test]
+    fn shadow_and_counterfactual_comparisons_are_side_effect_free() {
+        let champion = comparison_receipt("decision-a", "provider-a", false, 0.8);
+        let candidate = comparison_receipt("decision-b", "provider-b", true, 0.7);
+        let shadow = compare_receipts(
+            &champion,
+            &candidate,
+            "shadow",
+            "dataset:test",
+            "1",
+            "2026-09-18T20:30:00Z",
+            &["provider".to_string()],
+        )
+        .unwrap();
+        assert_eq!(shadow["side_effects"], false);
+        assert_eq!(shadow["metrics"][0]["name"], "result_match");
+        assert_eq!(shadow["metrics"][0]["value"], 0.0);
+        assert_eq!(shadow["source_receipts"][0], "decision-a");
+        assert_eq!(shadow["source_receipts"][1], "decision-b");
+
+        assert!(
+            compare_receipts(
+                &champion,
+                &candidate,
+                "counterfactual",
+                "dataset:test",
+                "1",
+                "2026-09-18T20:30:00Z",
+                &[],
+            )
+            .unwrap_err()
+            .contains("--changed")
+        );
+        let counterfactual = compare_receipts(
+            &champion,
+            &candidate,
+            "counterfactual",
+            "dataset:test",
+            "1",
+            "2026-09-18T20:30:00Z",
+            &["provider".to_string(), "threshold".to_string()],
+        )
+        .unwrap();
+        assert_eq!(counterfactual["mode"], "counterfactual");
+        assert_eq!(counterfactual["side_effects"], false);
     }
 }
