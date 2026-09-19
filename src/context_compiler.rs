@@ -29,8 +29,23 @@ fn rel(root: &Path, path: &Path) -> String {
 
 fn words(value: &str) -> BTreeSet<String> {
     const STOP: &[&str] = &[
-        "the", "and", "for", "with", "from", "into", "this", "that", "then", "than", "add",
-        "use", "using", "change", "update", "create", "implement",
+        "the",
+        "and",
+        "for",
+        "with",
+        "from",
+        "into",
+        "this",
+        "that",
+        "then",
+        "than",
+        "add",
+        "use",
+        "using",
+        "change",
+        "update",
+        "create",
+        "implement",
     ];
     value
         .split(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
@@ -51,8 +66,7 @@ fn supported_text(path: &Path) -> bool {
     }
     matches!(
         path.extension().and_then(|x| x.to_str()).unwrap_or(""),
-        "rs"
-            | "ts"
+        "rs" | "ts"
             | "tsx"
             | "js"
             | "jsx"
@@ -302,7 +316,11 @@ mod tests {
     #[test]
     fn task_relevance_beats_unrelated_optional_files() {
         let dir = tempfile::tempdir().unwrap();
-        put(dir.path(), "AGENTS.md", "Load only relevant project context.");
+        put(
+            dir.path(),
+            "AGENTS.md",
+            "Load only relevant project context.",
+        );
         put(
             dir.path(),
             "src/github_project.rs",
@@ -331,11 +349,7 @@ mod tests {
     #[test]
     fn mandatory_context_is_not_dropped_to_fit_budget() {
         let dir = tempfile::tempdir().unwrap();
-        put(
-            dir.path(),
-            "AGENTS.md",
-            &"mandatory context ".repeat(100),
-        );
+        put(dir.path(), "AGENTS.md", &"mandatory context ".repeat(100));
 
         crate::scan::begin();
         let result = plan(dir.path(), "anything", 1);
