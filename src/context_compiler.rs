@@ -1,378 +1,298 @@
-//! Deterministic task-scoped context planning. This module plans context; it never calls a model.
+//! Offline selection plans; no model calls, source disclosure or project writes.
+mod requirements;
+
+use regex::Regex;
 use serde_json::{Value, json};
-use std::{
-    collections::BTreeSet,
-    path::{Path, PathBuf},
-};
+use sha2::{Digest, Sha256};
+use std::{collections::BTreeSet, path::Path, sync::OnceLock};
 
 const OPTIONAL_READ_LIMIT: u64 = 512 * 1024;
 const REQUIRED_READ_LIMIT: u64 = 2 * 1024 * 1024;
-const DEFAULT_MAX_TOKENS: usize = 18_000;
+const TOTAL_READ_LIMIT: usize = 64 * 1024 * 1024;
+const SCHEMA: &str = include_str!(
+    "../upstream/agentic-harness/catalog/schema/compiled-context-plan.v1.schema.json"
+);
 
-#[derive(Debug)]
 struct Candidate {
     path: String,
+    digest: String,
     source_kind: &'static str,
     mandatory: bool,
     relevance: u64,
-    estimated_tokens: usize,
+    tokens: usize,
     path_hits: usize,
     content_hits: usize,
 }
 
 fn rel(root: &Path, path: &Path) -> String {
-    path.strip_prefix(root)
-        .unwrap_or(path)
-        .to_string_lossy()
-        .replace('\\', "/")
+    path.strip_prefix(root).unwrap_or(path).to_string_lossy().replace('\\', "/")
+}
+
+fn valid_text(value: &str, limit: usize) -> bool {
+    !value.trim().is_empty()
+        && value.chars().count() <= limit
+        && !value.chars().any(char::is_control)
 }
 
 fn words(value: &str) -> BTreeSet<String> {
-    const STOP: &[&str] = &[
-        "the",
-        "and",
-        "for",
-        "with",
-        "from",
-        "into",
-        "this",
-        "that",
-        "then",
-        "than",
-        "add",
-        "use",
-        "using",
-        "change",
-        "update",
-        "create",
-        "implement",
-    ];
-    value
-        .split(|c: char| !c.is_alphanumeric() && c != '-')
-        .map(str::to_ascii_lowercase)
-        .filter(|word| word.len() >= 3 && !STOP.contains(&word.as_str()))
+    static CAMEL: OnceLock<Regex> = OnceLock::new();
+    static ACRONYM: OnceLock<Regex> = OnceLock::new();
+    let camel = CAMEL.get_or_init(|| Regex::new(r"([a-z0-9])([A-Z])").unwrap());
+    let acronym = ACRONYM.get_or_init(|| Regex::new(r"([A-Z])([A-Z][a-z])").unwrap());
+    let expanded = camel.replace_all(value, "$1 $2");
+    let expanded = acronym.replace_all(&expanded, "$1 $2");
+    expanded
+        .split(|c: char| !c.is_alphanumeric())
+        .map(str::to_lowercase)
+        .filter(|word| {
+            word.len() >= 2
+                && ![
+                    "the", "and", "for", "with", "from", "into", "this", "that", "add", "use",
+                    "using", "change", "update", "create", "implement", "to", "of", "in", "is",
+                    "an", "as", "at",
+                ]
+                .contains(&word.as_str())
+        })
         .collect()
 }
 
-fn token_estimate(text: &str) -> usize {
-    // Portable deterministic heuristic only. Provider tokenizers/billing can differ.
+fn estimate(text: &str) -> usize {
     text.chars().count().div_ceil(4).max(1)
 }
 
-fn supported_text(path: &Path) -> bool {
-    let name = path.file_name().and_then(|x| x.to_str()).unwrap_or("");
-    if ["Dockerfile", "Makefile", "Justfile", "Procfile"].contains(&name) {
-        return true;
-    }
-    matches!(
-        path.extension().and_then(|x| x.to_str()).unwrap_or(""),
-        "rs" | "ts"
-            | "tsx"
-            | "js"
-            | "jsx"
-            | "mjs"
-            | "cjs"
-            | "vue"
-            | "svelte"
-            | "md"
-            | "txt"
-            | "json"
-            | "yaml"
-            | "yml"
-            | "toml"
-            | "css"
-            | "scss"
-            | "sass"
-            | "less"
-            | "html"
-            | "htm"
-            | "py"
-            | "go"
-            | "java"
-            | "kt"
-            | "kts"
-            | "swift"
-            | "rb"
-            | "php"
-            | "sh"
-            | "bash"
-            | "zsh"
-            | "sql"
-            | "graphql"
-            | "gql"
-            | "xml"
-            | "c"
-            | "cc"
-            | "cpp"
-            | "h"
-            | "hpp"
-            | "cs"
-    )
+fn sensitive(path: &str) -> bool {
+    path.split('/').any(|part| {
+        let name = part.to_ascii_lowercase();
+        name == ".env"
+            || name.starts_with(".env.")
+            || [".ssh", ".aws", ".npmrc", ".pypirc", ".netrc", "credentials.json", "secrets.json"]
+                .contains(&name.as_str())
+            || [".pem", ".key", ".p12", ".pfx"].iter().any(|ext| name.ends_with(ext))
+    })
 }
 
-fn required_paths(root: &Path, files: &[PathBuf]) -> BTreeSet<String> {
-    let mut required = BTreeSet::new();
-    for path in ["AGENTS.md", ".agentic/manifest.yaml", "agentic.yaml"] {
-        if root.join(path).is_file() {
-            required.insert(path.to_owned());
-        }
+fn supported(path: &Path) -> bool {
+    if ["Dockerfile", "Makefile", "Justfile", "Procfile"]
+        .contains(&path.file_name().and_then(|x| x.to_str()).unwrap_or(""))
+    {
+        return true;
     }
-
-    // Project-owned mandatory policy is always retained. Other packs/skills are task-scoped.
-    for path in files {
-        let relative = rel(root, path);
-        if relative.starts_with(".agentic/policies/") {
-            required.insert(relative);
-        }
-    }
-
-    // Current core truth routes are required. Design/reference/decisions stay task-scoped
-    // because they can be large and are not universally relevant.
-    if let Ok(project) = crate::project::load(root) {
-        for (key, default) in [
-            ("product", "PRODUCT.md"),
-            ("architecture", "ARCHITECTURE.md"),
-            ("security", "SECURITY.md"),
-        ] {
-            if let Ok(path) = project.route(root, key, default)
-                && path.is_file()
-            {
-                required.insert(rel(root, &path));
-            }
-        }
-    }
-    required
+    [
+        "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "vue", "svelte", "md", "txt", "json",
+        "jsonc", "yaml", "yml", "toml", "css", "scss", "sass", "less", "html", "htm", "py",
+        "go", "java", "kt", "kts", "swift", "rb", "php", "sh", "bash", "zsh", "sql",
+        "graphql", "gql", "xml", "c", "cc", "cpp", "h", "hpp", "cs", "lock",
+    ]
+    .contains(&path.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase().as_str())
 }
 
 fn source_kind(path: &str, mandatory: bool) -> &'static str {
-    if path == "AGENTS.md" {
+    if path == "AGENTS.md" || path.ends_with("/AGENTS.md") || path == ".agentic/README.md" {
         "router"
-    } else if path.ends_with("manifest.yaml") || path == "agentic.yaml" {
+    } else if path == ".agentic/manifest.yaml" || path == "agentic.yaml" {
         "manifest"
     } else if path.starts_with(".agentic/policies/") {
         "policy"
-    } else if path.starts_with(".agentic/") {
-        "project-context"
     } else if mandatory {
         "project-truth"
+    } else if path.starts_with(".agentic/") {
+        "project-context"
     } else {
         "repository-file"
     }
 }
 
-fn item(candidate: &Candidate, disposition: &str, reason: &str) -> Value {
-    let mut reasons = Vec::new();
-    if candidate.mandatory {
-        reasons.push("mandatory-project-context");
-    }
-    if candidate.path_hits > 0 {
+fn item(c: &Candidate, disposition: &str, reason: &str) -> Value {
+    let mut reasons = vec![reason];
+    if c.path_hits > 0 {
         reasons.push("task-term-in-path");
     }
-    if candidate.content_hits > 0 {
+    if c.content_hits > 0 {
         reasons.push("task-term-in-content");
     }
-    if !reasons.contains(&reason) {
-        reasons.push(reason);
-    }
+    let authority = if c.source_kind == "policy" {
+        "mandatory-policy"
+    } else if c.mandatory {
+        "project-truth"
+    } else {
+        "repository-evidence"
+    };
     json!({
-        "path": candidate.path,
-        "source_kind": candidate.source_kind,
-        "mandatory": candidate.mandatory,
-        "relevance": candidate.relevance,
-        "estimated_tokens": candidate.estimated_tokens,
-        "signals": {
-            "path_term_hits": candidate.path_hits,
-            "content_term_hits": candidate.content_hits
-        },
+        "id": c.path,
+        "source": {"kind": c.source_kind, "path": c.path, "digest": c.digest, "revision": null},
+        "authority": authority,
+        "mandatory": c.mandatory,
+        "stability": if c.mandatory { "stable" } else { "volatile" },
+        "disclosure": if c.source_kind == "router" { "router" } else { "file" },
         "disposition": disposition,
+        "estimated_tokens": c.tokens,
+        "signals": {
+            "relevance": {"score": c.relevance, "method": "lexical-hits-v2"},
+            "confidence": null, "freshness": "current", "dependency_distance": null
+        },
+        "context_packs": [],
         "reasons": reasons
     })
 }
 
 pub(crate) fn plan(root: &Path, task: &str, max_tokens: usize) -> Value {
+    if !valid_text(task, 16_384) || !valid_text(&root.to_string_lossy(), 16_384) {
+        crate::fail("context task/target must be nonempty bounded text without control characters");
+    }
+    let terms = words(task);
+    if terms.is_empty() {
+        crate::fail("context task has no searchable terms");
+    }
     let inventory = crate::scan::inventory(root);
-    let task_terms = words(task);
-    let required = required_paths(root, &inventory.files);
+    if inventory.files.len() > 200_000 {
+        crate::fail("context inventory exceeds 200000 files");
+    }
+    let mut required = requirements::collect(root, &inventory.files);
+    let mut errors = required.errors.clone();
+    if !inventory.errors.is_empty() {
+        errors.insert("repository-scan-incomplete".into());
+    }
+    let mut paths = inventory.files.clone();
+    paths.sort_by_key(|p| (!required.paths.contains(&rel(root, p)), rel(root, p)));
     let mut candidates = Vec::new();
-    let mut unsupported = Vec::new();
-    let mut unreadable = Vec::new();
-
-    for path in &inventory.files {
-        let relative = rel(root, path);
-        let mandatory = required.contains(&relative);
-        if !supported_text(path) {
-            unsupported.push(relative);
+    let mut unsupported = 0;
+    let mut unreadable = 0;
+    let mut read_bytes = 0usize;
+    for path in paths {
+        let relative = rel(root, &path);
+        let mandatory = required.paths.contains(&relative);
+        if !valid_text(&relative, 4096) || path.to_str().is_none() || sensitive(&relative) {
+            unsupported += 1;
+            if mandatory {
+                required.unavailable.insert(relative);
+                errors.insert("required-context-path-disallowed".into());
+            }
             continue;
         }
-        let limit = if mandatory {
-            REQUIRED_READ_LIMIT
-        } else {
-            OPTIONAL_READ_LIMIT
-        };
-        let text = match crate::scan::read(root, path, limit) {
-            Ok(text) => text,
-            Err(error) => {
-                unreadable.push(json!({
-                    "path": relative,
-                    "mandatory": mandatory,
-                    "error": error
-                }));
+        if !mandatory && !supported(&path) {
+            unsupported += 1;
+            continue;
+        }
+        let limit = if mandatory { REQUIRED_READ_LIMIT } else { OPTIONAL_READ_LIMIT };
+        let remaining = TOTAL_READ_LIMIT.saturating_sub(read_bytes);
+        let text = crate::scan::read(root, &path, limit.min(remaining as u64));
+        let text = match text {
+            Ok(text) if !text.contains('\0') => text,
+            _ => {
+                unreadable += 1;
+                errors.insert(format!("unreadable-or-bounded-text:{relative}"));
+                if mandatory {
+                    required.unavailable.insert(relative);
+                }
                 continue;
             }
         };
-        let path_terms = words(&relative);
-        let content_terms = words(&text);
-        let path_hits = task_terms.intersection(&path_terms).count();
-        let content_hits = task_terms.intersection(&content_terms).count();
-        let relevance = (path_hits as u64 * 20) + (content_hits as u64 * 5);
+        read_bytes += text.len();
+        let path_hits = terms.intersection(&words(&relative)).count();
+        let content_hits = terms.intersection(&words(&text)).count();
         candidates.push(Candidate {
             source_kind: source_kind(&relative, mandatory),
             path: relative,
+            digest: format!("sha256:{:x}", Sha256::digest(text.as_bytes())),
             mandatory,
-            relevance,
-            estimated_tokens: token_estimate(&text),
+            relevance: path_hits as u64 * 20 + content_hits as u64 * 5,
+            tokens: estimate(&text),
             path_hits,
             content_hits,
         });
     }
-
+    // Density is an explicit heuristic, not a quality probability or optimal knapsack solver.
     candidates.sort_by(|a, b| {
-        b.mandatory
-            .cmp(&a.mandatory)
+        b.mandatory.cmp(&a.mandatory)
+            .then_with(|| {
+                (b.relevance as u128 * a.tokens as u128)
+                    .cmp(&(a.relevance as u128 * b.tokens as u128))
+            })
             .then_with(|| b.relevance.cmp(&a.relevance))
-            .then_with(|| a.estimated_tokens.cmp(&b.estimated_tokens))
             .then_with(|| a.path.cmp(&b.path))
     });
-
-    let mut included = Vec::new();
-    let mut deferred = Vec::new();
-    let mut estimated_included_tokens = 0usize;
+    let mut selected = 0usize;
+    let mut items = Vec::new();
     for candidate in &candidates {
-        if candidate.mandatory {
-            estimated_included_tokens =
-                estimated_included_tokens.saturating_add(candidate.estimated_tokens);
-            included.push(item(candidate, "included", "mandatory-project-context"));
-            continue;
-        }
-        if candidate.relevance == 0 {
-            deferred.push(item(candidate, "deferred", "low-relevance"));
-            continue;
-        }
-        if estimated_included_tokens.saturating_add(candidate.estimated_tokens) <= max_tokens {
-            estimated_included_tokens =
-                estimated_included_tokens.saturating_add(candidate.estimated_tokens);
-            included.push(item(candidate, "included", "within-budget"));
+        let (disposition, reason) = if candidate.mandatory {
+            ("included", "mandatory-project-context")
+        } else if candidate.relevance == 0 {
+            ("deferred", "low-relevance")
+        } else if selected.saturating_add(candidate.tokens) <= max_tokens {
+            ("included", "within-budget")
         } else {
-            deferred.push(item(candidate, "deferred", "budget"));
+            ("deferred", "budget")
+        };
+        if disposition == "included" {
+            selected = selected.saturating_add(candidate.tokens);
         }
+        items.push(item(candidate, disposition, reason));
     }
-
-    let required_unavailable = unreadable
-        .iter()
-        .filter(|value| value["mandatory"] == true)
-        .count();
-    let over_budget = estimated_included_tokens > max_tokens;
+    let schema_digest = format!("sha256:{:x}", Sha256::digest(SCHEMA.as_bytes()));
     json!({
         "format_version": 1,
         "kind": "compiled-context-plan",
         "target": root,
-        "task": task,
-        "budget": {
-            "max_tokens": max_tokens,
-            "estimated_included_tokens": estimated_included_tokens,
-            "over_budget": over_budget,
-            "estimation": "characters/4 heuristic; not provider billing"
+        "task": {"text": task, "intent": null},
+        "compiler": {
+            "id": "agentic-harness-cli/context-compiler",
+            "version": format!("{}+lexical-density-v2+{}", env!("CARGO_PKG_VERSION"), schema_digest),
+            "deterministic": true
         },
-        "complete": inventory.errors.is_empty() && required_unavailable == 0,
-        "included": included,
-        "deferred": deferred,
+        "budget": {
+            "estimator": {
+                "id": "characters-div-4", "version": "1", "unit": "estimated-tokens",
+                "disclaimer": "Source-text characters/4 only; excludes task, framing and report overhead; not provider billing."
+            },
+            "input": {"limit": max_tokens, "estimated": selected},
+            "tool_output": {"limit": null, "estimated": null},
+            "output": {"limit": null, "estimated": null},
+            "over_budget": selected > max_tokens
+        },
+        "active_context_packs": [],
+        "items": items,
         "coverage": {
-            "scan": inventory.report(),
+            "complete": errors.is_empty() && required.unavailable.is_empty(),
+            "files_discovered": inventory.files.len(),
             "supported_text_files": candidates.len(),
-            "unsupported_files": unsupported.len(),
-            "unsupported_examples": unsupported.into_iter().take(25).collect::<Vec<_>>(),
-            "unreadable": unreadable,
-            "required_unavailable": required_unavailable,
-            "note": "Binary/unsupported files are not ranked in the initial deterministic text planner."
-        }
+            "unsupported_files": unsupported,
+            "unreadable_files": unreadable,
+            "required_unavailable": required.unavailable.len(),
+            "errors": errors.into_iter().take(1024).map(|message| {
+                message.chars().map(|c| if c.is_control() { ' ' } else { c }).take(16_384).collect::<String>()
+            }).collect::<Vec<_>>()
+        },
+        "not_checked": [
+            "Host context injection and automatic Jev routing",
+            "Symbol/dependency analysis, semantic sufficiency and active-pack selection",
+            "Ignored undeclared context and semantic instruction precedence",
+            "Provider tokenizer, billed usage, task/framing/report overhead and model quality",
+            "Concurrent source changes after bounded reads; digests identify only observed bytes",
+            "Complete secret detection; sensitive-path exclusion is conservative, not a public-export guarantee"
+        ]
     })
 }
 
 pub(crate) fn default_max_tokens() -> usize {
-    DEFAULT_MAX_TOKENS
+    18_000
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
-    fn put(root: &Path, path: &str, text: &str) {
-        let path = root.join(path);
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, text).unwrap();
+    #[test]
+    fn identifier_styles_have_matching_task_terms() {
+        for source in ["validate_project", "validate-project", "validateProject", "ValidateProject"] {
+            assert_eq!(words(source), words("validate project"));
+        }
+        assert!(words("XMLParser").contains("parser"));
     }
 
     #[test]
-    fn task_relevance_beats_unrelated_optional_files() {
-        let dir = tempfile::tempdir().unwrap();
-        put(
-            dir.path(),
-            "AGENTS.md",
-            "Load only relevant project context.",
-        );
-        put(
-            dir.path(),
-            "src/github_project.rs",
-            "fn validate_github_project_creation() {}",
-        );
-        put(dir.path(), "src/unrelated.rs", "fn render_cat_gallery() {}");
-
-        crate::scan::begin();
-        let result = plan(dir.path(), "validate GitHub project creation", 10_000);
-        let included = result["included"].as_array().unwrap();
-        assert_eq!(included[0]["path"], "AGENTS.md");
-        assert!(
-            included
-                .iter()
-                .any(|item| item["path"] == "src/github_project.rs")
-        );
-        assert!(
-            result["deferred"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|item| item["path"] == "src/unrelated.rs")
-        );
-    }
-
-    #[test]
-    fn mandatory_context_is_not_dropped_to_fit_budget() {
-        let dir = tempfile::tempdir().unwrap();
-        put(dir.path(), "AGENTS.md", &"mandatory context ".repeat(100));
-
-        crate::scan::begin();
-        let result = plan(dir.path(), "anything", 1);
-        assert_eq!(result["included"][0]["path"], "AGENTS.md");
-        assert_eq!(result["budget"]["over_budget"], true);
-        assert!(
-            result["budget"]["estimated_included_tokens"]
-                .as_u64()
-                .unwrap()
-                > 1
-        );
-    }
-
-    #[test]
-    fn unchanged_inputs_produce_identical_plan() {
-        let dir = tempfile::tempdir().unwrap();
-        put(dir.path(), "AGENTS.md", "Relevant router.");
-        put(dir.path(), "src/context.rs", "context planner budget");
-
-        crate::scan::begin();
-        let first = plan(dir.path(), "context budget", 1000);
-        crate::scan::begin();
-        let second = plan(dir.path(), "context budget", 1000);
-        assert_eq!(first, second);
+    fn estimates_are_not_provider_token_counts() {
+        assert_eq!(estimate("12345"), 2);
+        assert_eq!(estimate(""), 1);
+        assert_eq!(estimate("日本語"), 1);
     }
 }

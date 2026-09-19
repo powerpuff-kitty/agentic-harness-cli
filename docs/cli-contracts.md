@@ -77,11 +77,28 @@ New projects contain root `AGENTS.md` plus routed `.agentic` context and `.agent
 
 Legacy `agentic.yaml` remains readable for inspection. Upgrade refuses implicit layout migration and mixed manifests. Follow the canonical [explicit migration procedure](https://github.com/powerpuff-kitty/agentic-harness/blob/main/.agentic/docs/project/migration-v1.md): make a backup, map accepted context to `.agentic`, preserve custom routes, remove the legacy manifest only after reconciliation, and validate the result. There is no filesystem `ah migrate --apply` implementation in this release scope.
 
-
 ## Task-scoped context planning
 
-`ah agentic context [TARGET] --task TEXT [--max-tokens N]` is an experimental offline planner. It reuses the repository-local ignore-aware inventory, retains required project router/core truth/policy context, ranks supported text files with deterministic lexical task signals, and emits included/deferred items with reasons and scan coverage.
+`ah agentic context [TARGET] --task TEXT [--max-tokens N]` is an experimental offline planner. Without `--task`, the previous context-architecture audit is unchanged. A token budget without a task, an empty/control-character task or an invalid budget is rejected. Tasks are bounded to 16,384 characters.
 
-The token count is a deterministic `characters / 4` estimate for budgeting only. It is not a provider tokenizer, billable-token measurement, model-quality score or guarantee that a selected context is sufficient. Required context is not silently removed to satisfy the requested budget: if required items alone exceed it, `budget.over_budget` is true. Unreadable required inputs make `complete=false`; unsupported/binary files are reported as coverage rather than treated as inspected.
+### Canonical candidate artifact
 
-Without `--task`, `ah agentic context [TARGET]` preserves the existing context-architecture audit behavior. `--max-tokens` without `--task` is rejected. The first planner slice ranks whole supported text files; symbol/dependency indexing, Git-diff expansion, semantic caches and canonical compiled-context schemas are follow-up work tracked separately.
+The command now emits the pinned `compiled-context-plan.v1` contract from canonical PR #119: `task.text`, `compiler`, `items[].source`, item `disposition`, `budget.input`, separate unknown tool/output budgets, `coverage`, and `not_checked`. The schema digest is part of compiler identity; every ranked item has an SHA-256 of the exact observed source bytes. Source revision, confidence and dependency distance remain null when unavailable. Empty `active_context_packs` means automatic pack activation is not implemented.
+
+This replaces the **unmerged, unreleased draft shape** in the first commits of CLI PR #103, which used top-level `included`/`deferred` arrays and `budget.max_tokens`. Consumers of that branch must select `items` by `disposition` and use `budget.input.limit/estimated`. No main-branch supported command or released artifact is migrated silently. This PR depends on the exact canonical candidate pinned in `upstream.lock.json`; the candidate pin is not a claim that canonical main has received it.
+
+### Required context and scope
+
+Required discovery is separate from ranking. It retains visible agent routers, current manifest/core product/architecture/security routes, and declared installed policies. Existing custom core routes are resolved to repository-local paths; extensionless required text is supported. Missing, ignored, malformed, conflicting, disallowed or symlinked required inputs make `coverage.complete=false` with explicit unavailable counts/errors. Ignore rules are **not bypassed** to recover excluded material. Without a manifest, present root truth/router files are retained conservatively.
+
+Supported optional text files are ranked by lexical relevance per estimated token with deterministic tie-breaking. Identifier splitting recognises camelCase, snake_case and kebab-case. This is a heuristic, not a semantic dependency graph, calibrated probability or optimal context solver. Mandatory items are not dropped to satisfy the budget; their inclusion may produce `budget.over_budget=true`.
+
+Reads are bounded to 512 KiB per optional file, 2 MiB per required file and 64 MiB of successfully read text per invocation; inventories over 200,000 files are refused. Diagnostic lists are capped at 1,024 entries. Binary/unreadable text and sensitive-path exclusions are reported as coverage, never silently treated as inspected. The conservative sensitive-path filter is not complete secret detection or permission to publish a plan/source. Concurrent changes after a read are not revalidated.
+
+### Token and quality claims
+
+Estimates use source-text `characters / 4`, rounded up with a minimum of one. They exclude task text, message framing, this JSON report, tool schemas, retries and provider output. They are neither tokenizer counts nor billable usage. An 18,000 source-token budget therefore does not promise an 18,000-token final model request. The plan is an inspection artifact, not the compact prompt itself; do not blindly insert all deferred-item metadata into model context.
+
+Exit 0 means the inspection report was produced. Consumers must inspect `coverage.complete` and `budget.over_budget`; neither a successful exit nor complete declared coverage proves semantic sufficiency, model quality, code correctness or permission to act. No automatic host injection, Jev inference, persistent cache, symbol index or rule-precedence inference is introduced.
+
+`scripts/context_efficiency_probe.py BINARY` validates actual output against the pinned schema, checks source hashes/budget arithmetic/deterministic reruns, and compares selected source with a synthetic full-source baseline while requiring fixture evidence retention. It reports JSON-report overhead separately and leaves observed provider tokens, cost and model-quality changes null. Existing contract validation runs this probe; no workflow YAML change is needed. Real end-to-end savings, representative outcomes and Jev-assisted routing remain P0 follow-up under CLI #102 and canonical #118.
