@@ -41,7 +41,7 @@ fn words(value: &str) -> BTreeSet<String> {
 
 fn token_estimate(text: &str) -> usize {
     // Portable deterministic heuristic only. Provider tokenizers/billing can differ.
-    text.chars().count().saturating_add(3).div_ceil(4).max(1)
+    text.chars().count().div_ceil(4).max(1)
 }
 
 fn supported_text(path: &Path) -> bool {
@@ -157,7 +157,7 @@ fn item(candidate: &Candidate, disposition: &str, reason: &str) -> Value {
     if candidate.content_hits > 0 {
         reasons.push("task-term-in-content");
     }
-    if reasons.is_empty() {
+    if !reasons.contains(&reason) {
         reasons.push(reason);
     }
     json!({
