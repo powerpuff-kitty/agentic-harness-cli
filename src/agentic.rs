@@ -349,7 +349,7 @@ pub fn run(args: Vec<String>) {
                         value
                             .parse::<usize>()
                             .ok()
-                            .filter(|value| *value > 0 && *value <= 1_000_000)
+                            .filter(|value| (1..=1_000_000).contains(value))
                             .unwrap_or_else(|| {
                                 crate::fail("--max-tokens must be an integer between 1 and 1000000")
                             })
