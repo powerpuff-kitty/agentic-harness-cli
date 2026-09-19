@@ -75,3 +75,4 @@ print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, ch
 subprocess.run([sys.executable, str(root / 'scripts/validate-execution.py'), str(binary)], check=True)
 
 subprocess.run([sys.executable, str(root / 'scripts/validate-completion.py'), str(binary)], check=True)
+subprocess.run([sys.executable, str(root / 'scripts/context_efficiency_probe.py'), str(binary)], check=True)
