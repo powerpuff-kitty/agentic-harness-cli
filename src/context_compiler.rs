@@ -9,9 +9,8 @@ use std::{collections::BTreeSet, path::Path, sync::OnceLock};
 const OPTIONAL_READ_LIMIT: u64 = 512 * 1024;
 const REQUIRED_READ_LIMIT: u64 = 2 * 1024 * 1024;
 const TOTAL_READ_LIMIT: usize = 64 * 1024 * 1024;
-const SCHEMA: &str = include_str!(
-    "../upstream/agentic-harness/catalog/schema/compiled-context-plan.v1.schema.json"
-);
+const SCHEMA: &str =
+    include_str!("../upstream/agentic-harness/catalog/schema/compiled-context-plan.v1.schema.json");
 
 struct Candidate {
     path: String,
@@ -25,7 +24,10 @@ struct Candidate {
 }
 
 fn rel(root: &Path, path: &Path) -> String {
-    path.strip_prefix(root).unwrap_or(path).to_string_lossy().replace('\\', "/")
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 fn valid_text(value: &str, limit: usize) -> bool {
@@ -47,9 +49,28 @@ fn words(value: &str) -> BTreeSet<String> {
         .filter(|word| {
             word.len() >= 2
                 && ![
-                    "the", "and", "for", "with", "from", "into", "this", "that", "add", "use",
-                    "using", "change", "update", "create", "implement", "to", "of", "in", "is",
-                    "an", "as", "at",
+                    "the",
+                    "and",
+                    "for",
+                    "with",
+                    "from",
+                    "into",
+                    "this",
+                    "that",
+                    "add",
+                    "use",
+                    "using",
+                    "change",
+                    "update",
+                    "create",
+                    "implement",
+                    "to",
+                    "of",
+                    "in",
+                    "is",
+                    "an",
+                    "as",
+                    "at",
                 ]
                 .contains(&word.as_str())
         })
@@ -65,9 +86,19 @@ fn sensitive(path: &str) -> bool {
         let name = part.to_ascii_lowercase();
         name == ".env"
             || name.starts_with(".env.")
-            || [".ssh", ".aws", ".npmrc", ".pypirc", ".netrc", "credentials.json", "secrets.json"]
-                .contains(&name.as_str())
-            || [".pem", ".key", ".p12", ".pfx"].iter().any(|ext| name.ends_with(ext))
+            || [
+                ".ssh",
+                ".aws",
+                ".npmrc",
+                ".pypirc",
+                ".netrc",
+                "credentials.json",
+                "secrets.json",
+            ]
+            .contains(&name.as_str())
+            || [".pem", ".key", ".p12", ".pfx"]
+                .iter()
+                .any(|ext| name.ends_with(ext))
     })
 }
 
@@ -79,11 +110,18 @@ fn supported(path: &Path) -> bool {
     }
     [
         "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "vue", "svelte", "md", "txt", "json",
-        "jsonc", "yaml", "yml", "toml", "css", "scss", "sass", "less", "html", "htm", "py",
-        "go", "java", "kt", "kts", "swift", "rb", "php", "sh", "bash", "zsh", "sql",
-        "graphql", "gql", "xml", "c", "cc", "cpp", "h", "hpp", "cs", "lock",
+        "jsonc", "yaml", "yml", "toml", "css", "scss", "sass", "less", "html", "htm", "py", "go",
+        "java", "kt", "kts", "swift", "rb", "php", "sh", "bash", "zsh", "sql", "graphql", "gql",
+        "xml", "c", "cc", "cpp", "h", "hpp", "cs", "lock",
     ]
-    .contains(&path.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase().as_str())
+    .contains(
+        &path
+            .extension()
+            .and_then(|x| x.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase()
+            .as_str(),
+    )
 }
 
 fn source_kind(path: &str, mandatory: bool) -> &'static str {
@@ -173,7 +211,11 @@ pub(crate) fn plan(root: &Path, task: &str, max_tokens: usize) -> Value {
             unsupported += 1;
             continue;
         }
-        let limit = if mandatory { REQUIRED_READ_LIMIT } else { OPTIONAL_READ_LIMIT };
+        let limit = if mandatory {
+            REQUIRED_READ_LIMIT
+        } else {
+            OPTIONAL_READ_LIMIT
+        };
         let remaining = TOTAL_READ_LIMIT.saturating_sub(read_bytes);
         let text = crate::scan::read(root, &path, limit.min(remaining as u64));
         let text = match text {
@@ -203,7 +245,8 @@ pub(crate) fn plan(root: &Path, task: &str, max_tokens: usize) -> Value {
     }
     // Density is an explicit heuristic, not a quality probability or optimal knapsack solver.
     candidates.sort_by(|a, b| {
-        b.mandatory.cmp(&a.mandatory)
+        b.mandatory
+            .cmp(&a.mandatory)
             .then_with(|| {
                 (b.relevance as u128 * a.tokens as u128)
                     .cmp(&(a.relevance as u128 * b.tokens as u128))
@@ -283,7 +326,12 @@ mod tests {
 
     #[test]
     fn identifier_styles_have_matching_task_terms() {
-        for source in ["validate_project", "validate-project", "validateProject", "ValidateProject"] {
+        for source in [
+            "validate_project",
+            "validate-project",
+            "validateProject",
+            "ValidateProject",
+        ] {
             assert_eq!(words(source), words("validate project"));
         }
         assert!(words("XMLParser").contains("parser"));

@@ -33,24 +33,43 @@ impl Fixture {
     }
     fn plan(&self, task: &str, budget: &str) -> Value {
         let output = Command::new(env!("CARGO_BIN_EXE_ah"))
-            .args(["agentic", "context", ".", "--task", task, "--max-tokens", budget])
-            .current_dir(self.root()).output().unwrap();
-        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+            .args([
+                "agentic",
+                "context",
+                ".",
+                "--task",
+                task,
+                "--max-tokens",
+                budget,
+            ])
+            .current_dir(self.root())
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         serde_json::from_slice(&output.stdout).unwrap()
     }
 }
 
 fn included(value: &Value, path: &str) -> bool {
-    value["items"].as_array().unwrap().iter().any(|item| {
-        item["source"]["path"] == path && item["disposition"] == "included"
-    })
+    value["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item["source"]["path"] == path && item["disposition"] == "included")
 }
 
 #[test]
 fn canonical_output_is_deterministic_and_selective() {
     let f = Fixture::new();
     f.put("AGENTS.md", "Read relevant context.");
-    f.put("src/github_project.rs", "fn validateGithubProjectCreation() {}");
+    f.put(
+        "src/github_project.rs",
+        "fn validateGithubProjectCreation() {}",
+    );
     f.put("src/gallery.rs", "fn render_cat_gallery() {}");
     let value = f.plan("validate GitHub project creation", "1000");
     assert_eq!(value, f.plan("validate GitHub project creation", "1000"));
@@ -61,7 +80,12 @@ fn canonical_output_is_deterministic_and_selective() {
     assert!(included(&value, "src/github_project.rs"));
     assert!(!included(&value, "src/gallery.rs"));
     assert!(value.get("included").is_none());
-    assert!(value["items"][0]["source"]["digest"].as_str().unwrap().starts_with("sha256:"));
+    assert!(
+        value["items"][0]["source"]["digest"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:")
+    );
 }
 
 #[test]
@@ -86,7 +110,11 @@ fn missing_core_route_is_not_complete() {
 
 #[test]
 fn ignored_required_inputs_are_not_read_or_silently_omitted() {
-    for ignored in [".agentic/SECURITY.md", ".agentic/manifest.yaml", "AGENTS.md"] {
+    for ignored in [
+        ".agentic/SECURITY.md",
+        ".agentic/manifest.yaml",
+        "AGENTS.md",
+    ] {
         let f = Fixture::new();
         f.project();
         f.put(".ahignore", ignored);
@@ -102,7 +130,10 @@ fn malformed_and_mixed_manifests_are_not_complete() {
         let f = Fixture::new();
         f.project();
         f.put(path, "invalid: [");
-        assert_eq!(f.plan("validate project", "1000")["coverage"]["complete"], false);
+        assert_eq!(
+            f.plan("validate project", "1000")["coverage"]["complete"],
+            false
+        );
     }
 }
 
@@ -126,8 +157,14 @@ fn declared_missing_policy_prevents_complete_coverage() {
     let mut manifest = f.manifest();
     manifest["modules"]["policies"] = json!(["restricted"]);
     f.put(".agentic/manifest.yaml", &manifest.to_string());
-    assert_eq!(f.plan("validate project", "1000")["coverage"]["complete"], false);
-    f.put(".agentic/policies/restricted.md", "Explicitly required policy.");
+    assert_eq!(
+        f.plan("validate project", "1000")["coverage"]["complete"],
+        false
+    );
+    f.put(
+        ".agentic/policies/restricted.md",
+        "Explicitly required policy.",
+    );
     let value = f.plan("validate project", "1");
     assert_eq!(value["coverage"]["complete"], true);
     assert!(included(&value, ".agentic/policies/restricted.md"));
@@ -149,7 +186,10 @@ fn budget_ranking_prefers_information_density_over_large_path_hits() {
     let f = Fixture::new();
     f.put("AGENTS.md", "Rules");
     f.put("src/helper.rs", "validate project");
-    f.put("src/validate-project.rs", &format!("validate project\n{}", "x".repeat(180)));
+    f.put(
+        "src/validate-project.rs",
+        &format!("validate project\n{}", "x".repeat(180)),
+    );
     let value = f.plan("validate project", "54");
     assert!(included(&value, "src/helper.rs"));
     assert!(!included(&value, "src/validate-project.rs"));
@@ -162,10 +202,21 @@ fn invalid_task_and_budget_options_fail() {
         vec!["agentic", "context", ".", "--max-tokens", "100"],
         vec!["agentic", "context", ".", "--task", "   "],
         vec!["agentic", "context", ".", "--task", "line\nbreak"],
-        vec!["agentic", "context", ".", "--task", "project", "--max-tokens", "0"],
+        vec![
+            "agentic",
+            "context",
+            ".",
+            "--task",
+            "project",
+            "--max-tokens",
+            "0",
+        ],
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_ah"))
-            .args(args).current_dir(f.root()).output().unwrap();
+            .args(args)
+            .current_dir(f.root())
+            .output()
+            .unwrap();
         assert_eq!(output.status.code(), Some(2));
     }
 }
@@ -178,5 +229,8 @@ fn symlinked_core_route_is_unavailable_even_with_an_internal_target() {
     f.put("actual.md", "Project rules.");
     fs::remove_file(f.root().join(".agentic/SECURITY.md")).unwrap();
     std::os::unix::fs::symlink("../actual.md", f.root().join(".agentic/SECURITY.md")).unwrap();
-    assert_eq!(f.plan("validate project", "1000")["coverage"]["complete"], false);
+    assert_eq!(
+        f.plan("validate project", "1000")["coverage"]["complete"],
+        false
+    );
 }

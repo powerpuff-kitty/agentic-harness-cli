@@ -14,7 +14,8 @@ pub(super) struct Requirements {
 impl Requirements {
     fn missing(&mut self, id: &str) {
         self.unavailable.insert(id.to_owned());
-        self.errors.insert(format!("required-context-unavailable:{id}"));
+        self.errors
+            .insert(format!("required-context-unavailable:{id}"));
     }
 }
 
@@ -31,7 +32,13 @@ fn normalized(root: &Path, path: &Path) -> Option<String> {
     if !resolved.is_file() {
         return None;
     }
-    Some(resolved.strip_prefix(canonical).ok()?.to_str()?.replace('\\', "/"))
+    Some(
+        resolved
+            .strip_prefix(canonical)
+            .ok()?
+            .to_str()?
+            .replace('\\', "/"),
+    )
 }
 
 pub(super) fn collect(root: &Path, files: &[PathBuf]) -> Requirements {
@@ -94,8 +101,12 @@ pub(super) fn collect(root: &Path, files: &[PathBuf]) -> Requirements {
                         for name in policies {
                             let name = name.as_str().unwrap_or("");
                             if name.is_empty()
-                                || !name.chars().all(|c| c.is_ascii_alphanumeric() || "_-/".contains(c))
-                                || !Path::new(name).components().all(|c| matches!(c, Component::Normal(_)))
+                                || !name
+                                    .chars()
+                                    .all(|c| c.is_ascii_alphanumeric() || "_-/".contains(c))
+                                || !Path::new(name)
+                                    .components()
+                                    .all(|c| matches!(c, Component::Normal(_)))
                             {
                                 result.missing("invalid-policy-name");
                                 continue;
