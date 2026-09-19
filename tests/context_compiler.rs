@@ -10,13 +10,21 @@ fn put(root: &std::path::Path, path: &str, text: &str) {
 #[test]
 fn task_context_command_is_budgeted_and_explainable() {
     let dir = tempfile::tempdir().unwrap();
-    put(dir.path(), "AGENTS.md", "Load only relevant context and preserve required policy.");
+    put(
+        dir.path(),
+        "AGENTS.md",
+        "Load only relevant context and preserve required policy.",
+    );
     put(
         dir.path(),
         "src/github_project.rs",
         "pub fn validate_github_project_creation() -> bool { true }",
     );
-    put(dir.path(), "src/gallery.rs", "pub fn render_cat_gallery() {}");
+    put(
+        dir.path(),
+        "src/gallery.rs",
+        "pub fn render_cat_gallery() {}",
+    );
 
     let output = Command::new(env!("CARGO_BIN_EXE_ah"))
         .args([
@@ -72,7 +80,5 @@ fn max_tokens_requires_a_task() {
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
-    assert!(
-        String::from_utf8_lossy(&output.stderr).contains("--max-tokens requires --task")
-    );
+    assert!(String::from_utf8_lossy(&output.stderr).contains("--max-tokens requires --task"));
 }
