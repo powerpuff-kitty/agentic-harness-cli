@@ -12,6 +12,7 @@ pub mod check_verdict;
 mod checks;
 mod cli;
 mod completion;
+mod context_compiler;
 mod context_selection;
 mod date;
 mod decision_calibration;
@@ -270,7 +271,8 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
             (Some("design"), "preserve") => (&["--analysis", "--output"], &[], 0, 0, false),
             (Some("design"), "prompt") => (&["--genome", "--task", "--output"], &[], 0, 0, false),
             (Some("design"), "diff") => (&["--output"], &[], 2, 2, false),
-            (Some("agentic"), "audit" | "context" | "skills" | "improve") => (&[], &[], 0, 1, true),
+            (Some("agentic"), "audit" | "skills" | "improve") => (&[], &[], 0, 1, true),
+            (Some("agentic"), "context") => (&["--task", "--max-tokens"], &[], 0, 1, true),
             (Some("agentic"), "models") => (&["--task"], &[], 0, 1, true),
             (Some("agentic"), "compare") => (&[], &[], 2, 2, false),
             (Some("agentic"), "migrate") => (&["--from", "--to"], &[], 0, 1, true),

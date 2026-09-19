@@ -318,7 +318,7 @@ fn positional_target(args: &[String], start: usize, skip_values_for: &[&str]) ->
 }
 fn usage() {
     println!(
-        "ah agentic <audit|context|skills|models|compare|improve|migrate> [TARGET] [options]\n  audit [TARGET]\n  context [TARGET]\n  skills [TARGET]\n  models [TARGET] [--task NAME]\n  compare MODEL_A MODEL_B\n  improve [TARGET]\n  migrate --from MODEL_A --to MODEL_B [TARGET]\nSet AH_REGISTRY to override the model registry path."
+        "ah agentic <audit|context|skills|models|compare|improve|migrate> [TARGET] [options]\n  audit [TARGET]\n  context [TARGET] [--task TEXT] [--max-tokens N]\n  skills [TARGET]\n  models [TARGET] [--task NAME]\n  compare MODEL_A MODEL_B\n  improve [TARGET]\n  migrate --from MODEL_A --to MODEL_B [TARGET]\nSet AH_REGISTRY to override the model registry path."
     );
 }
 
@@ -333,9 +333,36 @@ pub fn run(args: Vec<String>) {
             audit(&t)
         }
         "context" => {
-            let t = positional_target(&args, 1, &[]);
-            let a = audit(&t);
-            json!({"target":t,"score":a["scores"]["context_architecture"],"metrics":a["metrics"],"findings":a["findings"].as_array().map(|x|x.iter().filter(|f|f["dimension"]=="context_architecture"||f["dimension"]=="documentation_routing").cloned().collect::<Vec<_>>()).unwrap_or_default()})
+            let t = positional_target(&args, 1, &["--task", "--max-tokens"]);
+            let task = args
+                .iter()
+                .position(|x| x == "--task")
+                .and_then(|i| args.get(i + 1))
+                .map(String::as_str);
+            let max_tokens = args
+                .iter()
+                .position(|x| x == "--max-tokens")
+                .and_then(|i| args.get(i + 1));
+            if let Some(task) = task {
+                let max_tokens = max_tokens
+                    .map(|value| {
+                        value
+                            .parse::<usize>()
+                            .ok()
+                            .filter(|value| (1..=1_000_000).contains(value))
+                            .unwrap_or_else(|| {
+                                crate::fail("--max-tokens must be an integer between 1 and 1000000")
+                            })
+                    })
+                    .unwrap_or_else(crate::context_compiler::default_max_tokens);
+                crate::context_compiler::plan(&t, task, max_tokens)
+            } else {
+                if max_tokens.is_some() {
+                    crate::fail("--max-tokens requires --task");
+                }
+                let a = audit(&t);
+                json!({"target":t,"score":a["scores"]["context_architecture"],"metrics":a["metrics"],"findings":a["findings"].as_array().map(|x|x.iter().filter(|f|f["dimension"]=="context_architecture"||f["dimension"]=="documentation_routing").cloned().collect::<Vec<_>>()).unwrap_or_default()})
+            }
         }
         "skills" => {
             let t = positional_target(&args, 1, &[]);

@@ -76,3 +76,12 @@ The baseline budget excludes modules, skills, adapters and user documents. Insta
 New projects contain root `AGENTS.md` plus routed `.agentic` context and `.agentic/lock.json`. DESIGN and REFERENCE routes may be null. Upgrades preserve existing project/module files, report conflicting content, and merge requested module declarations into managed metadata. Checksum provenance distinguishes original installed bytes from customization. Back up an existing project before upgrading; retain the report and reconcile conflicts explicitly.
 
 Legacy `agentic.yaml` remains readable for inspection. Upgrade refuses implicit layout migration and mixed manifests. Follow the canonical [explicit migration procedure](https://github.com/powerpuff-kitty/agentic-harness/blob/main/.agentic/docs/project/migration-v1.md): make a backup, map accepted context to `.agentic`, preserve custom routes, remove the legacy manifest only after reconciliation, and validate the result. There is no filesystem `ah migrate --apply` implementation in this release scope.
+
+
+## Task-scoped context planning
+
+`ah agentic context [TARGET] --task TEXT [--max-tokens N]` is an experimental offline planner. It reuses the repository-local ignore-aware inventory, retains required project router/core truth/policy context, ranks supported text files with deterministic lexical task signals, and emits included/deferred items with reasons and scan coverage.
+
+The token count is a deterministic `characters / 4` estimate for budgeting only. It is not a provider tokenizer, billable-token measurement, model-quality score or guarantee that a selected context is sufficient. Required context is not silently removed to satisfy the requested budget: if required items alone exceed it, `budget.over_budget` is true. Unreadable required inputs make `complete=false`; unsupported/binary files are reported as coverage rather than treated as inspected.
+
+Without `--task`, `ah agentic context [TARGET]` preserves the existing context-architecture audit behavior. `--max-tokens` without `--task` is rejected. The first planner slice ranks whole supported text files; symbol/dependency indexing, Git-diff expansion, semantic caches and canonical compiled-context schemas are follow-up work tracked separately.

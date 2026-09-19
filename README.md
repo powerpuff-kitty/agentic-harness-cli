@@ -106,6 +106,7 @@ ah security-scan .
 ah harness-audit .
 ah compare before.json after.json
 ah gate audit.json --max-architecture-errors 0
+ah agentic context . --task "add validation to GitHub project creation" --max-tokens 18000
 ah decisions validate decision.json
 ah decisions fingerprint state.json
 ah decisions plan graph.json specs.json state.json --provider typesafe-jev --mode shadow
