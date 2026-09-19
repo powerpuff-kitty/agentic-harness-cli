@@ -134,10 +134,10 @@ fn required_paths(root: &Path, files: &[PathBuf]) -> BTreeSet<String> {
             ("architecture", "ARCHITECTURE.md"),
             ("security", "SECURITY.md"),
         ] {
-            if let Ok(path) = project.route(root, key, default) {
-                if path.is_file() {
-                    required.insert(rel(root, &path));
-                }
+            if let Ok(path) = project.route(root, key, default)
+                && path.is_file()
+            {
+                required.insert(rel(root, &path));
             }
         }
     }
