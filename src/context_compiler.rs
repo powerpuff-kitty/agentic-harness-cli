@@ -48,7 +48,7 @@ fn words(value: &str) -> BTreeSet<String> {
         "implement",
     ];
     value
-        .split(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+        .split(|c: char| !c.is_alphanumeric() && c != '-')
         .map(str::to_ascii_lowercase)
         .filter(|word| word.len() >= 3 && !STOP.contains(&word.as_str()))
         .collect()
