@@ -1,10 +1,10 @@
 # Agentic Harness CLI
 
-[![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/powerpuff-kitty/agentic-harness-cli)
-[![CLI CI](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml)
-[![Rust](https://img.shields.io/badge/Rust-native-000000?logo=rust)](https://www.rust-lang.org/)
-
 **Native Rust `ah` CLI for composing, validating, auditing, and governing agent-native repositories used with Codex, Claude Code, Cursor, GitHub Copilot, Gemini CLI, and other coding agents.**
+
+[![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/powerpuff-kitty/agentic-harness-cli)
+[![CLI CI](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/powerpuff-kitty/agentic-harness-cli/actions/workflows/ci.yml)
+[![Rust](https://img.shields.io/badge/Rust-native-000000?logo=rust)](https://www.rust-lang.org/)
 
 > **Production-core scope:** composition, validation, audit/gate, installation and recovery follow the [supported contract](docs/cli-contracts.md). Architecture, design and agentic inspection remain experimental. Package version 0.1.0 uses the documented pre-1.0 compatibility policy. Read the [candidate readiness evidence](docs/release-checklist.md) before deployment.
 
