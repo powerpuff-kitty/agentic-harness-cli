@@ -1,0 +1,2 @@
+# Preserve the exact canonical fixture bytes across all CI platforms.
+tests/fixtures/evidence-v1.json -text

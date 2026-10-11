@@ -112,3 +112,7 @@ pub fn threshold(text: &str) -> Result<f64, String> {
     }
     Ok(n)
 }
+
+#[cfg(test)]
+#[path = "../tests/support/canonical_conformance.rs"]
+mod canonical_conformance;
