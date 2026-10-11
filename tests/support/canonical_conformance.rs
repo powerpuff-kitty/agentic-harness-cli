@@ -82,7 +82,10 @@ fn existing_native_decoder_and_audit_validator_match_all_shared_cases() {
         .filter(|case| !matches(case))
         .map(|case| case["id"].as_str().unwrap())
         .collect();
-    assert!(mismatches.is_empty(), "conformance mismatches: {mismatches:?}");
+    assert!(
+        mismatches.is_empty(),
+        "conformance mismatches: {mismatches:?}"
+    );
 }
 
 #[test]
