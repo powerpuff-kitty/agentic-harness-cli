@@ -18,7 +18,7 @@ p.add_argument('binary', type=Path)
 a = p.parse_args()
 binary = a.binary.resolve(strict=True)
 root = Path(__file__).resolve().parents[1]
-for pattern in ['test_onboarding.py', 'test_skill_delivery.py']:
+for pattern in ['test_onboarding.py', 'test_skill_delivery.py', 'test_audit_command_probe.py']:
     suite = unittest.defaultTestLoader.discover(str(root / 'scripts'), pattern=pattern)
     if not unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful():
         raise SystemExit('Verification-probe regressions failed')
@@ -75,3 +75,5 @@ print('Actual CLI outputs conform to pinned audit, agentic, gate, comparison, ch
 subprocess.run([sys.executable, str(root / 'scripts/validate-execution.py'), str(binary)], check=True)
 
 subprocess.run([sys.executable, str(root / 'scripts/validate-completion.py'), str(binary)], check=True)
+subprocess.run([sys.executable, str(root / 'scripts/check-audit-commands.py'), str(binary)],
+               check=True, timeout=120)

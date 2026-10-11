@@ -1204,14 +1204,14 @@ pub fn run(argv: Vec<String>) {
             if argv.len() < 4 {
                 die("compare requires before and after JSON");
             }
-            let before: Value = serde_json::from_str(
-                &fs::read_to_string(&argv[2]).unwrap_or_else(|e| die(e.to_string())),
+            let before: Value = crate::strict_json::decode(
+                &fs::read(&argv[2]).unwrap_or_else(|e| die(e.to_string())),
             )
-            .unwrap_or_else(|e| die(e.to_string()));
-            let after: Value = serde_json::from_str(
-                &fs::read_to_string(&argv[3]).unwrap_or_else(|e| die(e.to_string())),
+            .unwrap_or_else(|e| die(e));
+            let after: Value = crate::strict_json::decode(
+                &fs::read(&argv[3]).unwrap_or_else(|e| die(e.to_string())),
             )
-            .unwrap_or_else(|e| die(e.to_string()));
+            .unwrap_or_else(|e| die(e));
             crate::artifact::validate(&before).unwrap_or_else(|e| die(e));
             crate::artifact::validate(&after).unwrap_or_else(|e| die(e));
             if before.get("format_version") != after.get("format_version") {
@@ -1243,10 +1243,10 @@ pub fn run(argv: Vec<String>) {
             if argv.len() < 3 {
                 die("gate requires audit JSON");
             }
-            let data: Value = serde_json::from_str(
-                &fs::read_to_string(&argv[2]).unwrap_or_else(|e| die(e.to_string())),
+            let data: Value = crate::strict_json::decode(
+                &fs::read(&argv[2]).unwrap_or_else(|e| die(e.to_string())),
             )
-            .unwrap_or_else(|e| die(e.to_string()));
+            .unwrap_or_else(|e| die(e));
             let mut min: Option<f64> = None;
             let mut req = Vec::new();
             let mut max_architecture_errors = None;
@@ -1354,11 +1354,11 @@ mod tests {
         for fail_at in 0..writes {
             let root = temp.path().join(format!("failure-{fail_at}"));
             compose(&root, options(Profile::Minimal), false).unwrap();
-            let before = snapshot(&root);
             let mut change = options(Profile::Full);
             change.fail_after_writes = Some(fail_at);
+            let before = snapshot(&root);
             let error = compose(&root, change, true).unwrap_err();
-            assert!(error.to_string().contains("injected"), "{error}");
+            assert!(error.to_string().contains("injected"));
             assert_eq!(snapshot(&root), before, "failure at write {fail_at}");
             assert_eq!(crate::project::validate(&root)["valid"], true);
         }
