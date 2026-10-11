@@ -44,6 +44,8 @@ Decision providers cannot grant consequence authority. Evaluation artifacts are 
 | `decisions validate ARTIFACT.json` | Validate Decision Kernel v1 structure plus supported deterministic semantic invariants |
 | `decisions fingerprint STATE.json` | Canonicalize explicit JSON state and emit `ah-json-sha256-v1` identity |
 | `decisions jev-payload REQUEST.json SPECS.json [--model MODEL]` | Construct a Jev payload offline; no credentials are read and no provider call is made |
+| `decisions jev-evaluate REQUEST.json SPECS.json --allow-network --decided-at RFC3339` | Explicit hosted Jev evaluation producing review-required receipts; optional evidence, model, timeout and retry settings are described in [Decision Kernel runtime](decisions.md) |
+| `decisions jev-receipts REQUEST.json SPECS.json RESPONSE.json --decided-at RFC3339` | Normalize a recorded Jev response without a provider call; optional `--evidence` |
 
 ## Evidence versions
 

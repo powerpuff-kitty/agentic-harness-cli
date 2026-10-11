@@ -1,0 +1,10 @@
+{
+  "format_version": 1,
+  "repository": "powerpuff-kitty/agentic-harness",
+  "revision": "300a021e30db1fcb6170ffa9fcec996ec4a91f06",
+  "path": "catalog/conformance/evidence-v1.json",
+  "git_blob_sha": "63ba4b4a3ac974bc524d2835358968acc35080ff",
+  "sha256": "f706c436621ce664cd3dad69de064c6ea14a4017ac10727f0d564ea8ab0cc8c7",
+  "scope": "test-only transport and Codebase Audit v2 shape conformance",
+  "runtime_pins_changed": false
+}
