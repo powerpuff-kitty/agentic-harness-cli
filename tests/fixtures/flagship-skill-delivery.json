@@ -3,7 +3,7 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/skills",
-    "commit": "95ff8b5e60997bb34f6ac2262e7e22db899a5ae2"
+    "commit": "49d566c34f3e4872f2601da23f13447935803a03"
   },
   "skills": {
     "codebase-audit": {
@@ -130,6 +130,16 @@
       "SKILL.md": "6e000682dde1623ed721826b2e925527df35993b09c797503efc8b7b60079702",
       "references/review-method.md": "8f998b4e2fc5986a571df9d166b40d6779cf5e48cab72a29113558192b75de67",
       "tests/cases.json": "1e71bdee94ab154762d6e2623631b500d1924b31533b61fa63a9c201bfeb2410"
+    },
+    "design-extraction": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "de27141056828b5d34635cea8fe03df87886c3f845a994a6b69eb6a4836d809a",
+      "assets/report-template.md": "f1041f0e64e2f2694e1182b738d1e6c99d5e67839a9b2419fa019f8280ec1f70",
+      "assets/taste-profile.example.json": "f190b7eb9db8152052248b46fa71831958e03b5c362a6d12accd7cb70d6b96d7",
+      "references/capture-and-report.md": "39684fee1e75c4fbb36f990e01da0aeacc1a338b1f7a2c30fae81e7893c221b3",
+      "tests/cases.json": "fe077ddd2c07006d45cb0edffecdd4f9d831568b7e2a2ae14913e76aa3f8c64d",
+      "tests/fixtures/reference.css": "7e81a04148dd881f97f853c448cc7ad553b19232ed59ff3d0f681a29f82b1c6b",
+      "tests/fixtures/reference.html": "6e75166cb6bffaa59196fe7c60c2c7d514c96a91217717c1bf959e6e22285e76"
     }
   },
   "license": "MIT License\n\nCopyright (c) 2026 Agentic Harness contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"

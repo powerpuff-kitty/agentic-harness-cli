@@ -72,6 +72,6 @@ Retained [native registry evidence](evidence/skills-lifecycle-2026-10-14/native-
 [isolated lifecycle exercise](evidence/skills-lifecycle-2026-10-14/lifecycle.json)
 and [source identities](evidence/skills-lifecycle-2026-10-14/source-manifest.json)
 record the 2026-10-14 check. The source consumer's CI validates metadata for all
-51 skills and domain coverage; its real binary delivery fixture checks 89 exact
-files across 18 representative procedures. These checks do not certify reasoning
+52 skills and domain coverage; its real binary delivery fixture checks 97 exact
+files across 19 representative procedures. These checks do not certify reasoning
 quality or prove every host version.

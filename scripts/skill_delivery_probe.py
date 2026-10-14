@@ -15,8 +15,8 @@ NAMES = ('codebase-audit', 'design-system-compliance', 'security-review',
          'onchain-data-analysis', 'smart-contract-review', 'defi-risk-analysis',
          'odds-analysis', 'forecast-calibration', 'settlement-rule-review',
          'content-brief', 'copy-editing', 'content-repurposing', 'geo-measurement',
-         'test-engineering', 'change-review')
-PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/[a-z-]+\.md|tests/cases\.json)\Z')
+         'test-engineering', 'change-review', 'design-extraction')
+PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/[a-z-]+\.md|assets/taste-profile\.example\.json|tests/cases\.json|tests/fixtures/reference\.(?:html|css))\Z')
 EXPECTED_PATHS = {
     'codebase-audit': {'SKILL.md', 'LICENSE', 'references/review-guide.md',
                        'references/report-template.md', 'references/language-review-packs.md'},
@@ -40,6 +40,9 @@ EXPECTED_PATHS.update({
     'test-engineering': {'SKILL.md', 'LICENSE', 'references/test-design.md',
                          'references/fresh-review.md', 'assets/fresh-review-brief.md', 'tests/cases.json'},
     'change-review': {'SKILL.md', 'LICENSE', 'references/review-method.md', 'tests/cases.json'},
+    'design-extraction': {'SKILL.md', 'LICENSE', 'references/capture-and-report.md',
+                          'assets/report-template.md', 'assets/taste-profile.example.json',
+                          'tests/cases.json', 'tests/fixtures/reference.html', 'tests/fixtures/reference.css'},
 })
 # Optional index supplied by the pinned base context template, not a skill directory.
 INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
