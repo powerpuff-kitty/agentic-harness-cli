@@ -54,7 +54,7 @@ class SkillDelivery(unittest.TestCase):
 
     def test_template_readme_is_not_mistaken_for_a_skill(self):
         index = self.project / '.agents/skills/README.md'
-        index.write_bytes(b'# Installed agent skills\n\nReusable procedures are installed here from `agentic-harness-agents`. Skills describe how to work; they may not silently redefine canonical project truth or mandatory policy.\n')
+        index.write_bytes(b'# Installed agent skills\n\nReusable procedures are installed here from `skills`. Skills describe how to work; they may not silently redefine canonical project truth or mandatory policy.\n')
         probe.verify_payload(self.project, probe.NAMES, self.fixture)
 
     def test_unknown_template_index_is_not_silently_ignored(self):

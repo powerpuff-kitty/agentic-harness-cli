@@ -14,7 +14,7 @@ import onboarding as checks
 SOURCES = {
     'format': 1,
     'canonical': {'repository': 'powerpuff-kitty/agentic-harness', 'commit': 'a' * 40},
-    'agents': {'repository': 'powerpuff-kitty/agentic-harness-agents', 'commit': 'b' * 40},
+    'agents': {'repository': 'powerpuff-kitty/skills', 'commit': 'b' * 40},
     'model_registry': {'repository': 'powerpuff-kitty/agentic-harness', 'commit': 'a' * 40},
 }
 SYNTHETIC = 'agentic' + '-harness' + '-synthetic-consumer'

@@ -23,7 +23,7 @@ fn main() {
         "upstream/agentic-harness/catalog/schema/decision-receipt.v1.schema.json",
         "upstream/agentic-harness/catalog/schema/decision-outcome.v1.schema.json",
         "upstream/agentic-harness/catalog/schema/decision-evaluation.v1.schema.json",
-        "upstream/agentic-harness-agents/skills/agentic-app/SKILL.md",
+        "upstream/skills/skills/agentic-app/SKILL.md",
     ];
     let missing: Vec<_> = required.iter().filter(|p| !Path::new(p).exists()).collect();
     if !missing.is_empty() {
@@ -37,5 +37,5 @@ fn main() {
     println!("cargo:rerun-if-changed=upstream.lock.json");
     println!("cargo:rerun-if-changed=upstream/agentic-harness-registry");
     println!("cargo:rerun-if-changed=upstream/agentic-harness");
-    println!("cargo:rerun-if-changed=upstream/agentic-harness-agents");
+    println!("cargo:rerun-if-changed=upstream/skills");
 }

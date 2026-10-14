@@ -29,7 +29,7 @@ static PRESETS: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/catalog/presets");
 static VARIANTS: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/catalog/variants");
-static SKILLS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness-agents/skills");
+static SKILLS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/skills/skills");
 
 const CODE_EXT: &[&str] = &[
     "py", "js", "mjs", "cjs", "ts", "tsx", "jsx", "vue", "rs", "go", "java", "kt", "swift", "rb",

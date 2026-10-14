@@ -2,7 +2,7 @@
   "format_version": 1,
   "kind": "flagship-skill-delivery",
   "source": {
-    "repository": "powerpuff-kitty/agentic-harness-agents",
+    "repository": "powerpuff-kitty/skills",
     "commit": "7e7d44e9f9d7e4579048c4e8c1073243f6bcf61c"
   },
   "skills": {

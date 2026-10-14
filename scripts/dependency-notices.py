@@ -77,7 +77,7 @@ def main():
     records, sections = collect(metadata['packages'], sources, ROOT / 'third-party')
     authored = []
     for name, root in [('CLI', ROOT), ('canonical', ROOT / 'upstream/agentic-harness'),
-                       ('agents', ROOT / 'upstream/agentic-harness-agents'),
+                       ('agents', ROOT / 'upstream/skills'),
                        ('model_registry', ROOT / 'upstream/agentic-harness-registry')]:
         # Only repository-root declarations apply to authored sources; do not mistake
         # a vendored dependency or template's LICENSE for the repository's declaration.

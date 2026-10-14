@@ -10,7 +10,7 @@ from source_bytes import clone_source, verify_adapter_bytes
 
 root = Path(__file__).resolve().parents[1]
 lock = json.loads((root / 'upstream.lock.json').read_text())
-for key, directory in [('canonical', 'agentic-harness'), ('agents', 'agentic-harness-agents'),
+for key, directory in [('canonical', 'agentic-harness'), ('agents', 'skills'),
                        ('model_registry', 'agentic-harness-registry')]:
     entry = lock[key]
     commit, repository = entry['commit'], entry['repository']
@@ -37,7 +37,7 @@ for key, directory in [('canonical', 'agentic-harness'), ('agents', 'agentic-har
     print(f'{key}={actual}')
 
 verify_sources(root)
-verify_adapter_bytes(root / 'upstream/agentic-harness-agents')
+verify_adapter_bytes(root / 'upstream/skills')
 subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', str(root / 'scripts'),
                 '-p', 'test_source_bytes.py'], check=True)
 print('Adapter payload bytes match pinned Git objects; clone regression tests passed')

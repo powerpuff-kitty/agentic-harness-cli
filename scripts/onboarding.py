@@ -29,7 +29,8 @@ CLI_COMMANDS = [
     ['ah', 'audit', './app'],
     ['ah', 'validate', './app'],
 ]
-PUBLIC_NAMES = frozenset({'agentic-harness', 'agentic-harness-agents', 'agentic-harness-cli'})
+PUBLIC_NAMES = frozenset({'agentic-harness', 'skills', 'agentic-harness-cli',
+                          'agentic-harness-agents'})  # Historical embedded provenance.
 NAME_PATTERN = re.compile(r'(?<![a-z0-9_-])agentic-harness(?:-[a-z0-9]+)*(?![a-z0-9_-])', re.I)
 
 
@@ -102,7 +103,7 @@ def verify_sources(root: Path = ROOT) -> dict:
     canonical = root / 'upstream/agentic-harness'
     directories = {
         'canonical': canonical,
-        'agents': root / 'upstream/agentic-harness-agents',
+        'agents': root / 'upstream/skills',
         'model_registry': root / 'upstream' / ('agentic-harness' + '-registry'),
     }
     for key, directory in directories.items():

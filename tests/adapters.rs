@@ -116,7 +116,7 @@ fn claude_base_creates_exact_bridge_and_retains_license() {
     );
     assert_eq!(
         fs::read(root.path().join(".agents/adapters/LICENSE")).unwrap(),
-        include_bytes!("../upstream/agentic-harness-agents/LICENSE")
+        include_bytes!("../upstream/skills/LICENSE")
     );
     assert!(!root.path().join(".claude").exists());
 }
@@ -129,7 +129,7 @@ fn typed_ui_is_explicit_and_uses_the_pinned_payload() {
     assert_eq!(
         actual,
         include_bytes!(
-            "../upstream/agentic-harness-agents/adapters/claude/files/.claude/rules/agentic-typed-ui.md"
+            "../upstream/skills/adapters/claude/files/.claude/rules/agentic-typed-ui.md"
         )
     );
 }
@@ -154,7 +154,7 @@ fn cursor_scoped_rule_does_not_create_claude_or_overrides() {
     assert_eq!(
         actual,
         include_bytes!(
-            "../upstream/agentic-harness-agents/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
+            "../upstream/skills/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
         )
     );
     assert!(!root.path().join("CLAUDE.md").exists());
@@ -363,10 +363,7 @@ fn successful_copy_never_claims_host_delivery_or_enforcement() {
     let result = install(root.path(), "claude", "base");
     assert_eq!(result["host_delivery_verified"], false);
     assert_eq!(result["enforcement_verified"], false);
-    assert_eq!(
-        result["source"]["repository"],
-        "powerpuff-kitty/agentic-harness-agents"
-    );
+    assert_eq!(result["source"]["repository"], "powerpuff-kitty/skills");
     assert_eq!(
         result["source"]["commit"],
         serde_json::from_str::<Value>(include_str!("../upstream.lock.json")).unwrap()["agents"]["commit"]

@@ -13,7 +13,7 @@ FIXTURE = ROOT / 'tests/fixtures/flagship-skill-delivery.json'
 NAMES = ('codebase-audit', 'design-system-compliance', 'security-review')
 PATH = re.compile(r'(?:SKILL\.md|bundle\.json|references/[a-z-]+\.md)\Z')
 # Optional index supplied by the pinned base context template, not a skill directory.
-INDEX_SHA256 = 'd3d9ab253a85b4af7133f6f7e16a3316e104df066751948497a082ce270d3c94'
+INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
 
 
 def require(ok, message):
@@ -30,7 +30,7 @@ def read_fixture():
     require(type(value['format_version']) is int and value['format_version'] == 1
             and value['kind'] == 'flagship-skill-delivery', 'skill-delivery: wrong format')
     require(set(value['source']) == {'repository', 'commit'}
-            and value['source']['repository'] == 'powerpuff-kitty/agentic-harness-agents'
+            and value['source']['repository'] == 'powerpuff-kitty/skills'
             and re.fullmatch(r'[a-f0-9]{40}', value['source']['commit']) is not None,
             'skill-delivery: invalid source')
     require(set(value['skills']) == set(NAMES), 'skill-delivery: unexpected skill selection')
