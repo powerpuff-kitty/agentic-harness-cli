@@ -2,6 +2,11 @@
 
 ## 0.1.0 — production-core candidate (unpublished)
 
+- Add managed skill installation, status, safe updates, local-edit conflicts, backup previews/rollback and 9 domain presets; retain existing composition preservation behavior.
+- Embed 51 portable skills, with content briefing/editing/repurposing and GEO measurement alongside engineering, design, security, finance and forecasting procedures.
+- Verify native skill registration in CI against integrity-pinned OpenCode 2.0.27.
+- Prepare exact-commit cross-platform bundles, checksums, source identities and release notes without creating tags or publishing.
+
 - Add catalog-owned `--context-profile full|minimal` selection; inherit selection/variant on upgrade and preserve authored files and routes through mode changes.
 
 - Reject malformed optional audit evidence before gates/comparisons and version their result envelopes.

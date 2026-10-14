@@ -3,34 +3,34 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/skills",
-    "commit": "e576591c3b1dba70b18c296f1110d2c2d8665e9f"
+    "commit": "41dc4b57a064c2602b95b0c802fb6f2d5ece9511"
   },
   "skills": {
     "codebase-audit": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "d1580c2ea807b2c705acf275588525f26e9ff402512678a67a7ac6dcb7dbc606",
       "references/language-review-packs.md": "3d731cff199bc18114a96a6464bd105363ef60aa83fd29517734a06968b46b3f",
-      "references/report-template.md": "72eebf31219e73ef7fc7f00fd21b66069bc0a33a8de65b5cdea1e706f7181e82",
-      "references/review-guide.md": "cedbc8b26c3f2d96987403756f43028fe3770a1d1939457f4583d5e3ec6f5a92"
+      "references/report-template.md": "b16b8b6889dd8e7dc633e7086fdc4e08d37b93d1905e69e500bc88009ef95068",
+      "references/review-guide.md": "0024f4b9b4c7151ee3dc6f6ea37e9dd813463c1d77a16cfb0d1cc76dcf099a56"
     },
     "design-system-compliance": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "80ffcf965e27e35f41c06032c4a19305dc48d842baa4584b17a888ebe6852ba7",
       "references/design-intelligence.md": "627649ca0c1c617eacd3e2387a342929bfb53f08208deb2cc1d0fe7f4f065e61",
       "references/report-template.md": "6df8c55af05bda9673200a6bcd1001914e54e64329a7f5262935035ddf946e02",
-      "references/review-guide.md": "2fcdb588aa106496e5b85e0b3814a91453ce3bf43e71087baa1b54944d10f677"
+      "references/review-guide.md": "ed65fa629acbcff9a3575b412efbd10ca8cb56d63402add2c1ff97f96b7c045d"
     },
     "security-review": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "e8d9d7c26f1225a6b956c9c6cfcc1c2ad7c792f90024f0ce50e62ed533f67d68",
-      "references/report-template.md": "05370ce48b7a279f1ac066bef10e0884209ba2f7ff1c75f8dfed5ad511d1b3d8",
-      "references/review-guide.md": "7939d7648bc027f0ca51d615504b74275ae485ea9fb54b471dece493c4f03c2b"
+      "references/report-template.md": "c9261fa46a7ff01297fcae8972937998a48ac864da9c684ac8d8cd1f8049a712",
+      "references/review-guide.md": "be86751d4b89f4d13b47c44d531de551e6378d2730c4a4a5ea7ae1ad337b6639"
     },
     "market-data-validation": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "ef89a9bbdc218e292a4e6f3b525daeaa4c86fd37c034b109b14bc633f42c245c",
       "assets/report-template.md": "8f000862be297577e1d788f019201f6a87a33dc92135f58f548451a43170511d",
-      "references/validation-guide.md": "442e426f578e59b5fb96fd8a1fd3713ce2c2b894d866817d4d4e996a28a89fa0",
+      "references/validation-guide.md": "26bca5b9d7f9490ebc85566b967c282fc05db9e21c4eb84b7e534b4bfd064119",
       "tests/cases.json": "2855e1680e2f8d2974504c734a7dd84f2d8ef1c8423d013f3cdcae8ce71075c2"
     },
     "financial-model-review": {
@@ -51,7 +51,7 @@
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "b8f79d9560402ae3fdec34dcea741fdaa4e53e25d8247acc278265ffdf1278ff",
       "assets/report-template.md": "525694ee1bed2d824341c9de8f8a2fe8868a27edd2802ca691791f1933386686",
-      "references/method.md": "17d0ddb1ba88b9859eea50250901a2872835f5e5a9ce73a9b8d018d4978242ac",
+      "references/method.md": "0394a3b944cb1b5b2421e2b56b3c96dde7c82f79d84e882d625d4b0e4d663b44",
       "tests/cases.json": "9f8d9be4e2f362fc262c2781dc905670e4c0bddda88d7f009f98b4c0380129ba"
     },
     "smart-contract-review": {
@@ -79,14 +79,14 @@
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "79e013edc1a1db0346a11104418517cfb847601a54fddbbdd82b92ce34b28bb7",
       "assets/report-template.md": "10e81ac0bf828c273cac263fac524d7132baf6d237eb569bc90eda06029c5b0d",
-      "references/method.md": "b3d65f2352455af2cc6541a1bfdce2dfb514e043c1f9f30b48a8e8ef1160a786",
+      "references/method.md": "37bdabf4cd2c8cd071c760e8c84b4f1c5db9a1d47caadbcb8d679067e053d889",
       "tests/cases.json": "bb060e0d3002b6d29a6ae15f7dbc6d2bb6499a3b78ec130f715381df9039974b"
     },
     "settlement-rule-review": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "2033810fd483d4caacca69773a6c4d17982e70ce273c970060f36e8598532015",
       "assets/report-template.md": "8f4fbaf39cef4bcea23ab9ba597e5e12248d5ee516560ded286d57e45b96c53e",
-      "references/method.md": "daa053586de0339a812041f99d59caaea7b06df539647dee43081961056ab670",
+      "references/method.md": "28e2961d7bee02d1ec1e523ede9859426d44de183e4c8823575e97d69cfba08d",
       "tests/cases.json": "04cd3bffcda24d8578c19bf2a5e4632ed875a8717c2022ae860b357904c09e03"
     },
     "content-brief": {
@@ -100,7 +100,7 @@
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
       "SKILL.md": "51540a69c6218b547ea903cf42aca570e4e416296bf5dd2c7f53297100cc1813",
       "assets/review-template.md": "88f85923d9f1add4c3f43c306e0149c555094b787bbec7c542a6eb2da11abb82",
-      "references/example.md": "43806b8e040d36ba56f14b6062cbebdc5416100d88dfda6f9b79be572bf6280c",
+      "references/example.md": "56ee4e25daeae89cee831063ade6a68a5b71703b1448832d0b69bc1cc435f73e",
       "tests/cases.json": "e715168bff52e1f3b7d2acbb3078d34e46dfd7e294c6044c281a1a70b95ad7d0"
     },
     "content-repurposing": {
@@ -112,9 +112,9 @@
     },
     "geo-measurement": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
-      "SKILL.md": "58bd8f1502d26482e986ca828c537e6ff9643a74b90e434d2f1b31da531016b3",
+      "SKILL.md": "f024c5e9a3c8ab8d942fa85f8be1d2d16a405adbd306826f7cb042ebba703c7c",
       "assets/report-template.md": "8973e36f3e18658334daa6b9c34e625ccb4b0aefb7581f27ba210e0a73bd9e42",
-      "references/method.md": "455a245a66e2333d1a72dacb21de6a4558d6f282b2149d2d25c4c7922cec95e9",
+      "references/method.md": "0199cfbe427009d57ddafe67d29b10edc2367e050d553765ee5a8caeb4d6ceea",
       "tests/cases.json": "211c711bae2ca7b5a5adaa49ffacacb614cc81c1ed0e6fd6cf87648aecd7fe50"
     }
   },

@@ -20,7 +20,8 @@ import urllib.request
 import urllib.parse
 
 
-def probe(executable, source, agents_export=None):
+def probe(executable, source, agents_export=None, expected_version=None):
+    if expected_version and subprocess.check_output([executable,"--version"],text=True).strip()!=f"opencode v{expected_version}":raise ValueError("Unexpected OpenCode version")
     source=Path(source).resolve()
     folders=sorted(p.parent for p in source.glob('*/SKILL.md'))
     if not folders:raise ValueError('No skill folders')
@@ -107,5 +108,6 @@ if __name__=='__main__':
     parser.add_argument('--opencode',required=True)
     parser.add_argument('--source',type=Path,default=Path(__file__).resolve().parents[1]/'upstream/skills')
     parser.add_argument('--agents-export',type=Path)
+    parser.add_argument('--expected-version')
     args=parser.parse_args()
-    print(json.dumps(probe(args.opencode,args.source,args.agents_export),indent=2))
+    print(json.dumps(probe(args.opencode,args.source,args.agents_export,args.expected_version),indent=2))

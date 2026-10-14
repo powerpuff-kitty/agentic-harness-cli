@@ -6,7 +6,7 @@
   },
   "agents": {
     "repository": "powerpuff-kitty/skills",
-    "commit": "e576591c3b1dba70b18c296f1110d2c2d8665e9f"
+    "commit": "41dc4b57a064c2602b95b0c802fb6f2d5ece9511"
   },
   "model_registry": {
     "repository": "powerpuff-kitty/agentic-harness",

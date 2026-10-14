@@ -1,0 +1,26 @@
+name: Prepare release bundles
+on:
+  workflow_dispatch:
+    inputs:
+      ci_run:
+        description: Successful CLI CI run for the current main commit
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Prepare verified bundles and review notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN: ${{ inputs.ci_run }}
+        run: python3 scripts/prepare-release.py --run "$CANDIDATE_RUN" --output prepared-release
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: prepared-release
+          path: prepared-release/*
+          if-no-files-found: error
