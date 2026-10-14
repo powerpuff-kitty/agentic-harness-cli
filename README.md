@@ -113,6 +113,18 @@ ah init ./research --boilerplate base --skill market-data-validation --skill fin
 These skills include references and report templates for data, model and backtest
 checks. They do not connect financial accounts or execute transactions.
 
+## Crypto and event forecasts
+
+Select the procedures needed for a protocol or event-market review:
+
+```bash
+ah init ./protocol --boilerplate base --skill onchain-data-analysis --skill smart-contract-review --skill defi-risk-analysis
+ah init ./forecasts --boilerplate base --skill odds-analysis --skill forecast-calibration --skill settlement-rule-review
+```
+
+These install analytical instructions, references, templates and acceptance-case
+resources. They do not provide wallet, account, betting or resolution execution.
+
 ## Commands
 
 ```bash

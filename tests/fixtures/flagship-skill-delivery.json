@@ -3,7 +3,7 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/skills",
-    "commit": "cbd1cf66fa033c1737e503675dc96933fe43be69"
+    "commit": "031ad986b946dc2b5a98ffabba84f903255a99b2"
   },
   "skills": {
     "codebase-audit": {
@@ -46,6 +46,48 @@
       "assets/report-template.md": "835a0111a2336c84d9d76098390753367e6d998ec95a96f9392660bae4cdb7de",
       "references/backtest-review.md": "d75876afee5bb62b10f275b614e4e98ddb0864c9150737fd6022367e278c923f",
       "tests/cases.json": "4fc83755b3fd166c25c402f655198853c7021835799e02ea95e6650cc24334d8"
+    },
+    "onchain-data-analysis": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "b8f79d9560402ae3fdec34dcea741fdaa4e53e25d8247acc278265ffdf1278ff",
+      "assets/report-template.md": "525694ee1bed2d824341c9de8f8a2fe8868a27edd2802ca691791f1933386686",
+      "references/method.md": "17d0ddb1ba88b9859eea50250901a2872835f5e5a9ce73a9b8d018d4978242ac",
+      "tests/cases.json": "9f8d9be4e2f362fc262c2781dc905670e4c0bddda88d7f009f98b4c0380129ba"
+    },
+    "smart-contract-review": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "bf2a99966da950ade898a66736318302f39f4f7d0a0ea7a52165b64fae33fb3e",
+      "assets/report-template.md": "d00daad298a618df6519dfe0d9e91599d19a48652b68fb238db44e2eab179a70",
+      "references/method.md": "2df2aab37af328b78be9d4931d9344cbee6847d941d9c7350cd09673ff32d202",
+      "tests/cases.json": "fd695604b1a8803108a2791be746561ff880c12b42eb4ceaa1b2b1b3b8c6413a"
+    },
+    "defi-risk-analysis": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "1dae2d4d13893506bd388c47f7312bc10c6d898733f934891d33552bd6a20f6b",
+      "assets/report-template.md": "09097bd55a6a6f469b34bfa211f34afb7bedbeda84e79bb891076c7e590f76dc",
+      "references/method.md": "9e9c6a76f68ef0f7c21104298f2db8adb189b02945ebfeb9a261e876b181c29e",
+      "tests/cases.json": "41285871b3e70d707769f72833e71c521f543036fc127946f6fb9681b09957b7"
+    },
+    "odds-analysis": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "9e65a46e5c397010ce67f927a618c6ce19dbf9085c4c50fab1bdaae11d35c7c9",
+      "assets/report-template.md": "fe70f0b131e178e1c7f00aa58a991d530a81ad329772c231d8327937fd27e22c",
+      "references/method.md": "e772e9bc107d0d838dd746d2199a3593596fc63e9829a42f14fcb5b76a2f054d",
+      "tests/cases.json": "81bec83d4e49a81c9e00e146d01df283e32bbdd604da748f9b7341a666347850"
+    },
+    "forecast-calibration": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "79e013edc1a1db0346a11104418517cfb847601a54fddbbdd82b92ce34b28bb7",
+      "assets/report-template.md": "10e81ac0bf828c273cac263fac524d7132baf6d237eb569bc90eda06029c5b0d",
+      "references/method.md": "b3d65f2352455af2cc6541a1bfdce2dfb514e043c1f9f30b48a8e8ef1160a786",
+      "tests/cases.json": "bb060e0d3002b6d29a6ae15f7dbc6d2bb6499a3b78ec130f715381df9039974b"
+    },
+    "settlement-rule-review": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "2033810fd483d4caacca69773a6c4d17982e70ce273c970060f36e8598532015",
+      "assets/report-template.md": "8f4fbaf39cef4bcea23ab9ba597e5e12248d5ee516560ded286d57e45b96c53e",
+      "references/method.md": "daa053586de0339a812041f99d59caaea7b06df539647dee43081961056ab670",
+      "tests/cases.json": "04cd3bffcda24d8578c19bf2a5e4632ed875a8717c2022ae860b357904c09e03"
     }
   },
   "license": "MIT License\n\nCopyright (c) 2026 Agentic Harness contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"

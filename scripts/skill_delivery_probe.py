@@ -11,7 +11,9 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/flagship-skill-delivery.json'
 NAMES = ('codebase-audit', 'design-system-compliance', 'security-review',
-         'market-data-validation', 'financial-model-review', 'backtest-validation')
+         'market-data-validation', 'financial-model-review', 'backtest-validation',
+         'onchain-data-analysis', 'smart-contract-review', 'defi-risk-analysis',
+         'odds-analysis', 'forecast-calibration', 'settlement-rule-review')
 PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/report-template\.md|tests/cases\.json)\Z')
 EXPECTED_PATHS = {
     'codebase-audit': {'SKILL.md', 'LICENSE', 'references/review-guide.md',
@@ -26,6 +28,11 @@ EXPECTED_PATHS = {
     'backtest-validation': {'SKILL.md', 'LICENSE', 'references/backtest-review.md',
                             'assets/report-template.md', 'tests/cases.json'},
 }
+EXPECTED_PATHS.update({
+    name: {'SKILL.md', 'LICENSE', 'references/method.md',
+           'assets/report-template.md', 'tests/cases.json'}
+    for name in NAMES[6:]
+})
 # Optional index supplied by the pinned base context template, not a skill directory.
 INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
 

@@ -5,9 +5,9 @@ live directly at that source root; README and installation guidance are excluded
 from the embedded payload. Each copied skill includes its own license and local
 resources, so a consumer does not need the original checkout to read its guides.
 
-The delivery fixture covers six procedures: codebase-audit, security-review,
-design-system-compliance, market-data-validation, financial-model-review and
-backtest-validation. The finance folders add report-template assets and JSON
+The delivery fixture covers twelve procedures: the original audit/security/design
+reviews, three financial validation methods, three onchain/contract/DeFi methods
+and odds-analysis, forecast-calibration and settlement-rule-review. The domain folders add report-template assets and JSON
 acceptance specifications alongside their reference guides. Those specifications
 are copied as resources, not executed or treated as observed outcomes.
 
@@ -26,13 +26,13 @@ to upstream. The target project continues to own its context and acceptance rule
 ## Executable verification
 
 `tests/fixtures/flagship-skill-delivery.json` records the exact reviewed Skills commit
-and SHA-256 values for all 29 files across these six folders. The probe is shared
+and SHA-256 values for all 59 files across these twelve folders. The probe is shared
 by actual-output checks, source/custom-prefix installs and copied/downloaded
 candidates. The executed binary needs no runtime source checkout or model. The
 base context template's optional skills-index README is identified by its exact
 reviewed hash, not mistaken for an installed skill; other unexpected files fail.
 
-The 26 calls check source identity; single-skill and combined composition; actual
+The 38 calls check source identity; single-skill and combined composition; actual
 project validation; two upgrades preserving a customized guide and owner notes;
 restoration of missing reference, asset-template and JSON-case resources; and
 non-mutating rejection of an unknown skill. Project notices retain the exact MIT
