@@ -31,12 +31,15 @@ class SkillDelivery(unittest.TestCase):
 
     def test_reviewed_fixture_covers_guides_templates_and_cases(self):
         fixture, digest = probe.read_fixture()
-        self.assertEqual(sum(len(files) for files in fixture['skills'].values()), 79)
+        self.assertEqual(sum(len(files) for files in fixture['skills'].values()), 89)
         self.assertIn('assets/report-template.md', fixture['skills']['financial-model-review'])
         self.assertIn('tests/cases.json', fixture['skills']['backtest-validation'])
         self.assertIn('references/method.md', fixture['skills']['onchain-data-analysis'])
         self.assertIn('assets/report-template.md', fixture['skills']['forecast-calibration'])
         self.assertIn('references/language-review-packs.md', fixture['skills']['codebase-audit'])
+        self.assertIn('assets/fresh-review-brief.md', fixture['skills']['test-engineering'])
+        self.assertIn('references/fresh-review.md', fixture['skills']['test-engineering'])
+        self.assertIn('tests/cases.json', fixture['skills']['change-review'])
         self.assertEqual(len(digest), 64)
 
     def test_synthetic_exact_payload_is_accepted(self):

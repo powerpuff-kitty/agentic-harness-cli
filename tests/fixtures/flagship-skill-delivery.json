@@ -3,12 +3,12 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/skills",
-    "commit": "41dc4b57a064c2602b95b0c802fb6f2d5ece9511"
+    "commit": "95ff8b5e60997bb34f6ac2262e7e22db899a5ae2"
   },
   "skills": {
     "codebase-audit": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
-      "SKILL.md": "d1580c2ea807b2c705acf275588525f26e9ff402512678a67a7ac6dcb7dbc606",
+      "SKILL.md": "d071b496508370403fc8fa228ba0621f8bf0130c81b6ef4e18d58f9a9b1c01d9",
       "references/language-review-packs.md": "3d731cff199bc18114a96a6464bd105363ef60aa83fd29517734a06968b46b3f",
       "references/report-template.md": "b16b8b6889dd8e7dc633e7086fdc4e08d37b93d1905e69e500bc88009ef95068",
       "references/review-guide.md": "0024f4b9b4c7151ee3dc6f6ea37e9dd813463c1d77a16cfb0d1cc76dcf099a56"
@@ -116,6 +116,20 @@
       "assets/report-template.md": "8973e36f3e18658334daa6b9c34e625ccb4b0aefb7581f27ba210e0a73bd9e42",
       "references/method.md": "0199cfbe427009d57ddafe67d29b10edc2367e050d553765ee5a8caeb4d6ceea",
       "tests/cases.json": "211c711bae2ca7b5a5adaa49ffacacb614cc81c1ed0e6fd6cf87648aecd7fe50"
+    },
+    "test-engineering": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "8e642ec77299b3fa1ed55bd6f53e55bc0f2f2b93c75436819bfaba579d34b6f6",
+      "assets/fresh-review-brief.md": "56d0d9ddfba0615bc0188e63985a4db75da8cf9b2e5b5412f75c4453f6add9f0",
+      "references/fresh-review.md": "ad9978761b85507520d85a7358280d367b591c16969029ab9fb73a2350b3c94e",
+      "references/test-design.md": "504ed4d0823764ca4c9e4a101dfd6c5a3ad80eee38e3a02cef1fa9c1edac171e",
+      "tests/cases.json": "629e94a106d3bd2265a466c996a991eb0df879a9966ddb59e7985e3a0153efe9"
+    },
+    "change-review": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "6e000682dde1623ed721826b2e925527df35993b09c797503efc8b7b60079702",
+      "references/review-method.md": "8f998b4e2fc5986a571df9d166b40d6779cf5e48cab72a29113558192b75de67",
+      "tests/cases.json": "1e71bdee94ab154762d6e2623631b500d1924b31533b61fa63a9c201bfeb2410"
     }
   },
   "license": "MIT License\n\nCopyright (c) 2026 Agentic Harness contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
