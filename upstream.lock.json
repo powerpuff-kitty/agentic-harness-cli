@@ -2,11 +2,11 @@
   "format": 1,
   "canonical": {
     "repository": "powerpuff-kitty/agentic-harness",
-    "commit": "6f4a00307b4414b8ae9c959b539f9d24d7741370"
+    "commit": "864e5fde38557217e7e3564b3bf47532fc8b922d"
   },
   "agents": {
-    "repository": "powerpuff-kitty/skills",
-    "commit": "49d566c34f3e4872f2601da23f13447935803a03"
+    "repository": "powerpuff-kitty/ai-skills",
+    "commit": "4f137bc7d7847fe1ececfd47a073c95ba5092b28"
   },
   "model_registry": {
     "repository": "powerpuff-kitty/agentic-harness",

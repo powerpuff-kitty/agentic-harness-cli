@@ -15,8 +15,11 @@ NAMES = ('codebase-audit', 'design-system-compliance', 'security-review',
          'onchain-data-analysis', 'smart-contract-review', 'defi-risk-analysis',
          'odds-analysis', 'forecast-calibration', 'settlement-rule-review',
          'content-brief', 'copy-editing', 'content-repurposing', 'geo-measurement',
-         'test-engineering', 'change-review', 'design-extraction')
-PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/[a-z-]+\.md|assets/taste-profile\.example\.json|tests/cases\.json|tests/fixtures/reference\.(?:html|css))\Z')
+         'test-engineering', 'change-review', 'design-extraction',
+         'product-instrumentation', 'product-analytics', 'product-experimentation',
+         'competitor-monitoring', 'native-app-delivery', 'user-research',
+         'market-opportunity-research', 'performance-audit')
+PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/[a-z-]+\.md|assets/taste-profile\.example\.json|tests/cases\.json|tests/fixtures/reference\.(?:html|css)|tests/fixtures/(?:input|baseline|current|browser-recovery)\.json|scripts/compare_snapshots\.py|tests/test_compare_snapshots\.py)\Z')
 EXPECTED_PATHS = {
     'codebase-audit': {'SKILL.md', 'LICENSE', 'references/review-guide.md',
                        'references/report-template.md', 'references/language-review-packs.md'},
@@ -38,11 +41,31 @@ EXPECTED_PATHS.update({
 EXPECTED_PATHS.update({'content-brief': {'tests/cases.json', 'LICENSE', 'assets/brief-template.md', 'references/example.md', 'SKILL.md'}, 'copy-editing': {'tests/cases.json', 'assets/review-template.md', 'LICENSE', 'references/example.md', 'SKILL.md'}, 'content-repurposing': {'assets/output-map.md', 'tests/cases.json', 'LICENSE', 'references/example.md', 'SKILL.md'}, 'geo-measurement': {'assets/report-template.md', 'tests/cases.json', 'LICENSE', 'references/method.md', 'SKILL.md'}})
 EXPECTED_PATHS.update({
     'test-engineering': {'SKILL.md', 'LICENSE', 'references/test-design.md',
-                         'references/fresh-review.md', 'assets/fresh-review-brief.md', 'tests/cases.json'},
+                         'references/fresh-review.md', 'assets/fresh-review-brief.md', 'tests/cases.json',
+                         'references/browser-recovery.md', 'tests/fixtures/browser-recovery.json'},
     'change-review': {'SKILL.md', 'LICENSE', 'references/review-method.md', 'tests/cases.json'},
     'design-extraction': {'SKILL.md', 'LICENSE', 'references/capture-and-report.md',
                           'assets/report-template.md', 'assets/taste-profile.example.json',
                           'tests/cases.json', 'tests/fixtures/reference.html', 'tests/fixtures/reference.css'},
+})
+EXPECTED_PATHS.update({
+    name: {'SKILL.md', 'LICENSE', 'references/method.md', 'assets/report-template.md',
+           'tests/cases.json', 'tests/fixtures/input.json'}
+    for name in ('product-instrumentation', 'product-analytics', 'product-experimentation',
+                 'user-research', 'market-opportunity-research')
+})
+EXPECTED_PATHS.update({
+    'competitor-monitoring': {'SKILL.md', 'LICENSE', 'references/method.md',
+                             'assets/report-template.md', 'tests/cases.json',
+                             'tests/fixtures/input.json', 'tests/fixtures/baseline.json',
+                             'tests/fixtures/current.json', 'scripts/compare_snapshots.py',
+                             'tests/test_compare_snapshots.py'},
+    'native-app-delivery': {'SKILL.md', 'LICENSE', 'references/method.md',
+                            'references/ios.md', 'references/android.md',
+                            'assets/report-template.md', 'tests/cases.json',
+                            'tests/fixtures/input.json'},
+    'performance-audit': {'SKILL.md', 'LICENSE', 'references/recovery-evidence.md',
+                          'tests/cases.json'},
 })
 # Optional index supplied by the pinned base context template, not a skill directory.
 INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
@@ -62,7 +85,7 @@ def read_fixture():
     require(type(value['format_version']) is int and value['format_version'] == 1
             and value['kind'] == 'flagship-skill-delivery', 'skill-delivery: wrong format')
     require(set(value['source']) == {'repository', 'commit'}
-            and value['source']['repository'] == 'powerpuff-kitty/skills'
+            and value['source']['repository'] == 'powerpuff-kitty/ai-skills'
             and re.fullmatch(r'[a-f0-9]{40}', value['source']['commit']) is not None,
             'skill-delivery: invalid source')
     require(set(value['skills']) == set(NAMES), 'skill-delivery: unexpected skill selection')

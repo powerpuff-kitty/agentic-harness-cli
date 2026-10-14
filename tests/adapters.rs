@@ -363,7 +363,7 @@ fn successful_copy_never_claims_host_delivery_or_enforcement() {
     let result = install(root.path(), "claude", "base");
     assert_eq!(result["host_delivery_verified"], false);
     assert_eq!(result["enforcement_verified"], false);
-    assert_eq!(result["source"]["repository"], "powerpuff-kitty/skills");
+    assert_eq!(result["source"]["repository"], "powerpuff-kitty/ai-skills");
     assert_eq!(
         result["source"]["commit"],
         serde_json::from_str::<Value>(include_str!("../upstream.lock.json")).unwrap()["agents"]["commit"]

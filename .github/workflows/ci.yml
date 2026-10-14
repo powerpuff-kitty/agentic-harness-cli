@@ -127,7 +127,7 @@ jobs:
           PY
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          repository: powerpuff-kitty/skills
+          repository: powerpuff-kitty/ai-skills
           ref: ${{ steps.source.outputs.commit }}
           path: upstream/skills
       - name: Check release-preparation refusal paths

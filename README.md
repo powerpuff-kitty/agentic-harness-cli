@@ -8,8 +8,8 @@
 
 > **Production-core scope:** composition, validation, audit/gate, installation and recovery follow the [supported contract](docs/cli-contracts.md). Architecture, design and agentic inspection remain experimental. Package version 0.1.0 uses the documented pre-1.0 compatibility policy. Read the [candidate readiness evidence](docs/release-checklist.md) before deployment.
 
-The reusable procedure source is now [`powerpuff-kitty/skills`](https://github.com/powerpuff-kitty/skills),
-renamed from `agentic-harness-agents`. New source checkouts use `upstream/skills/`;
+The reusable procedure source is now [`powerpuff-kitty/ai-skills`](https://github.com/powerpuff-kitty/ai-skills),
+renamed from `skills` (earlier `agentic-harness-agents`). New source checkouts use `upstream/skills/`;
 existing checkouts under the previous directory are preserved. The `agents` source
 key in locks and version/adapter reports remains unchanged for compatibility.
 Source revision pins still identify exact commits, and old published binaries and
@@ -68,7 +68,7 @@ A custom command name can be selected with `--command`:
 
 ### Release binaries
 
-Release binaries are intended to be the preferred installation path once GitHub Releases are published. They embed pinned snapshots of the canonical `agentic-harness` and `skills` repositories, so binary users will not need GitHub access or Rust at runtime.
+Release binaries are intended to be the preferred installation path once GitHub Releases are published. They embed pinned snapshots of the canonical `agentic-harness` and `ai-skills` repositories, so binary users will not need GitHub access or Rust at runtime.
 
 Until release artifacts are available, use the source installation above. Candidate CI artifacts include a platform ZIP, its SHA-256 checksum, binary provenance, third-party notices and Rust standard-library attribution. When release bundles are published, download the ZIP and checksum together and verify them before extracting or executing code. Retain the notice files alongside the installed binary or in its package documentation directory. See [candidate verification](docs/release-checklist.md) and [binary installation, upgrades and recovery](docs/operations.md).
 
@@ -85,7 +85,7 @@ Agentic Harness separates project truth, agent behavior, and deterministic enfor
 
 ```text
 agentic-harness          canonical boilerplates + modules + public schemas
-skills                  skills + local references, helpers and assets
+ai-skills               skills + local references, helpers and assets
         ↓ pinned snapshots
 agentic-harness-cli      native Rust `ah` engine
         ↓
@@ -93,8 +93,11 @@ self-contained target project
 ```
 
 - **[agentic-harness](https://github.com/powerpuff-kitty/agentic-harness):** canonical architecture, complete boilerplates, reusable modules, and public machine contracts
-- **[skills](https://github.com/powerpuff-kitty/skills):** self-contained agent skills and their local resources
+- **[ai-skills](https://github.com/powerpuff-kitty/ai-skills):** self-contained agent skills and their local resources
 - **This repository:** deterministic composition, audits, validation, security checks, architecture/design analysis, and quality gates
+
+[ai-agents](https://github.com/powerpuff-kitty/ai-agents) supplies separately installed
+role profiles and team workflows; the CLI does not embed or install that collection.
 
 Release binaries embed pinned snapshots of the canonical and Skills sources, so generated projects and binary users do not require GitHub access or Rust at runtime.
 
@@ -286,7 +289,7 @@ The pinned canonical catalog exposes complete root boilerplates (`base`, `web-ap
 
 ## Contributing
 
-The CLI should contain deterministic mechanics rather than canonical architecture or large prompt collections. Architecture/content changes belong in `agentic-harness`; agent procedure changes belong in `skills`.
+The CLI should contain deterministic mechanics rather than canonical architecture or large prompt collections. Architecture/content changes belong in `agentic-harness`; agent procedure changes belong in `ai-skills`.
 
 ## License
 

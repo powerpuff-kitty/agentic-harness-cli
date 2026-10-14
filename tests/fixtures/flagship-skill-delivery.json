@@ -2,8 +2,8 @@
   "format_version": 1,
   "kind": "flagship-skill-delivery",
   "source": {
-    "repository": "powerpuff-kitty/skills",
-    "commit": "49d566c34f3e4872f2601da23f13447935803a03"
+    "repository": "powerpuff-kitty/ai-skills",
+    "commit": "4f137bc7d7847fe1ececfd47a073c95ba5092b28"
   },
   "skills": {
     "codebase-audit": {
@@ -119,11 +119,13 @@
     },
     "test-engineering": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
-      "SKILL.md": "8e642ec77299b3fa1ed55bd6f53e55bc0f2f2b93c75436819bfaba579d34b6f6",
+      "SKILL.md": "cf79fe8b70df0c8af1e9750709f8d85373c5c0c3982c4da28f9c46751a37330f",
       "assets/fresh-review-brief.md": "56d0d9ddfba0615bc0188e63985a4db75da8cf9b2e5b5412f75c4453f6add9f0",
+      "references/browser-recovery.md": "6bd9a500fbe4d38f6e168c5a34f007a76f95c486b56ec147f1bdfbba3d61444a",
       "references/fresh-review.md": "ad9978761b85507520d85a7358280d367b591c16969029ab9fb73a2350b3c94e",
       "references/test-design.md": "504ed4d0823764ca4c9e4a101dfd6c5a3ad80eee38e3a02cef1fa9c1edac171e",
-      "tests/cases.json": "629e94a106d3bd2265a466c996a991eb0df879a9966ddb59e7985e3a0153efe9"
+      "tests/cases.json": "deb1334bcd631f28a35082f2e50e66479f8a316487f48cd2d43f579ed90e44c1",
+      "tests/fixtures/browser-recovery.json": "655eb9a8bf279f9e8e95e778b785fbac6fe114fe4553f3f8b14cccf2fe5cbd1b"
     },
     "change-review": {
       "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
@@ -140,6 +142,74 @@
       "tests/cases.json": "fe077ddd2c07006d45cb0edffecdd4f9d831568b7e2a2ae14913e76aa3f8c64d",
       "tests/fixtures/reference.css": "7e81a04148dd881f97f853c448cc7ad553b19232ed59ff3d0f681a29f82b1c6b",
       "tests/fixtures/reference.html": "6e75166cb6bffaa59196fe7c60c2c7d514c96a91217717c1bf959e6e22285e76"
+    },
+    "product-instrumentation": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "71ce250ab2a63cae82c4ac10c9fefb79f6c9947fe8b5c7700b2c08a33c7b5b19",
+      "assets/report-template.md": "a4c6b9df22a485cff68687735e2bdc0b7befbbba4c6df0626d7d13a1dc171f20",
+      "references/method.md": "670eba49e8e38332cfca13c6d3e8e8e80614c29c66940ef2769646800eeeed6e",
+      "tests/cases.json": "26fed4c6e8ed6629af7b580b4bd851853ca42b92c40d1b94161d03d2854e3ee6",
+      "tests/fixtures/input.json": "24dd4346448ca41cce52f0325c0e7e38d499db4688e6d770b05a663a7292d4d5"
+    },
+    "product-analytics": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "c79a5e135073bad4cd5e1715df89efb1e824a429848ca02563fe2f871d35bc25",
+      "assets/report-template.md": "bcf1d5c3f1446fd2030c3bcb13fb1689873bb69d475354fd01732f5945a61ea5",
+      "references/method.md": "fe26e4f5c685a2dc86914ad7e4b3fb7a4fde27e3db41349c740d792ff5f08abb",
+      "tests/cases.json": "52ae3cc5dc3a0a7f2aa2ac12488eab78e67548268d608cbdef663d9d67798d4d",
+      "tests/fixtures/input.json": "68e4ef9bdc83ba1ced1ea7f6477482d709699bcea4eedc1fffef88a501f19975"
+    },
+    "product-experimentation": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "b1b575be6f7c9d8875fde9d2477a3d1226614577ab3e7f5f76fb1400eb635f63",
+      "assets/report-template.md": "938c3f2da792d6f3f1a38ed1ea3cc9f74051cfbfe52a473a54adb64824cd2cb6",
+      "references/method.md": "40e241c57fc3abfee92b9f4f5f89f9ebaf0d1d2c980be4a8a201b53d3d29ec37",
+      "tests/cases.json": "e348e39ce71ba060eb96cfd8bc39d39f8a56426e6e2a7c047d054203ffbeebf2",
+      "tests/fixtures/input.json": "8c216a5586b1708e016acdad8e503439a6c00704fa1456ed39a38f30b17e2031"
+    },
+    "competitor-monitoring": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "e32f07b7aa82164f607922def2d07e257f95f5c2f469e3136f4a9471dc1c2c55",
+      "assets/report-template.md": "cf8d62493a716994834ed0820162c2f7de3ddc18822f02b3e5fbde78839c2fea",
+      "references/method.md": "cbecc858f7992628343dc0e88fa0e96524bca18f8748725fb1d8dd6a3fe982fd",
+      "scripts/compare_snapshots.py": "dc8d0d9559d5ea7dd3b7b6e5b69314d97e8668e16871a8419d3af535f90403ad",
+      "tests/cases.json": "caf28a06c883c439b05eebbad918774d82680ad7328751c10d1f73fe5276045f",
+      "tests/fixtures/baseline.json": "3be3dc6f17da07dd1c25f398155fc4d04da718e653ec29e82be961238a9998fa",
+      "tests/fixtures/current.json": "17afa13c4bdd8922ced9fd39253d045661d58bcc8f531f148b53b21425006919",
+      "tests/fixtures/input.json": "62949f05aed3f1b6dacd8eb11de1ad65a7d2672c76eecab47a4a9e4ec9a074f6",
+      "tests/test_compare_snapshots.py": "41fbfc9d05516165e444793485245bb756241bb0a50187ec2ec3c940f2debe8c"
+    },
+    "native-app-delivery": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "150907b0b946522bd518edef072883bacfc3a4bdb6fed4f75eb97dacac343946",
+      "assets/report-template.md": "dc67d7c0ed83e9759460af666bbda34b02d0ccdb5af3e0f4025992a5ba2837cb",
+      "references/android.md": "2a9b03bdc81721344200c99bfad84ec6d6a1c37e28914177ab00333509203d8e",
+      "references/ios.md": "fd0d970f6484d28986068bb580353af9a9fbe369f27767bad59758eb60f77c6f",
+      "references/method.md": "8b41573a17e23c65f80c18009edfaf278b635d4a0347b68bd8b0e0e451430d50",
+      "tests/cases.json": "4f9ed4d26101075d0915e09636d6f93b0c1992ed52f003798191e0496eb89c57",
+      "tests/fixtures/input.json": "715fadde536835cbe77177bbe237b93f03aa9157feed41792e8c089917b9dd25"
+    },
+    "user-research": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "554f431d3a3f8de30df305ce69fca1a12b09f85585f05b8f9776eaa5602cab3a",
+      "assets/report-template.md": "deb76978191fb1e6e9419c155c9b18599236d0a17d36e905710e7d034ec8cd18",
+      "references/method.md": "597590d90e4f1e50713ce065235912e6343cd861649d7b64fed5756745451508",
+      "tests/cases.json": "ac0c59d9f74589954e4e07393f773ec8d58dbad58f6d466f96667a086b77ecd7",
+      "tests/fixtures/input.json": "71b16b7249e845171674167ad8459a552efe7f3b05deef24a9fe5e6a255a952d"
+    },
+    "market-opportunity-research": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "92f6544f606ecf7082cc659a458688faaec565eedef8f53031965fc3e4f4d70d",
+      "assets/report-template.md": "07c228c0cb25c0eeb3d94d0eb369adc654dd272e863f2aec95667af77acd22f0",
+      "references/method.md": "4e3d5076288faf1eff57cb4d66bf715ae907716b3fb19ddbee5a3c0eee33a366",
+      "tests/cases.json": "67dabe81e46e680f6b7201423b48ff48c7d552fad2e161fd0c4c1b5027e51402",
+      "tests/fixtures/input.json": "9575cd16953a5d1a4077f7c0a426c0d184cc8b6e9acdb0a07e6817480215db85"
+    },
+    "performance-audit": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "26b6c652e209c2ebbedb834da4584e5668783abcb4812abee9ebbf6247c9fa71",
+      "references/recovery-evidence.md": "1adac69961f718bc15a8cd95bdc745ef731e0d2fbf458e9ace77f2f959872973",
+      "tests/cases.json": "04ac31b9de2d334d3320c1a2d8e756ee3d737e2a589a4a3e69c10198c40175e1"
     }
   },
   "license": "MIT License\n\nCopyright (c) 2026 Agentic Harness contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"

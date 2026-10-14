@@ -25,7 +25,8 @@ bundled helpers. Inspect other discovery locations for duplicate IDs before
 installing, especially when mixing project and global copies.
 
 Installation/update reads `.ah-skills/state.json` in the target. It tracks each
-file hash and each skill's source revision. Byte-identical unmanaged copies may
+file hash and each skill's source revision. The existing `powerpuff-kitty/skills`
+state collection ID remains stable across the GitHub rename to `ai-skills`. Byte-identical unmanaged copies may
 be adopted. Differing unmanaged files and edited managed files are conflicts;
 any conflict blocks the apply before skill/state writes. `--dry-run` reports
 conflicts without applying them; a successful preview exit is not a ready verdict.
@@ -72,6 +73,6 @@ Retained [native registry evidence](evidence/skills-lifecycle-2026-10-14/native-
 [isolated lifecycle exercise](evidence/skills-lifecycle-2026-10-14/lifecycle.json)
 and [source identities](evidence/skills-lifecycle-2026-10-14/source-manifest.json)
 record the 2026-10-14 check. The source consumer's CI validates metadata for all
-52 skills and domain coverage; its real binary delivery fixture checks 97 exact
-files across 19 representative procedures. These checks do not certify reasoning
+59 skills and domain coverage; its real binary delivery fixture checks 151 exact
+files across 27 representative procedures. These checks do not certify reasoning
 quality or prove every host version.
