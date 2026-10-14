@@ -80,6 +80,7 @@ ah audit ./app
 ah validate ./app
 ```
 
+
 Agentic Harness separates project truth, agent behavior, and deterministic enforcement:
 
 ```text
@@ -95,11 +96,22 @@ self-contained target project
 - **[skills](https://github.com/powerpuff-kitty/skills):** self-contained agent skills and their local resources
 - **This repository:** deterministic composition, audits, validation, security checks, architecture/design analysis, and quality gates
 
-Release binaries embed pinned snapshots of the canonical and agent repositories, so generated projects and binary users do not require GitHub access or Rust at runtime.
+Release binaries embed pinned snapshots of the canonical and Skills sources, so generated projects and binary users do not require GitHub access or Rust at runtime.
 
 Audit v2 reports `overall` and unmeasured quality/readiness scores as `null`. File presence does not establish test quality or production readiness. Gates validate evidence before applying explicit policy. See [command/compatibility contracts](docs/cli-contracts.md), [performance evidence](docs/performance.md), and [release gates](docs/release-checklist.md).
 
 New projects use root `AGENTS.md` and `.agentic/manifest.yaml` with routed context. Upgrades preserve custom files and report conflicts; legacy `agentic.yaml` layouts require an explicit migration. All command families and the pinned model registry are embedded in the installed `ah` binary.
+
+## Financial research skills
+
+For a financial-research project, select the analytical validation procedures:
+
+```bash
+ah init ./research --boilerplate base --skill market-data-validation --skill financial-model-review --skill backtest-validation
+```
+
+These skills include references and report templates for data, model and backtest
+checks. They do not connect financial accounts or execute transactions.
 
 ## Commands
 

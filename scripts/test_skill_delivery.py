@@ -29,9 +29,11 @@ class SkillDelivery(unittest.TestCase):
         (self.project / '.agentic/lock.json').write_text(json.dumps({'agents_source':self.fixture['source']}))
         (self.project / '.agentic/THIRD_PARTY_NOTICES.md').write_text(self.fixture['license'], encoding='utf-8')
 
-    def test_reviewed_fixture_has_all_fourteen_files(self):
+    def test_reviewed_fixture_covers_guides_templates_and_cases(self):
         fixture, digest = probe.read_fixture()
-        self.assertEqual(sum(len(files) for files in fixture['skills'].values()), 14)
+        self.assertEqual(sum(len(files) for files in fixture['skills'].values()), 29)
+        self.assertIn('assets/report-template.md', fixture['skills']['financial-model-review'])
+        self.assertIn('tests/cases.json', fixture['skills']['backtest-validation'])
         self.assertIn('references/language-review-packs.md', fixture['skills']['codebase-audit'])
         self.assertEqual(len(digest), 64)
 

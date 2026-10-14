@@ -1,24 +1,55 @@
-# Flagship skill delivery
+# Reviewed skill delivery
 
-The CLI embeds the reviewed agents revision from `upstream.lock.json`. The first self-contained flagship procedures are `codebase-audit`, `security-review` and `design-system-compliance`. Their skill folders contain required local decision guides, report templates and a repository-specific `bundle.json` declaration. Compliance also contains an exact copy of the shared Design Intelligence boundaries. A copied skill does not need the original collection checkout to read these references.
+The CLI embeds the exact Skills revision from `upstream.lock.json`. Skill folders
+live directly at that source root; README and installation guidance are excluded
+from the embedded payload. Each copied skill includes its own license and local
+resources, so a consumer does not need the original checkout to read its guides.
 
-For a fresh context project:
+The delivery fixture covers six procedures: codebase-audit, security-review,
+design-system-compliance, market-data-validation, financial-model-review and
+backtest-validation. The finance folders add report-template assets and JSON
+acceptance specifications alongside their reference guides. Those specifications
+are copied as resources, not executed or treated as observed outcomes.
+
+For a fresh financial-research context project:
 
 ```sh
-ah init ./review-project --boilerplate base --skill codebase-audit --skill security-review --skill design-system-compliance
-ah validate ./review-project
+ah init ./research --boilerplate base --skill market-data-validation --skill financial-model-review --skill backtest-validation
+ah validate ./research
 ```
 
-Existing project upgrades preserve existing bytes and report conflicts; they do not automatically replace an older or customized SKILL.md or reference with the new upstream version. Review differences explicitly. Adding missing references is not proof that preserved custom procedures are identical to the current bundle. The target project continues to own its context and acceptance rules.
+Upgrades preserve existing bytes and report conflicts. They do not automatically
+replace older/customized instructions or references. Review differences explicitly;
+restoring a missing resource does not certify preserved custom files as identical
+to upstream. The target project continues to own its context and acceptance rules.
 
 ## Executable verification
 
-`tests/fixtures/flagship-skill-delivery.json` records the exact reviewed agents commit and SHA-256 values for all 14 files in these three folders, including the codebase-audit language review guide. The same probe is used by actual-output checks, source/custom-prefix installation and copied/downloaded candidates. It requires no runtime source checkout, external tool or model. The base template's optional skills-index README is identified by its exact reviewed hash, not counted as an installed skill; other unexpected files remain rejected.
+`tests/fixtures/flagship-skill-delivery.json` records the exact reviewed Skills commit
+and SHA-256 values for all 29 files across these six folders. The probe is shared
+by actual-output checks, source/custom-prefix installs and copied/downloaded
+candidates. The executed binary needs no runtime source checkout or model. The
+base context template's optional skills-index README is identified by its exact
+reviewed hash, not mistaken for an installed skill; other unexpected files fail.
 
-The 16 calls verify source identity; fresh single-skill and combined composition; actual project validation; two explicit upgrades preserving a customized guide and owner notes; restoration of a missing reference; and non-mutating rejection of an unknown skill. The existing project notice must retain the exact MIT text. Hash checks compare delivered source bytes, not semantic quality.
+The 26 calls check source identity; single-skill and combined composition; actual
+project validation; two upgrades preserving a customized guide and owner notes;
+restoration of missing reference, asset-template and JSON-case resources; and
+non-mutating rejection of an unknown skill. Project notices retain the exact MIT
+text. Hash checks establish delivery identity, not financial reasoning quality.
 
-Eleven probe regression tests use synthetic files and a mocked wrong-version process response. They are separate from real candidate execution. Candidate reports include the source/fixture identity, call outcomes and explicit `model_execution: not-run` and false host-delivery status. A failed probe prevents a successful candidate report. No public canonical execution schema is changed by this internal verification record.
+Eleven regression tests use synthetic files and a mocked wrong-version response.
+They are separate from real candidate execution. Candidate reports record source/
+fixture identity, call outcomes, `model_execution: not-run` and false host-delivery
+status. A failed probe prevents a successful candidate report. This internal
+verification record does not change a public canonical execution schema.
 
-The agents repository separately validates standalone ZIP dependency closure and real collection-package contents. Its `bundle.json`/`bundle-lock.json` format is not part of the Agent Skills standard. Standalone ZIP packaging is not a new CLI command; use the agents repository's documented packager for that path.
+Current Skills source uses complete folder copies, without collection bundle
+manifests, a ZIP packager or automatic host configuration. Historical package
+formats remain historical. See the [source installation guide](https://github.com/powerpuff-kitty/skills/blob/main/INSTALL.md).
 
-Scope: trusted synthetic projects only; no user-project installation, project command execution, live agent session or model-behavior evaluation. No workflow YAML or dependency change is required. Migration and verified-completion procedure depth remain under agents #25; actual model outcomes are tracked separately under agents #26.
+Scope: owned synthetic projects, with no user-project install, execution of copied
+skill helpers, broker/wallet access or live agent/model session. Source/candidate
+delivery checks do not establish native host loading or task-outcome reliability.
+Reproducible model evaluation remains tracked separately in
+[skills #26](https://github.com/powerpuff-kitty/skills/issues/26).

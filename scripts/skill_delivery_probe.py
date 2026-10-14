@@ -10,8 +10,22 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/flagship-skill-delivery.json'
-NAMES = ('codebase-audit', 'design-system-compliance', 'security-review')
-PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md)\Z')
+NAMES = ('codebase-audit', 'design-system-compliance', 'security-review',
+         'market-data-validation', 'financial-model-review', 'backtest-validation')
+PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/report-template\.md|tests/cases\.json)\Z')
+EXPECTED_PATHS = {
+    'codebase-audit': {'SKILL.md', 'LICENSE', 'references/review-guide.md',
+                       'references/report-template.md', 'references/language-review-packs.md'},
+    'design-system-compliance': {'SKILL.md', 'LICENSE', 'references/review-guide.md',
+                                 'references/report-template.md', 'references/design-intelligence.md'},
+    'security-review': {'SKILL.md', 'LICENSE', 'references/review-guide.md', 'references/report-template.md'},
+    'market-data-validation': {'SKILL.md', 'LICENSE', 'references/validation-guide.md',
+                               'assets/report-template.md', 'tests/cases.json'},
+    'financial-model-review': {'SKILL.md', 'LICENSE', 'references/model-review.md',
+                              'assets/report-template.md', 'tests/cases.json'},
+    'backtest-validation': {'SKILL.md', 'LICENSE', 'references/backtest-review.md',
+                            'assets/report-template.md', 'tests/cases.json'},
+}
 # Optional index supplied by the pinned base context template, not a skill directory.
 INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
 
@@ -34,10 +48,9 @@ def read_fixture():
             and re.fullmatch(r'[a-f0-9]{40}', value['source']['commit']) is not None,
             'skill-delivery: invalid source')
     require(set(value['skills']) == set(NAMES), 'skill-delivery: unexpected skill selection')
-    for files in value['skills'].values():
-        require(isinstance(files, dict) and 4 <= len(files) <= 5
-                and {'SKILL.md', 'LICENSE', 'references/review-guide.md',
-                     'references/report-template.md'} <= set(files), 'skill-delivery: incomplete selection')
+    for name, files in value['skills'].items():
+        require(isinstance(files, dict) and set(files) == EXPECTED_PATHS[name],
+                'skill-delivery: incomplete selection')
         for path, digest in files.items():
             require(PATH.fullmatch(path) is not None and re.fullmatch(r'[a-f0-9]{64}', digest) is not None,
                     'skill-delivery: invalid path or digest')
@@ -122,11 +135,16 @@ def exercise_skill_delivery(binary: Path, parent: Path, environment: dict, expec
             require(invoke('validate', 'combined').get('valid') is True, 'skill-delivery: upgrade invalidated project')
 
         # Only an owned disposable test file is removed; the CLI must restore the missing reference.
-        missing = project / '.agents/skills/design-system-compliance/references/report-template.md'
-        missing.unlink()
-        invoke('upgrade', 'combined', '--boilerplate', 'base', '--skill', 'design-system-compliance')
-        require(snapshot(project) == preserved, 'skill-delivery: reference recovery changed preserved inputs')
-        require(invoke('validate', 'combined').get('valid') is True, 'skill-delivery: recovered project invalid')
+        for name, relative in (
+            ('design-system-compliance', 'references/report-template.md'),
+            ('financial-model-review', 'assets/report-template.md'),
+            ('backtest-validation', 'tests/cases.json'),
+        ):
+            missing = project / '.agents/skills' / name / relative
+            missing.unlink()
+            invoke('upgrade', 'combined', '--boilerplate', 'base', '--skill', name)
+            require(snapshot(project) == preserved, 'skill-delivery: resource recovery changed preserved inputs')
+            require(invoke('validate', 'combined').get('valid') is True, 'skill-delivery: recovered project invalid')
         before = snapshot(work)
         invoke('upgrade', 'combined', '--skill', 'unknown-synthetic-skill', expected=2)
         require(snapshot(work) == before, 'skill-delivery: invalid selection mutated project')
