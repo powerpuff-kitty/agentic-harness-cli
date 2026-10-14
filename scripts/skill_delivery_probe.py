@@ -13,8 +13,9 @@ FIXTURE = ROOT / 'tests/fixtures/flagship-skill-delivery.json'
 NAMES = ('codebase-audit', 'design-system-compliance', 'security-review',
          'market-data-validation', 'financial-model-review', 'backtest-validation',
          'onchain-data-analysis', 'smart-contract-review', 'defi-risk-analysis',
-         'odds-analysis', 'forecast-calibration', 'settlement-rule-review')
-PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/report-template\.md|tests/cases\.json)\Z')
+         'odds-analysis', 'forecast-calibration', 'settlement-rule-review',
+         'content-brief', 'copy-editing', 'content-repurposing', 'geo-measurement')
+PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/[a-z-]+\.md|tests/cases\.json)\Z')
 EXPECTED_PATHS = {
     'codebase-audit': {'SKILL.md', 'LICENSE', 'references/review-guide.md',
                        'references/report-template.md', 'references/language-review-packs.md'},
@@ -31,8 +32,9 @@ EXPECTED_PATHS = {
 EXPECTED_PATHS.update({
     name: {'SKILL.md', 'LICENSE', 'references/method.md',
            'assets/report-template.md', 'tests/cases.json'}
-    for name in NAMES[6:]
+    for name in NAMES[6:12]
 })
+EXPECTED_PATHS.update({'content-brief': {'tests/cases.json', 'LICENSE', 'assets/brief-template.md', 'references/example.md', 'SKILL.md'}, 'copy-editing': {'tests/cases.json', 'assets/review-template.md', 'LICENSE', 'references/example.md', 'SKILL.md'}, 'content-repurposing': {'assets/output-map.md', 'tests/cases.json', 'LICENSE', 'references/example.md', 'SKILL.md'}, 'geo-measurement': {'assets/report-template.md', 'tests/cases.json', 'LICENSE', 'references/method.md', 'SKILL.md'}})
 # Optional index supplied by the pinned base context template, not a skill directory.
 INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
 

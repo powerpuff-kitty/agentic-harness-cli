@@ -30,6 +30,7 @@ mod jev_transport;
 mod process_check;
 mod project;
 mod scan;
+mod skills_install;
 mod strict_json;
 mod syntax;
 mod syntax_worker;
@@ -77,6 +78,7 @@ pub fn entry(family: Option<&str>) {
                 "checks",
                 "adapters",
                 "decisions",
+                "skills",
             ]
             .contains(&x.as_str())
         }) {
@@ -98,6 +100,9 @@ pub fn entry(family: Option<&str>) {
         println!(
             "Experimental family: checks <plan|prepare|run|complete> [TARGET]; execution requires explicit review and unsandboxed acknowledgment.\n"
         );
+        println!(
+            "Skills lifecycle: skills <list|install|status|update|rollback> --target DIRECTORY; see skills --help\n"
+        );
         println!("Context adapters: adapters sync [TARGET] --host HOST (preview by default)\n");
         println!(
             "Decision Kernel: offline contracts plus opt-in decisions jev-evaluate --allow-network\n"
@@ -111,6 +116,7 @@ pub fn entry(family: Option<&str>) {
         Some("checks") => checks::run(args),
         Some("adapters") => adapters::run(args),
         Some("decisions") => decisions::run(args),
+        Some("skills") => skills_install::run(args),
         _ => cli::run(args),
     }
     crate::syntax_worker::shutdown();
@@ -129,6 +135,17 @@ fn validate_args(family: Option<&str>, args: &[String]) -> Result<(), String> {
     }
     let (flags, switches, min, max, directory): (&[&str], &[&str], usize, usize, bool) =
         match (family, command.as_str()) {
+            (Some("skills"), "list") => (&[], &[], 0, 0, false),
+            (Some("skills"), "install" | "update" | "status") => (
+                &["--target", "--skill", "--domain"],
+                &["--all", "--dry-run"],
+                0,
+                0,
+                false,
+            ),
+            (Some("skills"), "rollback") => {
+                (&["--target", "--backup"], &["--dry-run"], 0, 0, false)
+            }
             (None, "init" | "upgrade") => (
                 &[
                     "--boilerplate",

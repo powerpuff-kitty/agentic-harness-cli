@@ -3,7 +3,7 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/skills",
-    "commit": "031ad986b946dc2b5a98ffabba84f903255a99b2"
+    "commit": "e576591c3b1dba70b18c296f1110d2c2d8665e9f"
   },
   "skills": {
     "codebase-audit": {
@@ -88,6 +88,34 @@
       "assets/report-template.md": "8f4fbaf39cef4bcea23ab9ba597e5e12248d5ee516560ded286d57e45b96c53e",
       "references/method.md": "daa053586de0339a812041f99d59caaea7b06df539647dee43081961056ab670",
       "tests/cases.json": "04cd3bffcda24d8578c19bf2a5e4632ed875a8717c2022ae860b357904c09e03"
+    },
+    "content-brief": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "abd6617858000ad47480a2bc2cb84d976c349c57923610c428221b7deb3d4e44",
+      "assets/brief-template.md": "3dfa5eb7af19685b98ee88a71492d2ece371d7f42d850a55e96fd673adf9adf6",
+      "references/example.md": "0d8c3430c191f550080445d87bb72b08caf1df7766101632ff2370d348072c0d",
+      "tests/cases.json": "5a50a3e1d6337f013aebe9df3e27f8855fab055068676937ebd661a4d23c5633"
+    },
+    "copy-editing": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "51540a69c6218b547ea903cf42aca570e4e416296bf5dd2c7f53297100cc1813",
+      "assets/review-template.md": "88f85923d9f1add4c3f43c306e0149c555094b787bbec7c542a6eb2da11abb82",
+      "references/example.md": "43806b8e040d36ba56f14b6062cbebdc5416100d88dfda6f9b79be572bf6280c",
+      "tests/cases.json": "e715168bff52e1f3b7d2acbb3078d34e46dfd7e294c6044c281a1a70b95ad7d0"
+    },
+    "content-repurposing": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "3a1f8d3649d7e54505b24cb56ef81c0c1deaa90b24b735dfb0c7781fabb4f196",
+      "assets/output-map.md": "ee19576f1b0f63476b542328400f31dbe42fd1c1df553a2f7e949616a315832f",
+      "references/example.md": "d02f4afa5cc9a124baa7fc98785a54e9ed4841d28da1650a1ae72ade705eb5d6",
+      "tests/cases.json": "df83450ef747fb10de45fd70b8f58b66affeef01b7436e4a4872492a99c7ffc7"
+    },
+    "geo-measurement": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "58bd8f1502d26482e986ca828c537e6ff9643a74b90e434d2f1b31da531016b3",
+      "assets/report-template.md": "8973e36f3e18658334daa6b9c34e625ccb4b0aefb7581f27ba210e0a73bd9e42",
+      "references/method.md": "455a245a66e2333d1a72dacb21de6a4558d6f282b2149d2d25c4c7922cec95e9",
+      "tests/cases.json": "211c711bae2ca7b5a5adaa49ffacacb614cc81c1ed0e6fd6cf87648aecd7fe50"
     }
   },
   "license": "MIT License\n\nCopyright (c) 2026 Agentic Harness contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"

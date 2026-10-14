@@ -1,0 +1,21 @@
+{
+  "format_version": 1,
+  "date": "2026-10-14",
+  "source_sha256": {
+    "src/skills_install.rs": "30383c6e470788453423f58a60dc6858ca669c5f374c0aede787e739818f0bbb",
+    "src/lib.rs": "1eebb34e5f5bb29fb94e048f58e36587ab66e1861558e3040d9e7efa19f2c56f",
+    "catalog/skill-domains.json": "5daa362f4cd1f58182e2274e3a8d310731201b8a192b5dfd10c824fb88cb8fd2",
+    "scripts/opencode_skill_probe.py": "85198a67425c32cf504f333ae9756c83429e9f6467ec40e1a0debcffc9306945",
+    "upstream.lock.json": "a51be04c447dd86cad2d00b8aaf1652c7c7209a440d4f96918baee70555f2cb3"
+  },
+  "skills_source": {
+    "repository": "powerpuff-kitty/skills",
+    "commit": "e576591c3b1dba70b18c296f1110d2c2d8665e9f"
+  },
+  "limitations": [
+    "working-tree source bytes identified by hash",
+    "one local OpenCode version",
+    "no model execution",
+    "simulated previous managed source version in lifecycle exercise"
+  ]
+}

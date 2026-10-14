@@ -102,6 +102,14 @@ Audit v2 reports `overall` and unmeasured quality/readiness scores as `null`. Fi
 
 New projects use root `AGENTS.md` and `.agentic/manifest.yaml` with routed context. Upgrades preserve custom files and report conflicts; legacy `agentic.yaml` layouts require an explicit migration. All command families and the pinned model registry are embedded in the installed `ah` binary.
 
+## Skills installation and updates
+
+Use `ah skills list` to inspect the embedded snapshot and optional domains.
+`ah skills install`, `status`, `update` and `rollback` support an explicit host
+skill directory, named selections, previews, local-edit protection and backups.
+See [managed installation](docs/skills-installation.md) for complete commands and
+native OpenCode verification. This lifecycle is separate from project `upgrade`.
+
 ## Financial research skills
 
 For a financial-research project, select the analytical validation procedures:

@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "skills": 51,
+  "domains": 9,
+  "checks": [
+    "dry-run no writes",
+    "partial domain install",
+    "idempotence",
+    "unrelated custom preservation",
+    "conflict preview and refusal",
+    "managed update",
+    "rollback preview/apply",
+    "invalid selection no state write"
+  ],
+  "scope": "isolated temporary target; simulated previous managed source version"
+}

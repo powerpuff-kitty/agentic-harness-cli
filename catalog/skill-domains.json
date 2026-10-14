@@ -1,0 +1,11 @@
+{
+  "engineering": ["api-design", "database-design", "systematic-debugging", "test-engineering", "change-review", "implementation-plan", "code-quality", "codebase-audit", "dependency-upgrade", "performance-audit", "component-resolution"],
+  "delivery": ["ci-triage", "repository-maintenance", "documentation", "adr-management", "release", "release-review", "incident-review"],
+  "agent-setup": ["agentic-app", "agentic-structure-audit", "agentic-improvement", "adapter-sync", "migration", "model-fit", "decision-intelligence"],
+  "product-design": ["product-design", "design-research", "design-analysis", "design-intelligence", "design-system", "design-system-compliance", "identity-design", "accessibility-audit"],
+  "security": ["security-review", "threat-model", "smart-contract-review"],
+  "content-growth": ["marketing", "competitive-research", "seo-audit", "geo-measurement", "content-brief", "copy-editing", "content-repurposing"],
+  "finance": ["market-data-validation", "financial-model-review", "backtest-validation"],
+  "crypto": ["onchain-data-analysis", "smart-contract-review", "defi-risk-analysis", "market-data-validation"],
+  "forecasting": ["odds-analysis", "forecast-calibration", "settlement-rule-review"]
+}
