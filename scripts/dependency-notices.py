@@ -82,8 +82,9 @@ def main():
     # Attribute every embedded skill at its own root; a sibling's license cannot
     # stand in for a missing declaration.
     authored_roots.extend(('skill:' + folder.name, folder)
-                         for folder in sorted((ROOT / 'upstream/skills/skills').iterdir())
-                         if folder.is_dir() and not folder.is_symlink())
+                         for folder in sorted((ROOT / 'upstream/skills').iterdir())
+                         if folder.is_dir() and not folder.is_symlink()
+                         and (folder / 'SKILL.md').is_file())
     for name, root in authored_roots:
         # Only source-root declarations apply; exclude nested dependencies/templates.
         files = sorted(p for p in root.glob('*') if p.is_file() and not p.is_symlink()

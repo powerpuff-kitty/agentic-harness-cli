@@ -13,9 +13,11 @@ renamed from `agentic-harness-agents`. New source checkouts use `upstream/skills
 existing checkouts under the previous directory are preserved. The `agents` source
 key in locks and version/adapter reports remains unchanged for compatibility.
 Source revision pins still identify exact commits, and old published binaries and
-release assets are unchanged. The source repository now contains only `skills/<name>/`
-folders, each with its own license. Adapter templates are resources of `adapter-sync`;
-collection-level plugin metadata, prompts and release tooling have been removed.
+release assets are unchanged. The source repository now contains self-contained `<name>/`
+folders directly at its root, each with its own license, plus `README.md` and `INSTALL.md`. Adapter templates are resources of `adapter-sync`;
+collection-level plugin metadata, standalone prompts and release tooling have been removed.
+The build stages only the root skill folders in Cargo-generated output before
+embedding them; repository Git metadata and installation guidance are excluded.
 
 ## Installation
 

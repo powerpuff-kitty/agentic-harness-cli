@@ -6,11 +6,11 @@ from pathlib import Path
 import subprocess
 
 ADAPTER_FILES = (
-    'skills/adapter-sync/LICENSE',
-    'skills/adapter-sync/assets/assets.json',
-    'skills/adapter-sync/assets/claude/files/CLAUDE.md',
-    'skills/adapter-sync/assets/claude/files/.claude/rules/agentic-typed-ui.md',
-    'skills/adapter-sync/assets/cursor/files/.cursor/rules/agentic-typed-ui.mdc',
+    'adapter-sync/LICENSE',
+    'adapter-sync/assets/assets.json',
+    'adapter-sync/assets/claude/files/CLAUDE.md',
+    'adapter-sync/assets/claude/files/.claude/rules/agentic-typed-ui.md',
+    'adapter-sync/assets/cursor/files/.cursor/rules/agentic-typed-ui.mdc',
 )
 
 

@@ -29,7 +29,7 @@ static PRESETS: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/catalog/presets");
 static VARIANTS: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/upstream/agentic-harness/catalog/variants");
-static SKILLS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/upstream/skills/skills");
+static SKILLS: Dir<'_> = include_dir!("$OUT_DIR/skills");
 
 const CODE_EXT: &[&str] = &[
     "py", "js", "mjs", "cjs", "ts", "tsx", "jsx", "vue", "rs", "go", "java", "kt", "swift", "rb",
@@ -1464,6 +1464,18 @@ mod tests {
     #[test]
     fn profile_exists() {
         assert!(PROFILES.get_file("startup/profile.json").is_some());
+    }
+
+    #[test]
+    fn skill_payload_excludes_repository_metadata() {
+        assert!(SKILLS.files().next().is_none());
+        assert!(SKILLS.get_dir(".git").is_none());
+        assert!(SKILLS.get_file("INSTALL.md").is_none());
+        assert!(SKILLS.get_file("README.md").is_none());
+        for skill in SKILLS.dirs() {
+            assert!(dir_has_file(skill, "SKILL.md"));
+            assert!(dir_has_file(skill, "LICENSE"));
+        }
     }
 
     #[test]
