@@ -31,7 +31,7 @@ class SkillDelivery(unittest.TestCase):
 
     def test_reviewed_fixture_covers_guides_templates_and_cases(self):
         fixture, digest = probe.read_fixture()
-        self.assertEqual(sum(len(files) for files in fixture['skills'].values()), 151)
+        self.assertEqual(sum(len(files) for files in fixture['skills'].values()), 172)
         self.assertIn('assets/report-template.md', fixture['skills']['financial-model-review'])
         self.assertIn('tests/cases.json', fixture['skills']['backtest-validation'])
         self.assertIn('references/method.md', fixture['skills']['onchain-data-analysis'])

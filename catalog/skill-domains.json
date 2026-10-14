@@ -29,7 +29,9 @@
     "adapter-sync",
     "migration",
     "model-fit",
-    "decision-intelligence"
+    "decision-intelligence",
+    "structured-reflection",
+    "project-memory"
   ],
   "product-design": [
     "product-design",
@@ -46,7 +48,8 @@
   "security": [
     "security-review",
     "threat-model",
-    "smart-contract-review"
+    "smart-contract-review",
+    "agent-security-review"
   ],
   "content-growth": [
     "marketing",

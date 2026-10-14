@@ -18,8 +18,9 @@ NAMES = ('codebase-audit', 'design-system-compliance', 'security-review',
          'test-engineering', 'change-review', 'design-extraction',
          'product-instrumentation', 'product-analytics', 'product-experimentation',
          'competitor-monitoring', 'native-app-delivery', 'user-research',
-         'market-opportunity-research', 'performance-audit')
-PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/[a-z-]+\.md|assets/taste-profile\.example\.json|tests/cases\.json|tests/fixtures/reference\.(?:html|css)|tests/fixtures/(?:input|baseline|current|browser-recovery)\.json|scripts/compare_snapshots\.py|tests/test_compare_snapshots\.py)\Z')
+         'market-opportunity-research', 'performance-audit',
+         'structured-reflection', 'project-memory', 'agent-security-review')
+PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md|assets/[a-z-]+\.md|assets/taste-profile\.example\.json|tests/cases\.json|tests/fixtures/reference\.(?:html|css)|tests/fixtures/(?:input|baseline|current|browser-recovery)\.json|scripts/compare_snapshots\.py|tests/test_compare_snapshots\.py|tests/fixtures/gateway\.py)\Z')
 EXPECTED_PATHS = {
     'codebase-audit': {'SKILL.md', 'LICENSE', 'references/review-guide.md',
                        'references/report-template.md', 'references/language-review-packs.md'},
@@ -67,6 +68,15 @@ EXPECTED_PATHS.update({
     'performance-audit': {'SKILL.md', 'LICENSE', 'references/recovery-evidence.md',
                           'tests/cases.json'},
 })
+EXPECTED_PATHS.update({
+    name: {'SKILL.md', 'LICENSE', 'references/method.md', 'references/protocol.md',
+           'assets/report-template.md', 'tests/cases.json', 'tests/fixtures/input.json'}
+    for name in ('structured-reflection', 'project-memory')
+})
+EXPECTED_PATHS['agent-security-review'] = {
+    'SKILL.md', 'LICENSE', 'references/method.md', 'assets/report-template.md',
+    'tests/cases.json', 'tests/fixtures/input.json', 'tests/fixtures/gateway.py',
+}
 # Optional index supplied by the pinned base context template, not a skill directory.
 INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
 

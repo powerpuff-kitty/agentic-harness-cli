@@ -73,6 +73,15 @@ Retained [native registry evidence](evidence/skills-lifecycle-2026-10-14/native-
 [isolated lifecycle exercise](evidence/skills-lifecycle-2026-10-14/lifecycle.json)
 and [source identities](evidence/skills-lifecycle-2026-10-14/source-manifest.json)
 record the 2026-10-14 check. The source consumer's CI validates metadata for all
-59 skills and domain coverage; its real binary delivery fixture checks 151 exact
-files across 27 representative procedures. These checks do not certify reasoning
+62 skills and domain coverage; its real binary delivery fixture checks 172 exact
+files across 30 representative procedures. These checks do not certify reasoning
 quality or prove every host version.
+
+## npm channel
+
+Native release bundles remain the maintained CLI distribution. No npm launcher is
+published. A future launcher should package or verify exact-version platform assets,
+preserve the native binary's commands and avoid automatic host configuration. See
+the [distribution assessment](https://github.com/powerpuff-kitty/ai-agents/blob/main/docs/DISTRIBUTION.md).
+Skills already support direct Git discovery through external tooling; catalog npm
+packages are not required for the managed lifecycle.

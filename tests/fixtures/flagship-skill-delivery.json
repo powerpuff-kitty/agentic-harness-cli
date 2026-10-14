@@ -3,7 +3,7 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/ai-skills",
-    "commit": "4f137bc7d7847fe1ececfd47a073c95ba5092b28"
+    "commit": "2c3c4d482e2cddf3da1c81d6c90da6ba0193f985"
   },
   "skills": {
     "codebase-audit": {
@@ -210,6 +210,33 @@
       "SKILL.md": "26b6c652e209c2ebbedb834da4584e5668783abcb4812abee9ebbf6247c9fa71",
       "references/recovery-evidence.md": "1adac69961f718bc15a8cd95bdc745ef731e0d2fbf458e9ace77f2f959872973",
       "tests/cases.json": "04ac31b9de2d334d3320c1a2d8e756ee3d737e2a589a4a3e69c10198c40175e1"
+    },
+    "structured-reflection": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "3961d1d1ecbc574f47de4c865e77fa9f74fb7e5dccc5b739c99f2bc1322c2dca",
+      "assets/report-template.md": "ccd79ab30aa17ea336c583af0a53f31e10de6a543f8a8f1034045f3da12ac0e6",
+      "references/method.md": "002dd55c5a387fa4c1a6790b958279c9751cd0a324334b494f208d77705af10d",
+      "references/protocol.md": "8a56192abc777f376ff29a8df83f9a6ffdb904cbb8cdaf7c88ddf91c7ac2ebd1",
+      "tests/cases.json": "cc2ce874e13763240f99e2361a5a4faefc665ffcd62664ca3c85ca2c2fe5a6ae",
+      "tests/fixtures/input.json": "0b7611b45216bde68ab13577d9c99ab7c50cdba24a84860b740cd034957a7ac7"
+    },
+    "project-memory": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "575a34ca082dc7a78a95cac894d59438249237695f5befdac7a6b73f76dcf442",
+      "assets/report-template.md": "6e038d89a988d52f853fbee24808ad2c405194536d54ba05e018c7c4e901eb53",
+      "references/method.md": "ba80e80a40a4f5f3d1d5f315e11b1f30e2470be31ff3f6a4013ef8e9c16c5367",
+      "references/protocol.md": "f2fc62065746117d8a40d7e382ca7808f2a68981275a5a89e32fe4c2bc5ce489",
+      "tests/cases.json": "84d917096f20ec1c05561dbfcb99029015c9a5e669adfd38fd8b7a18c8591743",
+      "tests/fixtures/input.json": "27145a88c96039d10393358cb9a0a3f803b60587be05c6ac68f0e975abaf392e"
+    },
+    "agent-security-review": {
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "d797dabc7d4fa05de11b9979914aef8226f186341521afdd2381358aaa8d9732",
+      "assets/report-template.md": "c0d96243a60d08d06907177a18a2e57c20141cd1554cb63eac35d1ce1dafc84d",
+      "references/method.md": "b89a6b9603f63e40f1882794c3cc7365f755b75874b4c842cf3230140227eb37",
+      "tests/cases.json": "00da74f99a38abd56f5158889ca9e40db8e91dfb87fb98e1f91d939cf5bd735a",
+      "tests/fixtures/gateway.py": "76f2445cf8ff1f8853ccb738877afa323df8e922cd15e2765024190b3f782bdb",
+      "tests/fixtures/input.json": "dda92beb4d38b4394d06d1d8603170e5e8714ff0e246d030b496cfb999483d69"
     }
   },
   "license": "MIT License\n\nCopyright (c) 2026 Agentic Harness contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"

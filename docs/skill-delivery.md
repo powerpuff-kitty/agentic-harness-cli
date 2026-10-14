@@ -5,7 +5,7 @@ live directly at that source root; README and installation guidance are excluded
 from the embedded payload. Each copied skill includes its own license and local
 resources, so a consumer does not need the original checkout to read its guides.
 
-The delivery fixture covers 27 procedures: audit/security/design reviews, finance,
+The delivery fixture covers 30 procedures: audit/security/design reviews, finance,
 crypto/forecasting, content/GEO, testing/change reviews, design extraction and
 the product measurement/research/native-app methods. Complete folders include
 licenses, references, templates, fixtures and applicable helpers. Acceptance
@@ -26,13 +26,13 @@ to upstream. The target project continues to own its context and acceptance rule
 ## Executable verification
 
 `tests/fixtures/flagship-skill-delivery.json` records the exact reviewed Skills commit
-and SHA-256 values for all 151 files across these 27 folders. The probe is shared
+and SHA-256 values for all 172 files across these 30 folders. The probe is shared
 by actual-output checks, source/custom-prefix installs and copied/downloaded
 candidates. The executed binary needs no runtime source checkout or model. The
 base context template's optional skills-index README is identified by its exact
 reviewed hash, not mistaken for an installed skill; other unexpected files fail.
 
-The 68 calls check source identity; single-skill and combined composition; actual
+The 74 calls check source identity; single-skill and combined composition; actual
 project validation; 2 upgrades preserving a customized guide and owner notes;
 restoration of missing reference, asset-template and JSON-case resources; and
 non-mutating rejection of an unknown skill. Project notices retain the exact MIT
