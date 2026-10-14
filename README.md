@@ -13,7 +13,9 @@ renamed from `agentic-harness-agents`. New source checkouts use `upstream/skills
 existing checkouts under the previous directory are preserved. The `agents` source
 key in locks and version/adapter reports remains unchanged for compatibility.
 Source revision pins still identify exact commits, and old published binaries and
-release assets are unchanged.
+release assets are unchanged. The source repository now contains only `skills/<name>/`
+folders, each with its own license. Adapter templates are resources of `adapter-sync`;
+collection-level plugin metadata, prompts and release tooling have been removed.
 
 ## Installation
 
@@ -80,7 +82,7 @@ Agentic Harness separates project truth, agent behavior, and deterministic enfor
 
 ```text
 agentic-harness          canonical boilerplates + modules + public schemas
-skills                  skills + prompts + adapters
+skills                  skills + local references, helpers and assets
         ↓ pinned snapshots
 agentic-harness-cli      native Rust `ah` engine
         ↓
@@ -88,7 +90,7 @@ self-contained target project
 ```
 
 - **[agentic-harness](https://github.com/powerpuff-kitty/agentic-harness):** canonical architecture, complete boilerplates, reusable modules, and public machine contracts
-- **[skills](https://github.com/powerpuff-kitty/skills):** agent-facing skills, prompts and workflows
+- **[skills](https://github.com/powerpuff-kitty/skills):** self-contained agent skills and their local resources
 - **This repository:** deterministic composition, audits, validation, security checks, architecture/design analysis, and quality gates
 
 Release binaries embed pinned snapshots of the canonical and agent repositories, so generated projects and binary users do not require GitHub access or Rust at runtime.

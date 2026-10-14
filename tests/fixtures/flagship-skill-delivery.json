@@ -3,26 +3,26 @@
   "kind": "flagship-skill-delivery",
   "source": {
     "repository": "powerpuff-kitty/skills",
-    "commit": "7e7d44e9f9d7e4579048c4e8c1073243f6bcf61c"
+    "commit": "79ef77486f987771870282c3593dc429802fc95c"
   },
   "skills": {
     "codebase-audit": {
-      "SKILL.md": "c3c1981ae476339df34c0c61b95d7bce41bf8691bc0d2e93e5e435108599eddc",
-      "bundle.json": "c912b6c1c3a6e0b50d3ae3074b2a0df6cedecff9b80b31ea368bf72ed248db4b",
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "d1580c2ea807b2c705acf275588525f26e9ff402512678a67a7ac6dcb7dbc606",
       "references/language-review-packs.md": "3d731cff199bc18114a96a6464bd105363ef60aa83fd29517734a06968b46b3f",
       "references/report-template.md": "72eebf31219e73ef7fc7f00fd21b66069bc0a33a8de65b5cdea1e706f7181e82",
       "references/review-guide.md": "cedbc8b26c3f2d96987403756f43028fe3770a1d1939457f4583d5e3ec6f5a92"
     },
     "design-system-compliance": {
-      "SKILL.md": "f0f9db7727ba2908d25aef53c12ae25022c761b4a50cc76f63edc705fa07f554",
-      "bundle.json": "f50630ebc596ad2c96262236ad2deb928acbdff0f79f0ec0b1b2c235a84641a5",
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "80ffcf965e27e35f41c06032c4a19305dc48d842baa4584b17a888ebe6852ba7",
       "references/design-intelligence.md": "627649ca0c1c617eacd3e2387a342929bfb53f08208deb2cc1d0fe7f4f065e61",
       "references/report-template.md": "6df8c55af05bda9673200a6bcd1001914e54e64329a7f5262935035ddf946e02",
       "references/review-guide.md": "2fcdb588aa106496e5b85e0b3814a91453ce3bf43e71087baa1b54944d10f677"
     },
     "security-review": {
-      "SKILL.md": "572742a92760a7feb1fdd6c8f4fbda8a8806fba9c6ddfaa6bf55892c9405f062",
-      "bundle.json": "b8409ca62735e0265e417328bb9b0d2e5f507ff1081bb3bed676961ff7b1ca10",
+      "LICENSE": "da8e7b98c9f5547396031dd15ffe7a820eb8c2b9e4d1b32c9eb69bbc0d2c5af4",
+      "SKILL.md": "e8d9d7c26f1225a6b956c9c6cfcc1c2ad7c792f90024f0ce50e62ed533f67d68",
       "references/report-template.md": "05370ce48b7a279f1ac066bef10e0884209ba2f7ff1c75f8dfed5ad511d1b3d8",
       "references/review-guide.md": "7939d7648bc027f0ca51d615504b74275ae485ea9fb54b471dece493c4f03c2b"
     }

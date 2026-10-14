@@ -11,7 +11,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/flagship-skill-delivery.json'
 NAMES = ('codebase-audit', 'design-system-compliance', 'security-review')
-PATH = re.compile(r'(?:SKILL\.md|bundle\.json|references/[a-z-]+\.md)\Z')
+PATH = re.compile(r'(?:SKILL\.md|LICENSE|references/[a-z-]+\.md)\Z')
 # Optional index supplied by the pinned base context template, not a skill directory.
 INDEX_SHA256 = 'a3753d6a6c03a10533bb6bc30d4193270290aefb1b163798255105f60e89e723'
 
@@ -36,7 +36,7 @@ def read_fixture():
     require(set(value['skills']) == set(NAMES), 'skill-delivery: unexpected skill selection')
     for files in value['skills'].values():
         require(isinstance(files, dict) and 4 <= len(files) <= 5
-                and {'SKILL.md', 'bundle.json', 'references/review-guide.md',
+                and {'SKILL.md', 'LICENSE', 'references/review-guide.md',
                      'references/report-template.md'} <= set(files), 'skill-delivery: incomplete selection')
         for path, digest in files.items():
             require(PATH.fullmatch(path) is not None and re.fullmatch(r'[a-f0-9]{64}', digest) is not None,

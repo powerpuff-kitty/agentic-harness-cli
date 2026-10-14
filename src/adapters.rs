@@ -5,7 +5,8 @@ use std::fs;
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 
-const INVENTORY: &[u8] = include_bytes!("../upstream/skills/adapters/assets.json");
+const INVENTORY: &[u8] =
+    include_bytes!("../upstream/skills/skills/adapter-sync/assets/assets.json");
 const LIMIT: usize = 65_536;
 
 struct Asset {
@@ -22,7 +23,9 @@ const ASSETS: &[Asset] = &[
         profile: "base",
         source: "claude/files/CLAUDE.md",
         target: "CLAUDE.md",
-        bytes: include_bytes!("../upstream/skills/adapters/claude/files/CLAUDE.md"),
+        bytes: include_bytes!(
+            "../upstream/skills/skills/adapter-sync/assets/claude/files/CLAUDE.md"
+        ),
     },
     Asset {
         host: "claude",
@@ -30,7 +33,7 @@ const ASSETS: &[Asset] = &[
         source: "claude/files/.claude/rules/agentic-typed-ui.md",
         target: ".claude/rules/agentic-typed-ui.md",
         bytes: include_bytes!(
-            "../upstream/skills/adapters/claude/files/.claude/rules/agentic-typed-ui.md"
+            "../upstream/skills/skills/adapter-sync/assets/claude/files/.claude/rules/agentic-typed-ui.md"
         ),
     },
     Asset {
@@ -39,7 +42,7 @@ const ASSETS: &[Asset] = &[
         source: "cursor/files/.cursor/rules/agentic-typed-ui.mdc",
         target: ".cursor/rules/agentic-typed-ui.mdc",
         bytes: include_bytes!(
-            "../upstream/skills/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
+            "../upstream/skills/skills/adapter-sync/assets/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
         ),
     },
 ];
@@ -48,7 +51,7 @@ const NOTICE: Asset = Asset {
     profile: "notice",
     source: "../LICENSE",
     target: ".agents/adapters/LICENSE",
-    bytes: include_bytes!("../upstream/skills/LICENSE"),
+    bytes: include_bytes!("../upstream/skills/skills/adapter-sync/LICENSE"),
 };
 
 fn select(host: &str, profile: &str) -> Result<Vec<&'static Asset>, String> {

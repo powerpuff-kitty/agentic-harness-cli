@@ -116,7 +116,7 @@ fn claude_base_creates_exact_bridge_and_retains_license() {
     );
     assert_eq!(
         fs::read(root.path().join(".agents/adapters/LICENSE")).unwrap(),
-        include_bytes!("../upstream/skills/LICENSE")
+        include_bytes!("../upstream/skills/skills/adapter-sync/LICENSE")
     );
     assert!(!root.path().join(".claude").exists());
 }
@@ -129,7 +129,7 @@ fn typed_ui_is_explicit_and_uses_the_pinned_payload() {
     assert_eq!(
         actual,
         include_bytes!(
-            "../upstream/skills/adapters/claude/files/.claude/rules/agentic-typed-ui.md"
+            "../upstream/skills/skills/adapter-sync/assets/claude/files/.claude/rules/agentic-typed-ui.md"
         )
     );
 }
@@ -154,7 +154,7 @@ fn cursor_scoped_rule_does_not_create_claude_or_overrides() {
     assert_eq!(
         actual,
         include_bytes!(
-            "../upstream/skills/adapters/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
+            "../upstream/skills/skills/adapter-sync/assets/cursor/files/.cursor/rules/agentic-typed-ui.mdc"
         )
     );
     assert!(!root.path().join("CLAUDE.md").exists());

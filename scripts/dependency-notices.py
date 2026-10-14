@@ -76,11 +76,16 @@ def main():
     sources = json.loads((ROOT / 'third-party/license-sources.json').read_text())['sources']
     records, sections = collect(metadata['packages'], sources, ROOT / 'third-party')
     authored = []
-    for name, root in [('CLI', ROOT), ('canonical', ROOT / 'upstream/agentic-harness'),
-                       ('agents', ROOT / 'upstream/skills'),
-                       ('model_registry', ROOT / 'upstream/agentic-harness-registry')]:
-        # Only repository-root declarations apply to authored sources; do not mistake
-        # a vendored dependency or template's LICENSE for the repository's declaration.
+    authored_roots = [('CLI', ROOT), ('canonical', ROOT / 'upstream/agentic-harness'),
+                      ('model_registry', ROOT / 'upstream/agentic-harness-registry')]
+    # The skills source consists solely of independently licensed skill folders.
+    # Attribute every embedded skill at its own root; a sibling's license cannot
+    # stand in for a missing declaration.
+    authored_roots.extend(('skill:' + folder.name, folder)
+                         for folder in sorted((ROOT / 'upstream/skills/skills').iterdir())
+                         if folder.is_dir() and not folder.is_symlink())
+    for name, root in authored_roots:
+        # Only source-root declarations apply; exclude nested dependencies/templates.
         files = sorted(p for p in root.glob('*') if p.is_file() and not p.is_symlink()
                        and p.name.lower().startswith(('license', 'licence', 'copying', 'notice')))
         licenses = [p for p in files if p.name.lower().startswith(('license', 'licence', 'copying'))]
@@ -96,7 +101,7 @@ def main():
               'Original texts and declared license alternatives are retained. Authored-source terms\n'
               'appear in the source sections below; this collection does not certify legal compatibility.\n'
               'Rust standard-library attribution accompanies this file as .rust.html.\n'
-              f'Authored sources without a root license declaration: {", ".join(missing) or "none"}.\n')
+              f'Authored sources without a license declaration at their own root: {", ".join(missing) or "none"}.\n')
     toolchain = subprocess.check_output(['rustc', '--version'], text=True).strip()
     sysroot = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True).strip())
     rust_notices = (sysroot / 'share/doc/rust/COPYRIGHT-library.html').read_bytes()
